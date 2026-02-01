@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  kbchatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_OPENAI_API_KEY=${VITE_OPENAI_API_KEY}
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+        - VITE_SUPABASE_KEY=${VITE_SUPABASE_KEY}
+        - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+        - VITE_GOOGLE_API_KEY=${VITE_GOOGLE_API_KEY}
+    networks:
+      - coolify
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  coolify:
+    external: true
