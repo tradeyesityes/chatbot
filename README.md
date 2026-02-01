@@ -3,7 +3,7 @@ KB Chatbot v2
 Run locally:
 
 ```bash
-cd /Users/ali/Downloads/kbchatbot-v2
+cd /kbchatbot-v2
 npm install
 npm run host
 # open http://localhost:8089 or http://<LAN-IP>:8089
