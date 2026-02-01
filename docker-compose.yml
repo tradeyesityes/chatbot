@@ -13,11 +13,6 @@ services:
         - VITE_GOOGLE_API_KEY=${VITE_GOOGLE_API_KEY}
     networks:
       - coolify
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 networks:
   coolify:
