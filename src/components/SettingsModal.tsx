@@ -9,8 +9,8 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, onClose }) => {
     const [settings, setSettings] = useState<UserSettings>({
-        google_client_id: '',
-        google_api_key: ''
+        openai_api_key: '',
+        gemini_api_key: ''
     })
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
@@ -27,8 +27,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         try {
             const data = await SettingsService.getSettings(userId)
             setSettings({
-                google_client_id: data.google_client_id || '',
-                google_api_key: data.google_api_key || ''
+                openai_api_key: data.openai_api_key || '',
+                gemini_api_key: data.gemini_api_key || ''
             })
         } catch (e: any) {
             console.error(e)
@@ -66,33 +66,73 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                     </button>
                 </div>
 
-                <form onSubmit={handleSave} className="p-6 space-y-5">
+                <div className="p-6 space-y-5">
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                            Google Client ID
+                            OpenAI API Key
                         </label>
                         <input
                             type="text"
-                            value={settings.google_client_id || ''}
-                            onChange={e => setSettings({ ...settings, google_client_id: e.target.value })}
-                            placeholder="Enter your Google Client ID"
+                            value={settings.openai_api_key || ''}
+                            onChange={e => setSettings({ ...settings, openai_api_key: e.target.value })}
+                            placeholder="sk-..."
+                            autoComplete="off"
+                            name="api_key_openai_custom"
+                            style={{ WebkitTextSecurity: 'disc' } as any}
                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
-                            required
                         />
                     </div>
 
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                            Google API Key
+                            Gemini API Key
                         </label>
                         <input
-                            type="password"
-                            value={settings.google_api_key || ''}
-                            onChange={e => setSettings({ ...settings, google_api_key: e.target.value })}
-                            placeholder="Enter your Google API Key"
-                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
-                            required
+                            type="text"
+                            value={settings.gemini_api_key || ''}
+                            onChange={e => setSettings({ ...settings, gemini_api_key: e.target.value })}
+                            placeholder="Enter your Gemini API Key"
+                            autoComplete="off"
+                            name="api_key_gemini_custom"
+                            style={{ WebkitTextSecurity: 'disc' } as any}
+                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm mb-1"
                         />
+                        <p className="text-[10px] text-slate-500">
+                            احصل عليه مجاناً من <a href="https://aistudio.google.com/" target="_blank" className="text-blue-500 underline">Google AI Studio</a>
+                        </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                            🚀 تضمين الشات في موقعك
+                        </label>
+                        <div className="relative group mb-4">
+                            <pre className="text-[10px] bg-slate-900 text-blue-400 p-4 rounded-xl overflow-x-auto border border-slate-700">
+                                {`<iframe src="${window.location.origin}?embed=true&user_id=${userId}" style="position:fixed; bottom:0; right:0; width:400px; height:700px; border:none; z-index:999999; background:transparent;" allowtransparency="true"></iframe>`}
+                            </pre>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const code = `<iframe src="${window.location.origin}?embed=true&user_id=${userId}" style="position:fixed; bottom:0; right:0; width:400px; height:700px; border:none; z-index:999999; background:transparent;" allowtransparency="true"></iframe>`;
+                                    navigator.clipboard.writeText(code);
+                                    setMessage({ type: 'success', text: 'تم نسخ كود التضمين!' });
+                                }}
+                                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all font-semibold text-sm"
+                            >
+                                📋 نسخ الكود
+                            </button>
+                            <a
+                                href={`${window.location.origin}?embed=true&user_id=${userId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-white rounded-xl transition-all font-semibold text-sm flex items-center justify-center gap-2"
+                            >
+                                🔗 تجربة الرابط
+                            </a>
+                        </div>
                     </div>
 
                     {message && (
@@ -110,19 +150,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                             إلغاء
                         </button>
                         <button
-                            type="submit"
+                            type="button"
+                            onClick={handleSave}
                             disabled={saving || loading}
                             className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all font-semibold disabled:opacity-50"
                         >
                             {saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
                         </button>
                     </div>
-                </form>
-
-                <div className="px-6 py-4 bg-blue-50 dark:bg-blue-900/10 border-t border-blue-100 dark:border-blue-900/20">
-                    <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
-                        <span className="font-bold">ملاحظة:</span> هذه الإعدادات خاصة بحسابك فقط وتستخدم لتمكين الوصول إلى ملفات Google Drive الخاصة بك.
-                    </p>
                 </div>
             </div>
         </div>

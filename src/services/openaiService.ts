@@ -67,8 +67,8 @@ export class OpenAIService {
     return selectedParagraphs.join('\n\n---\n\n');
   }
 
-  async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', systemPrompt?: string): Promise<string> {
-    const apiKey = (import.meta.env as any).VITE_OPENAI_API_KEY;
+  async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', customApiKey?: string, systemPrompt?: string): Promise<string> {
+    const apiKey = customApiKey || (import.meta.env as any).VITE_OPENAI_API_KEY;
     if (!apiKey) return '⚠️ خطأ: مفتاح OpenAI غير موجود.';
 
     if (!contextFiles || contextFiles.length === 0) return 'عذراً، لا توجد ملفات في قاعدة المعرفة.';
@@ -112,7 +112,11 @@ ${context}
       if (!res.ok) {
         const err = await res.json().catch(() => null);
         console.error('OpenAI Error:', err);
-        throw new Error(err?.error?.message || `OpenAI API Error: ${res.status}`);
+        const errorMessage = err?.error?.message || '';
+        if (errorMessage.toLowerCase().includes('quota')) {
+          throw new Error('انتهى رصيدك في OpenAI. يرجى شحن الرصيد من لوحة تحكم OpenAI ليعود التطبيق للعمل.');
+        }
+        throw new Error(errorMessage || `OpenAI API Error: ${res.status}`);
       }
 
       const data = await res.json();

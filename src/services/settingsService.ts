@@ -1,15 +1,15 @@
 import { supabase } from './supabaseService'
 
 export interface UserSettings {
-    google_client_id: string | null
-    google_api_key: string | null
+    openai_api_key: string | null
+    gemini_api_key: string | null
 }
 
 export class SettingsService {
     static async getSettings(userId: string): Promise<UserSettings> {
         const { data, error } = await supabase
             .from('user_settings')
-            .select('google_client_id, google_api_key')
+            .select('openai_api_key, gemini_api_key')
             .eq('user_id', userId)
             .single()
 
@@ -18,8 +18,8 @@ export class SettingsService {
         }
 
         return {
-            google_client_id: data?.google_client_id || null,
-            google_api_key: data?.google_api_key || null
+            openai_api_key: data?.openai_api_key || null,
+            gemini_api_key: data?.gemini_api_key || null
         }
     }
 

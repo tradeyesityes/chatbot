@@ -22,3 +22,10 @@ export interface User {
   isLoggedIn: boolean;
   plan: UserPlan;
 }
+
+export interface Conversation {
+  id: string;
+  user_id: string;
+  title: string;
+  created_at: Date;
+}

@@ -1,17 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Message, FileContext, User } from './types'
+import { Message, FileContext, User, Conversation } from './types'
 import { OpenAIService } from './services/openaiService'
+import { GeminiService } from './services/geminiService'
 import { StorageService } from './services/storageService'
-import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login } from './components'
+import { ChatService } from './services/chatService'
+import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat } from './components'
 import { AuthService } from './services/authService'
 import { supabase } from './services/supabaseService'
+import { SettingsService, UserSettings } from './services/settingsService'
 
 const openai = new OpenAIService()
+const gemini = new GeminiService()
 
 export default function App() {
+  // Initialize mode directly from URL to avoid flicker
+  const params = new URLSearchParams(window.location.search)
+  const embedOwner = params.get('user_id')
+  const isEmbed = params.get('embed') === 'true' && !!embedOwner
+
+  const [isAdminMode, setIsAdminMode] = useState(!isEmbed)
+  const [ownerId, setOwnerId] = useState<string | null>(embedOwner)
+
   const [user, setUser] = useState<User | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [files, setFiles] = useState<FileContext[]>([])
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
@@ -19,6 +34,8 @@ export default function App() {
 
   // Initialize user session
   useEffect(() => {
+    if (isEmbed) return // Don't load main user session in embed mode
+
     AuthService.getCurrentUser().then(setUser)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
@@ -38,19 +55,43 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Load user files from storage
+  // Load user files from storage and chat history
   useEffect(() => {
     if (!user) return
-    const loadFiles = async () => {
+    const loadData = async () => {
       try {
-        const userFiles = await StorageService.getFiles(user.id)
+        const [userFiles, historyList, settings] = await Promise.all([
+          StorageService.getFiles(user.id),
+          ChatService.getConversations(user.id),
+          SettingsService.getSettings(user.id)
+        ])
         setFiles(userFiles)
+        setConversations(historyList)
+        setUserSettings(settings)
       } catch (e: any) {
-        console.error('فشل تحميل الملفات:', e.message)
+        console.error('فشل تحميل البيانات:', e.message)
+        setError(`فشل استعادة البيانات من السحابة: ${e.message}. تأكد من إعداد الجداول (Tables) في Supabase.`)
       }
     }
-    loadFiles()
+    loadData()
   }, [user])
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (!user || !currentConversationId) {
+      if (!currentConversationId) setMessages([])
+      return
+    }
+    const loadMessages = async () => {
+      try {
+        const msgs = await ChatService.getMessages(user.id, currentConversationId)
+        setMessages(msgs)
+      } catch (e: any) {
+        console.error('Error loading messages:', e)
+      }
+    }
+    loadMessages()
+  }, [user, currentConversationId])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -70,9 +111,6 @@ export default function App() {
         await StorageService.saveFiles(user.id, newFiles)
       } catch (e: any) {
         console.error('Background Save Error:', e);
-        // Don't block the user, just warn in console. 
-        // Showing an error to UI might be confusing if they can still chat with the file locally.
-        // potentially show a toast? For now, we allow chatting.
       }
     }
   }
@@ -104,11 +142,51 @@ export default function App() {
       timestamp: new Date()
     }
 
+    let convId = currentConversationId;
+
+    // Create a new conversation if it's the first message
+    if (!convId && user) {
+      try {
+        const title = input.length > 30 ? input.substring(0, 30) + '...' : input;
+        const newConv = await ChatService.createConversation(user.id, title);
+        setConversations((prev: Conversation[]) => [newConv, ...prev]);
+        setCurrentConversationId(newConv.id);
+        convId = newConv.id;
+      } catch (e: any) {
+        console.error('Error creating conversation:', e);
+      }
+    }
+
     setMessages(prev => [...prev, userMessage])
     setInput('')
 
+    // Save user message to Supabase
+    if (user) {
+      ChatService.saveMessage(user.id, userMessage, convId).catch(e => {
+        console.error('Save User Message Error:', e);
+        setError(`فشل حفظ الرسالة في قاعدة البيانات: ${e.message}`);
+      });
+    }
+
     try {
-      const response = await openai.generateResponse(input, messages, files, user?.plan)
+      let response = '';
+      const openAiKey = userSettings?.openai_api_key || (import.meta.env as any).VITE_OPENAI_API_KEY;
+      const geminiKey = userSettings?.gemini_api_key || (import.meta.env as any).VITE_GEMINI_API_KEY;
+
+      if (!openAiKey && geminiKey) {
+        response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+      } else {
+        try {
+          response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey)
+        } catch (e: any) {
+          if (geminiKey && (e.message.includes('quota') || e.message.includes('key') || e.message.includes('رصيدك'))) {
+            response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+          } else {
+            throw e;
+          }
+        }
+      }
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -116,6 +194,14 @@ export default function App() {
         timestamp: new Date()
       }
       setMessages(prev => [...prev, assistantMessage])
+
+      // Save assistant message to Supabase
+      if (user) {
+        ChatService.saveMessage(user.id, assistantMessage, convId).catch(e => {
+          console.error('Save Assistant Message Error:', e);
+          setError(`فشل حفظ رد الذكاء الاصطناعي: ${e.message}`);
+        });
+      }
     } catch (e: any) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -131,17 +217,34 @@ export default function App() {
   }
 
   const handleNewChat = () => {
+    setCurrentConversationId(null)
     setMessages([])
     setInput('')
     setError('')
   }
 
   const handleLogout = async () => {
-    await AuthService.logout()
-    setUser(null)
-    setMessages([])
-    setFiles([])
-    setInput('')
+    try {
+      await AuthService.logout()
+    } catch (e: any) {
+      console.error('Logout error:', e)
+    } finally {
+      setUser(null)
+      setMessages([])
+      setFiles([])
+      setCurrentConversationId(null)
+      setConversations([])
+      setInput('')
+      setError('')
+    }
+  }
+
+  if (!isAdminMode && ownerId) {
+    return (
+      <div className="h-screen w-full relative overflow-hidden bg-transparent">
+        <PublicChat ownerId={ownerId} />
+      </div>
+    )
   }
 
   if (!user) {
@@ -149,8 +252,15 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex bg-slate-50">
-      <Sidebar user={user} onNewChat={handleNewChat} onLogout={handleLogout} />
+    <div className="h-screen flex bg-dashboard">
+      <Sidebar
+        user={user}
+        conversations={conversations}
+        currentConversationId={currentConversationId}
+        onNewChat={handleNewChat}
+        onLogout={handleLogout}
+        onSelectConversation={setCurrentConversationId}
+      />
 
       <main className="flex-1 flex flex-col p-6 overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">

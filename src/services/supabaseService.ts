@@ -10,6 +10,13 @@ const missingClientMessage = 'Supabase not configured: set VITE_SUPABASE_URL and
 const createMissingClient = (): any => {
 	const msg = new Error(missingClientMessage)
 	return {
+		auth: {
+			onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
+			getSession: async () => ({ data: { session: null }, error: null }),
+			getUser: async () => ({ data: { user: null }, error: msg }),
+			signInWithPassword: async () => ({ data: { user: null }, error: msg }),
+			signOut: async () => ({ error: msg }),
+		},
 		from: (_table: string) => ({
 			insert: async () => ({ error: msg }),
 			select: (_sel?: any) => ({

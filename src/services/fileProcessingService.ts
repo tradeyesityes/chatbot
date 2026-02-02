@@ -79,29 +79,40 @@ export class FileProcessingService {
 
   private static async readPdfFile(file: File): Promise<string> {
     try {
-      console.log('Reading PDF...');
+      console.log(`Reading PDF: ${file.name}`);
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
       console.log(`PDF loaded. Pages: ${pdf.numPages}`);
       let fullText = '';
 
-      const MAX_PAGES_TO_PROCESS = 50; // Limit total pages validation
-      const MAX_OCR_PAGES = 10; // Limit slow OCR to first 10 pages only
+      const MAX_PAGES_TO_PROCESS = 50;
+      const MAX_OCR_PAGES = 10;
 
       const pagesToProcess = Math.min(pdf.numPages, MAX_PAGES_TO_PROCESS);
-      console.log(`Processing first ${pagesToProcess} pages (limit applied)...`);
 
       for (let i = 1; i <= pagesToProcess; i++) {
-        console.log(`Processing Page ${i}/${pagesToProcess}...`);
-
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        let pageText = textContent.items.map((item: any) => item.str).join(' ');
 
-        // Heuristic: If text is less than 50 chars, it might be a scanned image
+        // Improve text joining: join items in the same line with space, join different lines with newline
+        let lastY: number | null = null;
+        let pageText = '';
+
+        for (const item of textContent.items as any[]) {
+          const currentY = item.transform[5];
+          if (lastY !== null && Math.abs(currentY - lastY) > 5) {
+            pageText += '\n';
+          } else if (pageText.length > 0 && !pageText.endsWith('\n')) {
+            pageText += ' ';
+          }
+          pageText += item.str;
+          lastY = currentY;
+        }
+
+        // Heuristic: If text is very short, it might be a scanned image
         if (pageText.trim().length < 50) {
           if (i <= MAX_OCR_PAGES) {
-            console.log(`Page ${i} looks like an image. Attempting OCR...`);
+            console.log(`Page ${i} looks like an image (${pageText.trim().length} chars). Attempting OCR...`);
             try {
               const viewport = page.getViewport({ scale: 2.0 });
               const canvas = document.createElement('canvas');
@@ -130,9 +141,10 @@ export class FileProcessingService {
       }
 
       if (pdf.numPages > MAX_PAGES_TO_PROCESS) {
-        fullText += `\n[... Remaining ${pdf.numPages - MAX_PAGES_TO_PROCESS} pages skipped for performance ...]`;
+        fullText += `\n[... Remaining ${pdf.numPages - MAX_PAGES_TO_PROCESS} pages skipped ...]`;
       }
 
+      console.log(`PDF Extraction Success: ${fullText.length} characters extracted from ${file.name}`);
       return fullText;
     } catch (e: any) {
       console.error('PDF Error:', e);

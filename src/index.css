@@ -22,8 +22,12 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  background: transparent;
   color: #1e293b;
+}
+
+.bg-dashboard {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
 }
 
 html,

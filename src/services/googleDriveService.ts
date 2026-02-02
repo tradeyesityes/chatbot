@@ -104,7 +104,17 @@ export class GoogleDriveService {
             };
 
             if ((window as any).gapi.client.getToken() === null) {
-                this.tokenClient.requestAccessToken({ prompt: 'consent' });
+                this.tokenClient.requestAccessToken({
+                    prompt: 'consent',
+                    error_callback: (err: any) => {
+                        console.error('OAuth Error:', err);
+                        if (err.error === 'idpiframe_initialization_failed') {
+                            reject(new Error('فشل تهيئة Google Auth. تأكد من أنك قمت بإضافة http://localhost:8089 إلى الروابط المسموح بها في Google Cloud Console.'));
+                        } else {
+                            reject(err);
+                        }
+                    }
+                });
             } else {
                 this.tokenClient.requestAccessToken({ prompt: '' });
             }

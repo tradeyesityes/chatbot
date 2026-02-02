@@ -1,8 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { FileContext } from '../types'
 import { FileProcessingService } from '../services/fileProcessingService'
-import { GoogleDriveService } from '../services/googleDriveService'
-import { SettingsService } from '../services/settingsService'
 
 interface FileUploaderProps {
   userId: string
@@ -14,9 +12,11 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploadProgress, setUploadProgress] = useState<number>(0)
   const [error, setError] = useState<string>('')
+  const [success, setSuccess] = useState<string>('')
 
   const processFiles = async (fileArray: File[]) => {
     setError('')
+    setSuccess('')
     const uploadedFiles: FileContext[] = []
 
     for (let i = 0; i < fileArray.length; i++) {
@@ -37,6 +37,9 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
 
     if (uploadedFiles.length > 0) {
       onFilesAdded(uploadedFiles)
+      const totalChars = uploadedFiles.reduce((acc, f) => acc + f.content.length, 0)
+      setSuccess(`تم بنجاح تحميل ${uploadedFiles.length} ملفات (إجمالي ${totalChars.toLocaleString()} حرف)`)
+      setTimeout(() => setSuccess(''), 5000)
     }
   }
 
@@ -48,25 +51,6 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
     if (inputRef.current) inputRef.current.value = ''
   }
 
-  const handleGoogleDrive = async () => {
-    try {
-      // Fetch user settings first
-      const settings = await SettingsService.getSettings(userId)
-
-      if (!settings.google_client_id || !settings.google_api_key) {
-        setError('يرجى ضبط إعدادات Google Drive أولاً من لوحة التحكم (أيقونة الترس)')
-        return
-      }
-
-      const files = await GoogleDriveService.openPicker(settings.google_client_id, settings.google_api_key)
-      if (files.length > 0) {
-        await processFiles(files)
-      }
-    } catch (e: any) {
-      console.error(e)
-      setError(e.message || 'فشل الاتصال بـ Google Drive')
-    }
-  }
 
   const handleClick = () => {
     if (!isLoading) inputRef.current?.click()
@@ -89,11 +73,11 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
           ☁️
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex justify-center">
           <button
             onClick={handleClick}
             disabled={isLoading}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/30 font-semibold disabled:opacity-50 disabled:shadow-none transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+            className="px-8 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-500/30 font-bold disabled:opacity-50 disabled:shadow-none transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-lg"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -101,17 +85,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
                 جاري المعالجة...
               </span>
             ) : (
-              '📁 اختر الملفات'
+              '📁 اختر الملفات من جهازك'
             )}
-          </button>
-
-          <button
-            onClick={handleGoogleDrive}
-            disabled={isLoading}
-            className="px-6 py-3 bg-white text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 shadow-sm font-semibold disabled:opacity-50 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
-          >
-            <span className="text-xl">📄</span>
-            <span>Google Drive</span>
           </button>
         </div>
 
@@ -138,6 +113,12 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
       {error && (
         <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 animate-in">
           ⚠️ {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="mt-4 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-lg border border-emerald-100 animate-in">
+          ✅ {success}
         </div>
       )}
     </div>
