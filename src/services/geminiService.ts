@@ -2,8 +2,8 @@ import { Message, FileContext, UserPlan } from '../types';
 
 export class GeminiService {
     private getModel(plan: UserPlan) {
-        // Use gemini-1.5-flash-latest to ensure compatibility with v1beta API
-        return 'gemini-1.5-flash-latest';
+        // Use gemini-2.5-flash as confirmed by dynamic model list (Current Stable Version)
+        return 'gemini-2.5-flash';
     }
 
     async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', overrideApiKey?: string): Promise<string> {
