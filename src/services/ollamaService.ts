@@ -94,7 +94,7 @@ Question: ${userMessage}
 
 Instructions:
 Answer the question using ONLY the context above.
-If the answer is not in the context, say "عذراً، هذه المعلومة غير متوفرة في الملفات المرفقة."
+If the answer is not in the context, say "عذراً، هذه المعلومة غير متوفرة في المصادر المزودة."
 Do not use outside knowledge.
 `;
 
