@@ -46,9 +46,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <button
         onClick={onSubmit}
         disabled={isLoading || !value.trim()}
-        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium min-w-fit"
+        className="px-4 md:px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium min-w-fit flex items-center justify-center gap-2 transition-all active:scale-95"
       >
-        {isLoading ? '⏳' : '➤ إرسال'}
+        <span className="text-lg">{isLoading ? '⏳' : '➤'}</span>
+        <span className="hidden md:inline">{isLoading ? 'جاري المعالجة...' : 'إرسال'}</span>
       </button>
     </div>
   )

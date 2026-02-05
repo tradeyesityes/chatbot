@@ -62,6 +62,20 @@ export class AuthService {
     if (error) throw error
   }
 
+  static async resetPassword(email: string): Promise<void> {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (error) throw error
+  }
+
+  static async updatePassword(password: string): Promise<void> {
+    const { error } = await supabase.auth.updateUser({
+      password: password
+    })
+    if (error) throw error
+  }
+
   static async getCurrentUser(): Promise<User | null> {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) return null

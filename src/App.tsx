@@ -2,15 +2,17 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Message, FileContext, User, Conversation } from './types'
 import { OpenAIService } from './services/openaiService'
 import { GeminiService } from './services/geminiService'
+import { OllamaService } from './services/ollamaService'
 import { StorageService } from './services/storageService'
 import { ChatService } from './services/chatService'
-import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat } from './components'
+import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword } from './components'
 import { AuthService } from './services/authService'
 import { supabase } from './services/supabaseService'
 import { SettingsService, UserSettings } from './services/settingsService'
 
 const openai = new OpenAIService()
 const gemini = new GeminiService()
+const ollama = new OllamaService()
 
 export default function App() {
   // Initialize mode directly from URL to avoid flicker
@@ -27,6 +29,8 @@ export default function App() {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isResetMode, setIsResetMode] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
@@ -38,7 +42,13 @@ export default function App() {
 
     AuthService.getCurrentUser().then(setUser)
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+      console.log('Auth Event:', event)
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResetMode(true)
+      }
+
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -173,7 +183,36 @@ export default function App() {
       const openAiKey = userSettings?.openai_api_key || (import.meta.env as any).VITE_OPENAI_API_KEY;
       const geminiKey = userSettings?.gemini_api_key || (import.meta.env as any).VITE_GEMINI_API_KEY;
 
-      if (!openAiKey && geminiKey) {
+      // Check for Ollama usage (remote takes priority if both are enabled)
+      const useOllama = userSettings?.use_remote_ollama || userSettings?.use_local_model;
+
+      if (useOllama) {
+        // Reset to defaults first to ensure no stale settings persist
+        ollama.setBaseUrl('http://localhost:11434')
+        ollama.setApiKey(null)
+        ollama.setModel('gemma3:4b')
+
+        // Configure model name
+        if (userSettings.local_model_name) {
+          ollama.setModel(userSettings.local_model_name)
+        }
+
+        // Configure for remote or local
+        if (userSettings.use_remote_ollama) {
+          // Remote Ollama: use custom URL and API key
+          if (userSettings.ollama_base_url) {
+            ollama.setBaseUrl(userSettings.ollama_base_url)
+          }
+          // Set API key even if null to clear previous key
+          ollama.setApiKey(userSettings.ollama_api_key || null)
+        } else {
+          // Local Ollama: use localhost without API key
+          ollama.setBaseUrl('http://localhost:11434')
+          ollama.setApiKey(null)
+        }
+
+        response = await ollama.generateResponse(input, messages, files)
+      } else if (!openAiKey && geminiKey) {
         response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
       } else {
         try {
@@ -239,6 +278,25 @@ export default function App() {
     }
   }
 
+  const handleDeleteConversation = async (conversationId: string) => {
+    if (!user) return
+
+    try {
+      await ChatService.deleteConversation(user.id, conversationId)
+
+      // Update local state
+      setConversations(prev => prev.filter(c => c.id !== conversationId))
+
+      // If the deleted conversation was active, reset to empty state
+      if (currentConversationId === conversationId) {
+        setCurrentConversationId(null)
+        setMessages([])
+      }
+    } catch (e: any) {
+      setError(`خطأ في حذف المحادثة: ${e.message}`)
+    }
+  }
+
   if (!isAdminMode && ownerId) {
     return (
       <div className="h-screen w-full relative overflow-hidden bg-transparent">
@@ -247,64 +305,110 @@ export default function App() {
     )
   }
 
+  if (isResetMode) {
+    return <UpdatePassword onComplete={() => setIsResetMode(false)} />
+  }
+
   if (!user) {
     return <Login onLogin={() => { }} />
   }
 
   return (
-    <div className="h-screen flex bg-dashboard">
+    <div className="h-screen flex bg-dashboard relative overflow-hidden">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       <Sidebar
         user={user}
         conversations={conversations}
         currentConversationId={currentConversationId}
-        onNewChat={handleNewChat}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onNewChat={() => {
+          handleNewChat()
+          setIsSidebarOpen(false)
+        }}
         onLogout={handleLogout}
-        onSelectConversation={setCurrentConversationId}
+        onSelectConversation={(id) => {
+          setCurrentConversationId(id)
+          setIsSidebarOpen(false)
+        }}
+        onDeleteConversation={handleDeleteConversation}
+        onSettingsUpdated={async () => {
+          if (user) {
+            const newSettings = await SettingsService.getSettings(user.id)
+            setUserSettings(newSettings)
+          }
+        }}
       />
 
-      <main className="flex-1 flex flex-col p-6 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          <div className="lg:col-span-1">
-            <FileList files={files} onRemove={handleRemoveFile} />
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-10">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600"
+          >
+            <span className="text-2xl">☰</span>
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs">🤖</div>
+            <span className="font-bold text-slate-800 text-sm">KB Chatbot</span>
           </div>
-          <div className="lg:col-span-3">
-            <FileUploader userId={user.id} onFilesAdded={handleFilesAdded} isLoading={loading} />
-          </div>
+          <div className="w-10"></div> {/* Spacer for balance */}
         </div>
 
-        {error && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg animate-in">
-            <p className="font-medium">⚠️ خطأ</p>
-            <p className="text-sm mt-1">{error}</p>
-          </div>
-        )}
-
-        <div className="flex-1 bg-white rounded-lg border border-slate-200 p-4 mb-4 overflow-y-auto flex flex-col">
-          {messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-slate-500 text-center">
-              <div>
-                <p className="text-4xl mb-3">💬</p>
-                <p className="text-xl font-medium mb-2">ابدأ محادثة جديدة</p>
-                <p className="text-sm">حمّل الملفات واسأل أسئلتك</p>
-              </div>
+        <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 mb-4 md:mb-6">
+            <div className="lg:col-span-1">
+              <FileList files={files} onRemove={handleRemoveFile} />
             </div>
-          ) : (
-            <>
-              {messages.map(message => (
-                <ChatMessage key={message.id} message={message} />
-              ))}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
+            <div className="lg:col-span-3">
+              <FileUploader userId={user.id} onFilesAdded={handleFilesAdded} isLoading={loading} />
+            </div>
+          </div>
 
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSubmit={handleSend}
-          isLoading={loading}
-          placeholder={files.length > 0 ? 'اكتب سؤالك هنا...' : 'حمّل ملف أولاً...'}
-        />
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg animate-in">
+              <p className="font-medium">⚠️ خطأ</p>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          )}
+
+          <div className="flex-1 bg-white rounded-2xl border border-slate-200 p-3 md:p-4 mb-4 overflow-y-auto flex flex-col shadow-sm">
+            {messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-slate-500 text-center p-6">
+                <div>
+                  <p className="text-4xl mb-3">💬</p>
+                  <p className="text-xl font-medium mb-2">ابدأ محادثة جديدة</p>
+                  <p className="text-sm opacity-70">حمّل الملفات واسأل أسئلتك</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {messages.map(message => (
+                  <ChatMessage key={message.id} message={message} />
+                ))}
+                <div ref={messagesEndRef} />
+              </>
+            )}
+          </div>
+
+          <div className="max-w-4xl mx-auto w-full">
+            <ChatInput
+              value={input}
+              onChange={setInput}
+              onSubmit={handleSend}
+              isLoading={loading}
+              placeholder={files.length > 0 ? 'اكتب سؤالك هنا...' : 'حمّل ملف أولاً...'}
+            />
+          </div>
+        </div>
       </main>
     </div>
   )

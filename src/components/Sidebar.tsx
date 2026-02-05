@@ -9,6 +9,10 @@ interface SidebarProps {
   onNewChat?: () => void
   onLogout?: () => void
   onSelectConversation: (id: string) => void
+  onDeleteConversation?: (id: string) => void
+  onSettingsUpdated?: () => void
+  isOpen?: boolean
+  onClose?: () => void
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -17,22 +21,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentConversationId,
   onNewChat,
   onLogout,
-  onSelectConversation
+  onSelectConversation,
+  onDeleteConversation,
+  onSettingsUpdated,
+  isOpen,
+  onClose
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   return (
-    <aside className="w-80 glass-dark text-white p-6 flex flex-col shadow-xl z-20">
-      <div className="mb-10 flex items-center space-x-3 space-x-reverse">
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-          <span className="text-2xl">🤖</span>
+    <aside className={`fixed inset-y-0 right-0 z-40 w-80 glass-dark text-white p-6 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}>
+      <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center space-x-3 space-x-reverse">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-2xl">🤖</span>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400">
+              KB Chatbot
+            </h1>
+            <p className="text-[11px] text-slate-400 font-medium tracking-wide">مساعد الإجابة الذكي</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400">
-            KB Chatbot
-          </h1>
-          <p className="text-[11px] text-slate-400 font-medium tracking-wide">مساعد الإجابة الذكي</p>
-        </div>
+
+        {/* Mobile Close Button */}
+        <button
+          onClick={onClose}
+          className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400"
+        >
+          <span className="text-2xl">×</span>
+        </button>
       </div>
 
       <button
@@ -55,22 +74,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ) : (
             conversations.map((conv) => (
-              <button
+              <div
                 key={conv.id}
-                onClick={() => onSelectConversation(conv.id)}
-                className={`w-full text-right p-3 rounded-xl transition-all group flex items-start gap-3 ${currentConversationId === conv.id
-                  ? 'bg-blue-600/20 border border-blue-500/30 text-blue-400'
-                  : 'hover:bg-white/5 text-slate-400 hover:text-slate-200'
+                className={`relative group rounded-xl transition-all ${currentConversationId === conv.id
+                  ? 'bg-blue-600/20 border border-blue-500/30'
+                  : 'hover:bg-white/5'
                   }`}
               >
-                <span className="text-lg mt-0.5">💬</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{conv.title}</p>
-                  <p className="text-[10px] opacity-50 mt-1">
-                    {new Date(conv.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
-                  </p>
-                </div>
-              </button>
+                <button
+                  onClick={() => onSelectConversation(conv.id)}
+                  className={`w-full text-right p-3 rounded-xl transition-all flex items-start gap-3 ${currentConversationId === conv.id
+                    ? 'text-blue-400'
+                    : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                >
+                  <span className="text-lg mt-0.5">💬</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{conv.title}</p>
+                    <p className="text-[10px] opacity-50 mt-1">
+                      {new Date(conv.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
+                    </p>
+                  </div>
+                </button>
+                {onDeleteConversation && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (window.confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
+                        onDeleteConversation(conv.id)
+                      }
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 rounded-lg transition-all text-slate-400 hover:text-red-400"
+                    title="حذف المحادثة"
+                  >
+                    <span className="text-sm">🗑️</span>
+                  </button>
+                )}
+              </div>
             ))
           )}
         </div>
@@ -124,6 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           userId={user.id}
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
+          onSettingsUpdated={onSettingsUpdated}
         />
       )}
     </aside>

@@ -2,8 +2,8 @@ import { Message, FileContext, UserPlan } from '../types';
 
 export class OpenAIService {
   private getModel(plan: UserPlan) {
-    // Switching to gpt-4o-mini as requested: cheaper, fast, and great for context-based tasks.
-    return 'gpt-4o-mini';
+    // user requested "chatgpt 5.2" -> mapping to gpt-4o (latest)
+    return plan === 'pro' ? 'gpt-4o' : 'gpt-4o';
   }
 
   // Simple token estimation (4 chars ~= 1 token)
@@ -103,7 +103,7 @@ ${context}
     };
 
     try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch('/api/openai/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify(body)

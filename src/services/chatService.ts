@@ -127,4 +127,33 @@ export class ChatService {
             throw error
         }
     }
+
+    /**
+     * Deletes a conversation and all its associated messages
+     */
+    static async deleteConversation(userId: string, conversationId: string): Promise<void> {
+        // First delete all messages in the conversation
+        const { error: messagesError } = await supabase
+            .from('chat_messages')
+            .delete()
+            .eq('user_id', userId)
+            .eq('conversation_id', conversationId)
+
+        if (messagesError) {
+            console.error('Error deleting messages:', messagesError)
+            throw messagesError
+        }
+
+        // Then delete the conversation itself
+        const { error: conversationError } = await supabase
+            .from('conversations')
+            .delete()
+            .eq('id', conversationId)
+            .eq('user_id', userId)
+
+        if (conversationError) {
+            console.error('Error deleting conversation:', conversationError)
+            throw conversationError
+        }
+    }
 }
