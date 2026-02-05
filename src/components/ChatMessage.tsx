@@ -1,3 +1,4 @@
+import React, { useState } from 'react'
 import remarkGfm from 'remark-gfm'
 import ReactMarkdown from 'react-markdown'
 import { Message } from '../types'
@@ -8,6 +9,13 @@ interface ChatMessageProps {
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isUser = message.role === 'user'
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className={`flex mb-6 animate-in ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -24,14 +32,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             }`}
         >
           <button
-            onClick={() => {
-              navigator.clipboard.writeText(message.content)
-              // We can use a more subtle notification if needed
-            }}
-            className="absolute -top-2 -left-2 p-1.5 bg-white dark:bg-slate-700 shadow-md rounded-lg opacity-0 group-hover/msg:opacity-100 transition-opacity text-slate-400 hover:text-blue-500 border border-slate-100 dark:border-slate-600 z-10"
+            onClick={handleCopy}
+            className={`absolute -top-2 -left-2 p-1.5 shadow-md rounded-lg transition-all border z-10 flex items-center gap-1.5 ${copied
+              ? 'bg-blue-600 border-blue-600 text-white opacity-100'
+              : 'bg-white dark:bg-slate-700 opacity-0 group-hover/msg:opacity-100 text-slate-400 hover:text-blue-500 border-slate-100 dark:border-slate-600'
+              }`}
             title="نسخ النص"
           >
-            <span className="text-xs">📋</span>
+            <span className="text-xs">{copied ? '✓' : '📋'}</span>
+            {copied && <span className="text-[10px] font-bold">تم النسخ</span>}
           </button>
 
           <div className={`text-sm leading-relaxed break-words prose dark:prose-invert max-w-none ${isUser ? 'prose-p:text-white prose-headings:text-white prose-strong:text-white prose-code:text-blue-100' : 'dark:prose-p:text-slate-200'}`}>
