@@ -5,7 +5,7 @@ import { GeminiService } from './services/geminiService'
 import { OllamaService } from './services/ollamaService'
 import { StorageService } from './services/storageService'
 import { ChatService } from './services/chatService'
-import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword } from './components'
+import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle } from './components'
 import { AuthService } from './services/authService'
 import { supabase } from './services/supabaseService'
 import { SettingsService, UserSettings } from './services/settingsService'
@@ -297,6 +297,16 @@ export default function App() {
     }
   }
 
+  const handleRenameConversation = async (id: string, newTitle: string) => {
+    if (!user) return
+    try {
+      await ChatService.renameConversation(user.id, id, newTitle)
+      setConversations(prev => prev.map(c => c.id === id ? { ...c, title: newTitle } : c))
+    } catch (err: any) {
+      setError('تعذر تغيير اسم المحادثة')
+    }
+  }
+
   if (!isAdminMode && ownerId) {
     return (
       <div className="h-screen w-full relative overflow-hidden bg-transparent">
@@ -339,6 +349,7 @@ export default function App() {
           setIsSidebarOpen(false)
         }}
         onDeleteConversation={handleDeleteConversation}
+        onRenameConversation={handleRenameConversation}
         onSettingsUpdated={async () => {
           if (user) {
             const newSettings = await SettingsService.getSettings(user.id)
@@ -349,18 +360,20 @@ export default function App() {
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* Mobile Header */}
-        <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-10">
+        <div className="lg:hidden flex items-center justify-between p-4 glass border-b border-white/10 sticky top-0 z-10 shadow-sm">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600"
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-600"
           >
             <span className="text-2xl">☰</span>
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs">🤖</div>
-            <span className="font-bold text-slate-800 text-sm">KB Chatbot</span>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs">🤖</div>
+              <span className="font-bold text-slate-800 text-sm">KB Chatbot</span>
+            </div>
           </div>
-          <div className="w-10"></div> {/* Spacer for balance */}
         </div>
 
         <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden">

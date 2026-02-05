@@ -156,4 +156,20 @@ export class ChatService {
             throw conversationError
         }
     }
+
+    /**
+     * Renames a conversation
+     */
+    static async renameConversation(userId: string, conversationId: string, newTitle: string): Promise<void> {
+        const { error } = await supabase
+            .from('conversations')
+            .update({ title: newTitle })
+            .eq('id', conversationId)
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error renaming conversation:', error)
+            throw error
+        }
+    }
 }

@@ -10,6 +10,7 @@ interface SidebarProps {
   onLogout?: () => void
   onSelectConversation: (id: string) => void
   onDeleteConversation?: (id: string) => void
+  onRenameConversation?: (id: string, newTitle: string) => void
   onSettingsUpdated?: () => void
   isOpen?: boolean
   onClose?: () => void
@@ -23,11 +24,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
   onSelectConversation,
   onDeleteConversation,
+  onRenameConversation,
   onSettingsUpdated,
   isOpen,
   onClose
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
 
   return (
     <aside className={`fixed inset-y-0 right-0 z-40 w-80 glass-dark text-white p-6 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${isOpen ? 'translate-x-0' : 'translate-x-full'
@@ -81,34 +85,76 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   : 'hover:bg-white/5'
                   }`}
               >
-                <button
-                  onClick={() => onSelectConversation(conv.id)}
-                  className={`w-full text-right p-3 rounded-xl transition-all flex items-start gap-3 ${currentConversationId === conv.id
-                    ? 'text-blue-400'
-                    : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                >
-                  <span className="text-lg mt-0.5">💬</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{conv.title}</p>
-                    <p className="text-[10px] opacity-50 mt-1">
-                      {new Date(conv.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
-                    </p>
+                {editingId === conv.id ? (
+                  <div className="p-3 flex items-center gap-2">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          onRenameConversation?.(conv.id, editTitle)
+                          setEditingId(null)
+                        } else if (e.key === 'Escape') {
+                          setEditingId(null)
+                        }
+                      }}
+                      onBlur={() => {
+                        onRenameConversation?.(conv.id, editTitle)
+                        setEditingId(null)
+                      }}
+                      className="flex-1 bg-slate-800 text-sm border border-blue-500 rounded px-2 py-1 outline-none text-right"
+                      dir="rtl"
+                    />
                   </div>
-                </button>
-                {onDeleteConversation && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (window.confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
-                        onDeleteConversation(conv.id)
-                      }
-                    }}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 rounded-lg transition-all text-slate-400 hover:text-red-400"
-                    title="حذف المحادثة"
-                  >
-                    <span className="text-sm">🗑️</span>
-                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => onSelectConversation(conv.id)}
+                      className={`w-full text-right p-3 rounded-xl transition-all flex items-start gap-3 ${currentConversationId === conv.id
+                        ? 'text-blue-400'
+                        : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                    >
+                      <span className="text-lg mt-0.5">💬</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{conv.title}</p>
+                        <p className="text-[10px] opacity-50 mt-1">
+                          {new Date(conv.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
+                        </p>
+                      </div>
+                    </button>
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      {onRenameConversation && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingId(conv.id)
+                            setEditTitle(conv.title)
+                          }}
+                          className="p-1.5 hover:bg-blue-500/20 rounded-lg transition-all text-slate-400 hover:text-blue-400"
+                          title="تعديل الاسم"
+                        >
+                          <span className="text-xs">✏️</span>
+                        </button>
+                      )}
+                      {onDeleteConversation && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (window.confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
+                              onDeleteConversation(conv.id)
+                            }
+                          }}
+                          className="p-1.5 hover:bg-red-500/20 rounded-lg transition-all text-slate-400 hover:text-red-400"
+                          title="حذف المحادثة"
+                        >
+                          <span className="text-xs">🗑️</span>
+                        </button>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             ))
