@@ -19,9 +19,17 @@ export default function App() {
   const params = new URLSearchParams(window.location.search)
   const embedOwner = params.get('user_id')
   const isEmbed = params.get('embed') === 'true' && !!embedOwner
-
   const [isAdminMode, setIsAdminMode] = useState(!isEmbed)
   const [ownerId, setOwnerId] = useState<string | null>(embedOwner)
+
+  // Force transparent body for embed mode
+  useEffect(() => {
+    if (isEmbed) {
+      document.body.style.backgroundColor = 'transparent'
+      document.documentElement.style.backgroundColor = 'transparent'
+      document.body.classList.add('is-embed')
+    }
+  }, [isEmbed])
 
   const [user, setUser] = useState<User | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
