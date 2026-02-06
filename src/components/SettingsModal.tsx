@@ -22,7 +22,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         ollama_base_url: 'http://localhost:11434',
         use_whatsapp: false,
         whatsapp_number: '',
-        whatsapp_message: 'مرحباً، أود الاستفسار عن...'
+        whatsapp_message: 'مرحباً، أود الاستفسار عن...',
+        evolution_base_url: '',
+        evolution_api_key: '',
+        evolution_instance_name: '',
+        evolution_bot_enabled: false
     })
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
@@ -51,7 +55,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                 ollama_base_url: data.ollama_base_url || 'http://localhost:11434',
                 use_whatsapp: data.use_whatsapp || false,
                 whatsapp_number: data.whatsapp_number || '',
-                whatsapp_message: data.whatsapp_message || 'مرحباً، أود الاستفسار عن...'
+                whatsapp_message: data.whatsapp_message || 'مرحباً، أود الاستفسار عن...',
+                evolution_base_url: data.evolution_base_url || '',
+                evolution_api_key: data.evolution_api_key || '',
+                evolution_instance_name: data.evolution_instance_name || '',
+                evolution_bot_enabled: data.evolution_bot_enabled || false
             })
         } catch (e: any) {
             console.error(e)
@@ -362,6 +370,83 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         placeholder="الرسالة التي ستظهر للمستخدم عند فتح واتساب"
                                         className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white resize-none"
                                     />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <span className="text-lg">🤖</span> أتمتة الواتساب (Evolution API)
+                                </h3>
+                                <p className="text-[10px] text-slate-500">تفعيل الرد التلقائي باستخدام الذكاء الاصطناعي على رسائل واتساب عبر Evolution API</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.evolution_bot_enabled || false}
+                                    onChange={e => setSettings({ ...settings, evolution_bot_enabled: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        {settings.evolution_bot_enabled && (
+                            <div className="animate-in slide-in-from-top-2 duration-200 space-y-4">
+                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
+                                    <h4 className="text-[10px] font-bold text-blue-800 dark:text-blue-400 mb-1">🔗 رابط الـ Webhook:</h4>
+                                    <code className="block p-2 bg-white dark:bg-slate-900 rounded border border-blue-200 dark:border-blue-800 text-[9px] break-all text-blue-600 dark:text-blue-400">
+                                        {`https://${window.location.hostname.includes('localhost') ? 'your-project' : window.location.hostname.split('.')[0]}.supabase.co/functions/v1/whatsapp-bot`}
+                                    </code>
+                                    <p className="text-[9px] text-slate-500 mt-2 leading-relaxed">
+                                        انسخ هذا الرابط وضعه في إعدادات Webhook بداخل Evolution API.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                            Evolution API Base URL
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={settings.evolution_base_url || ''}
+                                            onChange={e => setSettings({ ...settings, evolution_base_url: e.target.value })}
+                                            placeholder="https://your-evolution-api.com"
+                                            dir="ltr"
+                                            className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Instance Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.evolution_instance_name || ''}
+                                                onChange={e => setSettings({ ...settings, evolution_instance_name: e.target.value })}
+                                                placeholder="MainInstance"
+                                                dir="ltr"
+                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Global API Key
+                                            </label>
+                                            <input
+                                                type="password"
+                                                value={settings.evolution_api_key || ''}
+                                                onChange={e => setSettings({ ...settings, evolution_api_key: e.target.value })}
+                                                placeholder="API Key"
+                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}

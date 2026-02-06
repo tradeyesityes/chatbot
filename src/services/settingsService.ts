@@ -14,6 +14,10 @@ export interface UserSettings {
     use_whatsapp?: boolean
     whatsapp_number?: string | null
     whatsapp_message?: string | null
+    evolution_base_url?: string | null
+    evolution_api_key?: string | null
+    evolution_instance_name?: string | null
+    evolution_bot_enabled?: boolean
 }
 
 export class SettingsService {
@@ -41,7 +45,11 @@ export class SettingsService {
             ollama_base_url: data?.ollama_base_url || 'http://localhost:11434',
             use_whatsapp: data?.use_whatsapp || false,
             whatsapp_number: data?.whatsapp_number || null,
-            whatsapp_message: data?.whatsapp_message || 'مرحباً، أود الاستفسار عن...'
+            whatsapp_message: data?.whatsapp_message || 'مرحباً، أود الاستفسار عن...',
+            evolution_base_url: data?.evolution_base_url || null,
+            evolution_api_key: data?.evolution_api_key || null,
+            evolution_instance_name: data?.evolution_instance_name || null,
+            evolution_bot_enabled: data?.evolution_bot_enabled || false
         }
     }
 
