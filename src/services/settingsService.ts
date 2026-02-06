@@ -11,6 +11,9 @@ export interface UserSettings {
     use_remote_ollama?: boolean
     ollama_api_key?: string | null
     ollama_base_url?: string
+    use_whatsapp?: boolean
+    whatsapp_number?: string | null
+    whatsapp_message?: string | null
 }
 
 export class SettingsService {
@@ -35,7 +38,10 @@ export class SettingsService {
             local_model_name: data?.local_model_name || 'gemma3:4b',
             use_remote_ollama: data?.use_remote_ollama || false,
             ollama_api_key: data?.ollama_api_key || null,
-            ollama_base_url: data?.ollama_base_url || 'http://localhost:11434'
+            ollama_base_url: data?.ollama_base_url || 'http://localhost:11434',
+            use_whatsapp: data?.use_whatsapp || false,
+            whatsapp_number: data?.whatsapp_number || null,
+            whatsapp_message: data?.whatsapp_message || 'مرحباً، أود الاستفسار عن...'
         }
     }
 

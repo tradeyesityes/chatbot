@@ -19,7 +19,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         local_model_name: 'gemma3:4b',
         use_remote_ollama: false,
         ollama_api_key: null,
-        ollama_base_url: 'http://localhost:11434'
+        ollama_base_url: 'http://localhost:11434',
+        use_whatsapp: false,
+        whatsapp_number: '',
+        whatsapp_message: 'مرحباً، أود الاستفسار عن...'
     })
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
@@ -45,7 +48,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                 local_model_name: data.local_model_name || 'gemma3:4b',
                 use_remote_ollama: data.use_remote_ollama || false,
                 ollama_api_key: data.ollama_api_key || null,
-                ollama_base_url: data.ollama_base_url || 'http://localhost:11434'
+                ollama_base_url: data.ollama_base_url || 'http://localhost:11434',
+                use_whatsapp: data.use_whatsapp || false,
+                whatsapp_number: data.whatsapp_number || '',
+                whatsapp_message: data.whatsapp_message || 'مرحباً، أود الاستفسار عن...'
             })
         } catch (e: any) {
             console.error(e)
@@ -303,6 +309,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         لتجنب مشاكل CORS، تأكد من تشغيل Ollama مع إعداد:
                                         <code className="block mt-1 p-1 bg-amber-100 dark:bg-amber-800 rounded">OLLAMA_ORIGINS="*" ollama serve</code>
                                     </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <span className="text-lg">💬</span> إعدادات الواتساب (WhatsApp)
+                                </h3>
+                                <p className="text-[10px] text-slate-500">للسماح للعملاء بالتواصل معك مباشرة عبر واتساب</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.use_whatsapp || false}
+                                    onChange={e => setSettings({ ...settings, use_whatsapp: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+
+                        {settings.use_whatsapp && (
+                            <div className="animate-in slide-in-from-top-2 duration-200 space-y-3">
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        رقم الواتساب
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settings.whatsapp_number || ''}
+                                        onChange={e => setSettings({ ...settings, whatsapp_number: e.target.value })}
+                                        placeholder="مثال: 966500000000"
+                                        dir="ltr"
+                                        className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                    />
+                                    <p className="text-[9px] text-slate-500 mt-1">
+                                        استخدم الرقم مع مفتاح الدولة بدون أصفار أو علامة +
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        الرسالة الافتراضية
+                                    </label>
+                                    <textarea
+                                        value={settings.whatsapp_message || ''}
+                                        onChange={e => setSettings({ ...settings, whatsapp_message: e.target.value })}
+                                        rows={2}
+                                        placeholder="الرسالة التي ستظهر للمستخدم عند فتح واتساب"
+                                        className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white resize-none"
+                                    />
                                 </div>
                             </div>
                         )}
