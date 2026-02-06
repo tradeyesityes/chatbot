@@ -16,6 +16,7 @@ export interface UserSettings {
     whatsapp_message?: string | null
     evolution_base_url?: string | null
     evolution_api_key?: string | null
+    evolution_global_api_key?: string | null
     evolution_instance_name?: string | null
     evolution_bot_enabled?: boolean
 }
@@ -48,6 +49,7 @@ export class SettingsService {
             whatsapp_message: data?.whatsapp_message || 'مرحباً، أود الاستفسار عن...',
             evolution_base_url: data?.evolution_base_url || null,
             evolution_api_key: data?.evolution_api_key || null,
+            evolution_global_api_key: data?.evolution_global_api_key || null,
             evolution_instance_name: data?.evolution_instance_name || null,
             evolution_bot_enabled: data?.evolution_bot_enabled || false
         }

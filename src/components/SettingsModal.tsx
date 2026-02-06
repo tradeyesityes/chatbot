@@ -25,9 +25,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         whatsapp_message: 'مرحباً، أود الاستفسار عن...',
         evolution_base_url: '',
         evolution_api_key: '',
+        evolution_global_api_key: '',
         evolution_instance_name: '',
         evolution_bot_enabled: false
     })
+    const [discoveryLoading, setDiscoveryLoading] = useState(false)
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -58,6 +60,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                 whatsapp_message: data.whatsapp_message || 'مرحباً، أود الاستفسار عن...',
                 evolution_base_url: data.evolution_base_url || '',
                 evolution_api_key: data.evolution_api_key || '',
+                evolution_global_api_key: data.evolution_global_api_key || '',
                 evolution_instance_name: data.evolution_instance_name || '',
                 evolution_bot_enabled: data.evolution_bot_enabled || false
             })
@@ -65,6 +68,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
             console.error(e)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleSmartLink = async () => {
+        if (!settings.evolution_base_url || !settings.evolution_global_api_key || !settings.whatsapp_number) {
+            setMessage({ type: 'error', text: 'يرجى إدخال رابط الـ API، المفتاح العام، ورقم الواتساب أولاً' })
+            return
+        }
+
+        setDiscoveryLoading(true)
+        setMessage(null)
+        try {
+            const cleanUrl = settings.evolution_base_url.replace(/\/$/, '')
+            const response = await fetch(`${cleanUrl}/instance/fetchInstances`, {
+                headers: {
+                    'apikey': settings.evolution_global_api_key
+                }
+            })
+
+            if (!response.ok) throw new Error('فشل الاتصال بالخادم. تأكد من الرابط والمفتاح العام.')
+
+            const instances = await response.json()
+            const targetNumber = settings.whatsapp_number.replace(/\D/g, '')
+
+            // Find instance where owner matches targetNumber
+            const match = instances.find((inst: any) =>
+                (inst.instance.owner && inst.instance.owner.includes(targetNumber)) ||
+                (inst.instance.instanceName && inst.instance.instanceName.includes(targetNumber))
+            )
+
+            if (match) {
+                setSettings({
+                    ...settings,
+                    evolution_instance_name: match.instance.instanceName,
+                    evolution_api_key: match.instance.token
+                })
+                setMessage({ type: 'success', text: `تم العثور على المثيل: ${match.instance.instanceName}` })
+            } else {
+                setMessage({ type: 'error', text: 'لم يتم العثور على مثيل مرتبط بهذا الرقم' })
+            }
+        } catch (e: any) {
+            setMessage({ type: 'error', text: e.message })
+        } finally {
+            setDiscoveryLoading(false)
         }
     }
 
@@ -347,14 +394,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                     <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                                         رقم الواتساب
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={settings.whatsapp_number || ''}
-                                        onChange={e => setSettings({ ...settings, whatsapp_number: e.target.value })}
-                                        placeholder="مثال: 966500000000"
-                                        dir="ltr"
-                                        className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={settings.whatsapp_number || ''}
+                                            onChange={e => setSettings({ ...settings, whatsapp_number: e.target.value })}
+                                            placeholder="مثال: 966500000000"
+                                            dir="ltr"
+                                            className="flex-1 px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                        />
+                                        {settings.evolution_bot_enabled && (
+                                            <button
+                                                type="button"
+                                                onClick={handleSmartLink}
+                                                disabled={discoveryLoading}
+                                                className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all font-semibold text-xs whitespace-nowrap disabled:opacity-50"
+                                            >
+                                                {discoveryLoading ? '⏳...' : '🔗 ربط ذكي'}
+                                            </button>
+                                        )}
+                                    </div>
                                     <p className="text-[9px] text-slate-500 mt-1">
                                         استخدم الرقم مع مفتاح الدولة بدون أصفار أو علامة +
                                     </p>
@@ -420,6 +479,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                             className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
                                         />
                                     </div>
+                                    <div>
+                                        <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                            Global API Key (للبحث التلقائي)
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={settings.evolution_global_api_key || ''}
+                                            onChange={e => setSettings({ ...settings, evolution_global_api_key: e.target.value })}
+                                            placeholder="Global API Key"
+                                            className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                        />
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -429,21 +500,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                                 type="text"
                                                 value={settings.evolution_instance_name || ''}
                                                 onChange={e => setSettings({ ...settings, evolution_instance_name: e.target.value })}
-                                                placeholder="MainInstance"
+                                                placeholder="يتم ملؤه تلقائياً عند الربط"
                                                 dir="ltr"
-                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Global API Key
+                                                Instance API Key
                                             </label>
                                             <input
                                                 type="password"
                                                 value={settings.evolution_api_key || ''}
                                                 onChange={e => setSettings({ ...settings, evolution_api_key: e.target.value })}
-                                                placeholder="API Key"
-                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                                placeholder="يتم ملؤه تلقائياً"
+                                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
                                             />
                                         </div>
                                     </div>
