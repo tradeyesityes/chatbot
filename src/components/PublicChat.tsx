@@ -115,13 +115,48 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
             const openAiKey = settings?.openai_api_key || (import.meta.env as any).VITE_OPENAI_API_KEY;
             const geminiKey = settings?.gemini_api_key || (import.meta.env as any).VITE_GEMINI_API_KEY;
 
-            try {
-                response = await openai.generateResponse(input, messages, files, 'free', openAiKey)
-            } catch (e: any) {
-                if (geminiKey) {
+            // Model Selection logic based on owner settings
+            const useGemini = settings?.use_gemini;
+            const useOpenAI = settings?.use_openai;
+            const useOllama = settings?.use_remote_ollama || settings?.use_local_model;
+
+            if (useOllama) {
+                // Not typical for public chat, but supported if configured
+                response = await gemini.generateResponse(input, messages, files, 'free', geminiKey)
+            } else if (useGemini && geminiKey) {
+                try {
+                    response = await gemini.generateResponse(input, messages, files, 'free', geminiKey)
+                } catch (e: any) {
+                    if (e.message.includes('quota') || e.message.includes('limit')) {
+                        throw new Error('انتهى رصيد الاستخدام المجاني لـ Gemini. يرجى المحاولة بعد دقيقة.');
+                    }
+                    throw e;
+                }
+            } else if (useOpenAI && openAiKey) {
+                try {
+                    response = await openai.generateResponse(input, messages, files, 'free', openAiKey)
+                } catch (e: any) {
+                    if (geminiKey && (e.message.includes('quota') || e.message.includes('limit'))) {
+                        try {
+                            response = await gemini.generateResponse(input, messages, files, 'free', geminiKey)
+                        } catch (gemErr: any) {
+                            if (gemErr.message.includes('quota')) {
+                                throw new Error('انتهى رصيد الاستخدام. يرجى المحاولة لاحقاً.');
+                            }
+                            throw gemErr;
+                        }
+                    } else {
+                        throw e;
+                    }
+                }
+            } else {
+                // Default fallback if no flags set
+                if (openAiKey) {
+                    response = await openai.generateResponse(input, messages, files, 'free', openAiKey)
+                } else if (geminiKey) {
                     response = await gemini.generateResponse(input, messages, files, 'free', geminiKey)
                 } else {
-                    throw e
+                    throw new Error('تعذر العثور على مفتاح API صالح للرد.');
                 }
             }
 
