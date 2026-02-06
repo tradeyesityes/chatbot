@@ -312,6 +312,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                             🚀 تضمين الشات في موقعك
                         </label>
+                        <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
+                            💡 ملاحظة: هذا الكود سيعمل تلقائياً بحسب المحرك الذي تفعله في الأعلى (Gemini أو OpenAI أو Ollama). لا تحتاج لتغيير الكود عند تغيير المحرك.
+                        </p>
                         <div className="relative group mb-4">
                             <pre className="text-[10px] bg-slate-900 text-blue-400 p-4 rounded-xl overflow-x-auto border border-slate-700">
                                 {`<iframe src="${window.location.origin}?embed=true&user_id=${userId}" style="position:fixed; bottom:0; right:0; width:400px; height:700px; border:none; z-index:999999; background:transparent;" allowtransparency="true"></iframe>`}

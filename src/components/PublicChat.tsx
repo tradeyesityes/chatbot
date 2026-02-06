@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Message, FileContext } from '../types'
 import { GeminiService } from '../services/geminiService'
 import { OpenAIService } from '../services/openaiService'
+import { OllamaService } from '../services/ollamaService'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { supabase } from '../services/supabaseService'
@@ -10,6 +11,7 @@ import { SettingsService } from '../services/settingsService'
 
 const gemini = new GeminiService()
 const openai = new OpenAIService()
+const ollamaService = new OllamaService()
 
 interface PublicChatProps {
     ownerId: string;
@@ -121,8 +123,20 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
             const useOllama = settings?.use_remote_ollama || settings?.use_local_model;
 
             if (useOllama) {
-                // Not typical for public chat, but supported if configured
-                response = await gemini.generateResponse(input, messages, files, 'free', geminiKey, settings?.gemini_model_name)
+                // --- Ollama Selection ---
+                try {
+                    ollamaService.setBaseUrl(settings?.ollama_base_url || 'http://localhost:11434')
+                    ollamaService.setApiKey(settings?.ollama_api_key || null)
+                    ollamaService.setModel(settings?.local_model_name || 'gemma3:4b')
+                    response = await ollamaService.generateResponse(input, messages, files)
+                } catch (e: any) {
+                    // Fallback to Gemini if configured
+                    if (geminiKey) {
+                        response = await gemini.generateResponse(input, messages, files, 'free', geminiKey, settings?.gemini_model_name)
+                    } else {
+                        throw e;
+                    }
+                }
             } else if (useGemini && geminiKey) {
                 try {
                     response = await gemini.generateResponse(input, messages, files, 'free', geminiKey, settings?.gemini_model_name)

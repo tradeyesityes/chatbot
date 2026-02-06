@@ -3,8 +3,8 @@ import { Message, FileContext, UserPlan } from '../types';
 export class GeminiService {
     private getModel(plan: UserPlan, customModel?: string) {
         if (customModel) return customModel;
-        // Default to gemini-1.5-flash-latest (more stable)
-        return 'gemini-1.5-flash-latest';
+        // Default to gemini-1.5-flash (stable)
+        return 'gemini-1.5-flash';
     }
 
     async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', overrideApiKey?: string, customModel?: string): Promise<string> {
@@ -70,7 +70,7 @@ ${contextFiles.map(f => `[${f.name}]\n${f.content}`).join('\n\n')}`;
         }
 
         const model = this.getModel(plan, customModel);
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
         try {
             const res = await fetch(url, {
