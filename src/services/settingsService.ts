@@ -17,7 +17,7 @@ export class SettingsService {
     static async getSettings(userId: string): Promise<UserSettings> {
         const { data, error } = await supabase
             .from('user_settings')
-            .select('use_openai, openai_api_key, use_gemini, gemini_api_key, gemini_model_name, use_local_model, local_model_name, use_remote_ollama, ollama_api_key, ollama_base_url')
+            .select('*')
             .eq('user_id', userId)
             .single()
 
