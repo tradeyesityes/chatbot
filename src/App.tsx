@@ -213,13 +213,27 @@ export default function App() {
 
         response = await ollama.generateResponse(input, messages, files)
       } else if (!openAiKey && geminiKey) {
-        response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+        try {
+          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+        } catch (e: any) {
+          if (e.message.includes('quota') || e.message.includes('limit') || e.message.includes('rate')) {
+            throw new Error('انتهى رصيد الاستخدام المجاني لـ Gemini. يرجى المحاولة بعد دقيقة أو شحن الرصيد.');
+          }
+          throw e;
+        }
       } else {
         try {
           response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey)
         } catch (e: any) {
-          if (geminiKey && (e.message.includes('quota') || e.message.includes('key') || e.message.includes('رصيدك'))) {
-            response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+          if (geminiKey && (e.message.includes('quota') || e.message.includes('key') || e.message.includes('رصيدك') || e.message.includes('limit'))) {
+            try {
+              response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+            } catch (gemErr: any) {
+              if (gemErr.message.includes('quota') || gemErr.message.includes('limit')) {
+                throw new Error('انتهى رصيد الاستخدام في كل من OpenAI و Gemini. يرجى المحاولة لاحقاً.');
+              }
+              throw gemErr;
+            }
           } else {
             throw e;
           }
