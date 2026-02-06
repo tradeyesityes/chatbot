@@ -204,7 +204,7 @@ export default function App() {
       } else if (useGemini && geminiKey) {
         // --- Gemini Selection ---
         try {
-          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey, userSettings?.gemini_model_name)
         } catch (e: any) {
           if (e.message.includes('quota') || e.message.includes('limit') || e.message.includes('rate')) {
             throw new Error('انتهى رصيد الاستخدام المجاني لـ Gemini. يرجى المحاولة بعد دقيقة أو شحن الرصيد.');
@@ -220,7 +220,7 @@ export default function App() {
           // If OpenAI fails and Gemini is available, fallback as a courtesy
           if (geminiKey && (e.message.includes('quota') || e.message.includes('key') || e.message.includes('رصيدك') || e.message.includes('limit'))) {
             try {
-              response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+              response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey, userSettings?.gemini_model_name)
             } catch (gemErr: any) {
               if (gemErr.message.includes('quota') || gemErr.message.includes('limit')) {
                 throw new Error('انتهى رصيد الاستخدام في كل من OpenAI و Gemini. يرجى المحاولة لاحقاً.');

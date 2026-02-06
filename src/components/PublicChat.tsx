@@ -122,10 +122,10 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
 
             if (useOllama) {
                 // Not typical for public chat, but supported if configured
-                response = await gemini.generateResponse(input, messages, files, 'free', geminiKey)
+                response = await gemini.generateResponse(input, messages, files, 'free', geminiKey, settings?.gemini_model_name)
             } else if (useGemini && geminiKey) {
                 try {
-                    response = await gemini.generateResponse(input, messages, files, 'free', geminiKey)
+                    response = await gemini.generateResponse(input, messages, files, 'free', geminiKey, settings?.gemini_model_name)
                 } catch (e: any) {
                     if (e.message.includes('quota') || e.message.includes('limit')) {
                         throw new Error('انتهى رصيد الاستخدام المجاني لـ Gemini. يرجى المحاولة بعد دقيقة.');
@@ -138,7 +138,7 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
                 } catch (e: any) {
                     if (geminiKey && (e.message.includes('quota') || e.message.includes('limit'))) {
                         try {
-                            response = await gemini.generateResponse(input, messages, files, 'free', geminiKey)
+                            response = await gemini.generateResponse(input, messages, files, 'free', geminiKey, settings?.gemini_model_name)
                         } catch (gemErr: any) {
                             if (gemErr.message.includes('quota')) {
                                 throw new Error('انتهى رصيد الاستخدام. يرجى المحاولة لاحقاً.');

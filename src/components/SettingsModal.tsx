@@ -14,6 +14,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         openai_api_key: '',
         use_gemini: false,
         gemini_api_key: '',
+        gemini_model_name: 'gemini-1.5-flash-latest',
         use_local_model: false,
         local_model_name: 'gemma3:4b',
         use_remote_ollama: false,
@@ -39,6 +40,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                 openai_api_key: data.openai_api_key || '',
                 use_gemini: data.use_gemini ?? false,
                 gemini_api_key: data.gemini_api_key || '',
+                gemini_model_name: data.gemini_model_name || 'gemini-1.5-flash-latest',
                 use_local_model: data.use_local_model || false,
                 local_model_name: data.local_model_name || 'gemma3:4b',
                 use_remote_ollama: data.use_remote_ollama || false,
@@ -161,6 +163,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                 />
                                 <p className="text-[10px] text-slate-500">
                                     احصل عليه مجاناً من <a href="https://aistudio.google.com/" target="_blank" className="text-green-500 underline">Google AI Studio</a>
+                                </p>
+                            </div>
+                        )}
+
+                        {settings.use_gemini && (
+                            <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                    اسم النموذج (Gemini Model)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={settings.gemini_model_name || ''}
+                                    onChange={e => setSettings({ ...settings, gemini_model_name: e.target.value })}
+                                    placeholder="e.g. gemini-1.5-flash-latest"
+                                    className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                />
+                                <p className="text-[10px] text-slate-500 mt-1">
+                                    أمثلة: gemini-1.5-flash-latest, gemini-2.0-flash, gemini-1.5-pro
                                 </p>
                             </div>
                         )}
