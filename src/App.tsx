@@ -183,36 +183,26 @@ export default function App() {
       const openAiKey = userSettings?.openai_api_key || (import.meta.env as any).VITE_OPENAI_API_KEY;
       const geminiKey = userSettings?.gemini_api_key || (import.meta.env as any).VITE_GEMINI_API_KEY;
 
-      // Check for Ollama usage (remote takes priority if both are enabled)
+      // Model Selection logic based on user settings
       const useOllama = userSettings?.use_remote_ollama || userSettings?.use_local_model;
+      const useGemini = userSettings?.use_gemini;
+      const useOpenAI = userSettings?.use_openai;
 
       if (useOllama) {
-        // Reset to defaults first to ensure no stale settings persist
+        // --- Ollama Selection ---
         ollama.setBaseUrl('http://localhost:11434')
         ollama.setApiKey(null)
-        ollama.setModel('gemma3:4b')
+        ollama.setModel(userSettings?.local_model_name || 'gemma3:4b')
 
-        // Configure model name
-        if (userSettings.local_model_name) {
-          ollama.setModel(userSettings.local_model_name)
-        }
-
-        // Configure for remote or local
-        if (userSettings.use_remote_ollama) {
-          // Remote Ollama: use custom URL and API key
-          if (userSettings.ollama_base_url) {
-            ollama.setBaseUrl(userSettings.ollama_base_url)
-          }
-          // Set API key even if null to clear previous key
+        if (userSettings?.use_remote_ollama) {
+          if (userSettings.ollama_base_url) ollama.setBaseUrl(userSettings.ollama_base_url)
           ollama.setApiKey(userSettings.ollama_api_key || null)
-        } else {
-          // Local Ollama: use localhost without API key
-          ollama.setBaseUrl('http://localhost:11434')
-          ollama.setApiKey(null)
         }
 
         response = await ollama.generateResponse(input, messages, files)
-      } else if (!openAiKey && geminiKey) {
+
+      } else if (useGemini && geminiKey) {
+        // --- Gemini Selection ---
         try {
           response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
         } catch (e: any) {
@@ -221,10 +211,13 @@ export default function App() {
           }
           throw e;
         }
-      } else {
+
+      } else if (useOpenAI && openAiKey) {
+        // --- OpenAI Selection ---
         try {
           response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey)
         } catch (e: any) {
+          // If OpenAI fails and Gemini is available, fallback as a courtesy
           if (geminiKey && (e.message.includes('quota') || e.message.includes('key') || e.message.includes('رصيدك') || e.message.includes('limit'))) {
             try {
               response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
@@ -237,6 +230,16 @@ export default function App() {
           } else {
             throw e;
           }
+        }
+
+      } else {
+        // --- Default Fallback logic if nothing specific selected ---
+        if (openAiKey) {
+          response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey)
+        } else if (geminiKey) {
+          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+        } else {
+          throw new Error('لم يتم إعداد أي مفاتيح API في الإعدادات.');
         }
       }
 
