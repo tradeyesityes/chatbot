@@ -73,6 +73,23 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Start WhatsApp Polling Service
+  useEffect(() => {
+    import('./services/whatsappPollingService').then(({ whatsappPollingService }) => {
+      if (user) {
+        whatsappPollingService.startPolling(user.id)
+      } else {
+        whatsappPollingService.stopPolling()
+      }
+    })
+
+    return () => {
+      import('./services/whatsappPollingService').then(({ whatsappPollingService }) => {
+        whatsappPollingService.stopPolling()
+      })
+    }
+  }, [user])
+
   // Load user files from storage and chat history
   useEffect(() => {
     if (!user) return

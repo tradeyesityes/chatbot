@@ -24,9 +24,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         use_whatsapp: false,
         whatsapp_number: '',
         whatsapp_message: 'مرحباً، أود الاستفسار عن...',
-        evolution_base_url: '',
+        evolution_base_url: import.meta.env.VITE_EVOLUTION_BASE_URL || '',
         evolution_api_key: '',
-        evolution_global_api_key: '',
+        evolution_global_api_key: import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || '',
         evolution_instance_name: '',
         evolution_bot_enabled: false
     })
@@ -46,6 +46,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         setLoading(true)
         try {
             const data = await SettingsService.getSettings(userId)
+
+            // Load Evolution API credentials from environment variables as fallback
+            const envEvolutionBaseUrl = import.meta.env.VITE_EVOLUTION_BASE_URL || ''
+            const envEvolutionGlobalKey = import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
+
             setSettings({
                 use_openai: data.use_openai ?? true,
                 openai_api_key: data.openai_api_key || '',
@@ -60,9 +65,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                 use_whatsapp: data.use_whatsapp || false,
                 whatsapp_number: data.whatsapp_number || '',
                 whatsapp_message: data.whatsapp_message || 'مرحباً، أود الاستفسار عن...',
-                evolution_base_url: data.evolution_base_url || '',
+                // Load from database first, fallback to environment variables
+                evolution_base_url: data.evolution_base_url || envEvolutionBaseUrl,
                 evolution_api_key: data.evolution_api_key || '',
-                evolution_global_api_key: data.evolution_global_api_key || '',
+                evolution_global_api_key: data.evolution_global_api_key || envEvolutionGlobalKey,
                 evolution_instance_name: data.evolution_instance_name || '',
                 evolution_bot_enabled: data.evolution_bot_enabled || false
             })
@@ -448,13 +454,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                 <input
                                     type="checkbox"
                                     checked={settings.evolution_bot_enabled || false}
-                                    onChange={e => {
+                                    onChange={async (e) => {
                                         const isEnabled = e.target.checked
-                                        if (isEnabled && settings.evolution_base_url && settings.evolution_global_api_key) {
-                                            // Generate instance name from user ID
-                                            const instanceName = `user_${userId.substring(0, 8)}`
-                                            setSettings({ ...settings, evolution_instance_name: instanceName })
-                                            setShowQRModal(true)
+                                        // Check both settings and environment variables
+                                        const baseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || ''
+                                        const globalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
+
+                                        if (isEnabled && baseUrl && globalKey) {
+                                            try {
+                                                // Generate instance name from user ID
+                                                const instanceName = `user_${userId.substring(0, 8)}`
+
+                                                // Update settings with environment values
+                                                const updatedSettings = {
+                                                    ...settings,
+                                                    evolution_base_url: baseUrl,
+                                                    evolution_global_api_key: globalKey,
+                                                    evolution_instance_name: instanceName
+                                                }
+                                                setSettings(updatedSettings)
+
+                                                // Save to database first so Edge Function can access it
+                                                await SettingsService.updateSettings(userId, updatedSettings)
+
+                                                // Now open QR modal
+                                                setShowQRModal(true)
+                                            } catch (error: any) {
+                                                setMessage({ type: 'error', text: `خطأ في الحفظ: ${error.message}` })
+                                            }
                                         } else if (isEnabled) {
                                             setMessage({ type: 'error', text: 'يرجى إدخال رابط Evolution API والمفتاح العام أولاً' })
                                         } else {
@@ -605,10 +632,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                 onClose={() => setShowQRModal(false)}
                 evolutionBaseUrl={settings.evolution_base_url || ''}
                 instanceName={settings.evolution_instance_name || ''}
-                onSuccess={() => {
-                    setSettings({ ...settings, evolution_bot_enabled: true })
+                onSuccess={async () => {
+                    const updatedSettings = { ...settings, evolution_bot_enabled: true }
+                    setSettings(updatedSettings)
                     setMessage({ type: 'success', text: 'تم ربط WhatsApp بنجاح!' })
-                    loadSettings() // Reload settings to get updated data
+
+                    // Save to database
+                    try {
+                        await SettingsService.updateSettings(userId, updatedSettings)
+                        loadSettings() // Reload settings to get updated data
+                    } catch (error) {
+                        console.error('Failed to save bot enabled state:', error)
+                    }
                 }}
             />
         </div>

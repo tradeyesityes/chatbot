@@ -29,26 +29,73 @@ export function WhatsAppQRModal({ isOpen, onClose, evolutionBaseUrl, instanceNam
                     return
                 }
 
-                // Call Edge Function to create instance and get QR code
-                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-whatsapp-instance`, {
+                // Get user settings to fetch Evolution API credentials
+                const { data: settings } = await supabase
+                    .from('user_settings')
+                    .select('evolution_global_api_key')
+                    .eq('user_id', session.user.id)
+                    .single()
+
+                if (!settings?.evolution_global_api_key) {
+                    throw new Error('Evolution API key not configured')
+                }
+
+                const globalApiKey = settings.evolution_global_api_key
+                const cleanBaseUrl = evolutionBaseUrl.replace(/\/$/, '')
+
+                // Step 1: Create instance (if not exists)
+                console.log(`Creating instance: ${instanceName}`)
+                const createResponse = await fetch(`${cleanBaseUrl}/instance/create`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`
+                        'apikey': globalApiKey
                     },
                     body: JSON.stringify({
-                        evolutionBaseUrl,
-                        instanceName
+                        instanceName: instanceName,
+                        qrcode: true,
+                        integration: 'WHATSAPP-BAILEYS'
                     })
                 })
 
-                if (!response.ok) {
-                    const error = await response.json()
-                    throw new Error(error.error || 'Failed to create instance')
+                // Instance might already exist, that's okay
+                if (!createResponse.ok && createResponse.status !== 403 && createResponse.status !== 409) {
+                    const errorText = await createResponse.text()
+                    throw new Error(`Failed to create instance: ${errorText}`)
                 }
 
-                const data = await response.json()
-                setQrCode(data.qrCode)
+                // Step 2: Fetch QR Code with retry logic
+                console.log(`Fetching QR code for: ${instanceName}`)
+                let qrCode = null
+                let retries = 10
+
+                while (retries > 0 && !qrCode) {
+                    await new Promise(resolve => setTimeout(resolve, 1500))
+
+                    const qrResponse = await fetch(`${cleanBaseUrl}/instance/connect/${instanceName}`, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': globalApiKey
+                        }
+                    })
+
+                    if (qrResponse.ok) {
+                        const qrData = await qrResponse.json()
+                        if (qrData.base64) {
+                            qrCode = qrData.base64
+                            break
+                        }
+                    }
+
+                    retries--
+                    console.log(`QR code not ready, retries left: ${retries}`)
+                }
+
+                if (!qrCode) {
+                    throw new Error('Failed to fetch QR code after multiple attempts')
+                }
+
+                setQrCode(qrCode)
                 setStatus('waiting')
 
                 // Start polling for connection status
@@ -64,27 +111,36 @@ export function WhatsAppQRModal({ isOpen, onClose, evolutionBaseUrl, instanceNam
         createInstance()
     }, [isOpen, evolutionBaseUrl, instanceName])
 
-    const startPolling = () => {
+
+    const startPolling = async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+
+        const { data: settings } = await supabase
+            .from('user_settings')
+            .select('evolution_global_api_key')
+            .eq('user_id', session.user.id)
+            .single()
+
+        if (!settings?.evolution_global_api_key) return
+
+        const globalApiKey = settings.evolution_global_api_key
+        const cleanBaseUrl = evolutionBaseUrl.replace(/\/$/, '')
+
         const pollInterval = setInterval(async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (!session) return
-
-                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-whatsapp-status`, {
-                    method: 'POST',
+                // Check instance connection status
+                const response = await fetch(`${cleanBaseUrl}/instance/connectionState/${instanceName}`, {
+                    method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`
-                    },
-                    body: JSON.stringify({
-                        evolutionBaseUrl,
-                        instanceName
-                    })
+                        'apikey': globalApiKey
+                    }
                 })
 
                 if (response.ok) {
                     const data = await response.json()
-                    if (data.connected) {
+                    console.log('Connection state:', data)
+                    if (data.instance?.state === 'open') {
                         setStatus('connected')
                         clearInterval(pollInterval)
                         setTimeout(() => {

@@ -88,29 +88,14 @@ serve(async (req) => {
         const createData = await createResponse.json().catch(() => ({}))
         const instanceApiKey = createData.hash?.apikey || evolutionGlobalApiKey
 
-        // Step 2: Connect Instance (triggers QR generation)
-        console.log(`Connecting instance: ${instanceName}`)
-        const connectResponse = await fetch(`${cleanBaseUrl}/instance/connect/${instanceName}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': evolutionGlobalApiKey
-            }
-        })
-
-        if (!connectResponse.ok) {
-            const errorText = await connectResponse.text()
-            console.error('Instance connection failed:', errorText)
-            throw new Error(`Failed to connect instance: ${errorText}`)
-        }
-
-        // Step 3: Fetch QR Code (with retry logic)
+        // Step 2: Fetch QR Code (with retry logic)
+        // The QR code is automatically generated after instance creation
         console.log(`Fetching QR code for: ${instanceName}`)
         let qrCode = null
-        let retries = 5
+        let retries = 10 // Increased retries for better reliability
 
         while (retries > 0 && !qrCode) {
-            await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
+            await new Promise(resolve => setTimeout(resolve, 1500)) // Wait 1.5 seconds
 
             const qrResponse = await fetch(`${cleanBaseUrl}/instance/connect/${instanceName}`, {
                 method: 'GET',
