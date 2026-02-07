@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { SettingsService, UserSettings } from '../services/settingsService'
+import { WhatsAppQRModal } from './WhatsAppQRModal'
 
 interface SettingsModalProps {
     userId: string
@@ -33,6 +34,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+    const [showQRModal, setShowQRModal] = useState(false)
 
     useEffect(() => {
         if (isOpen) {
@@ -446,7 +448,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                 <input
                                     type="checkbox"
                                     checked={settings.evolution_bot_enabled || false}
-                                    onChange={e => setSettings({ ...settings, evolution_bot_enabled: e.target.checked })}
+                                    onChange={e => {
+                                        const isEnabled = e.target.checked
+                                        if (isEnabled && settings.evolution_base_url && settings.evolution_global_api_key) {
+                                            // Generate instance name from user ID
+                                            const instanceName = `user_${userId.substring(0, 8)}`
+                                            setSettings({ ...settings, evolution_instance_name: instanceName })
+                                            setShowQRModal(true)
+                                        } else if (isEnabled) {
+                                            setMessage({ type: 'error', text: 'يرجى إدخال رابط Evolution API والمفتاح العام أولاً' })
+                                        } else {
+                                            setSettings({ ...settings, evolution_bot_enabled: false })
+                                        }
+                                    }}
                                     className="sr-only peer"
                                 />
                                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
@@ -585,6 +599,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                     </button>
                 </div>
             </div>
+
+            <WhatsAppQRModal
+                isOpen={showQRModal}
+                onClose={() => setShowQRModal(false)}
+                evolutionBaseUrl={settings.evolution_base_url || ''}
+                instanceName={settings.evolution_instance_name || ''}
+                onSuccess={() => {
+                    setSettings({ ...settings, evolution_bot_enabled: true })
+                    setMessage({ type: 'success', text: 'تم ربط WhatsApp بنجاح!' })
+                    loadSettings() // Reload settings to get updated data
+                }}
+            />
         </div>
     )
 }
