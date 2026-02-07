@@ -432,6 +432,17 @@ export default function App() {
                 {messages.map(message => (
                   <ChatMessage key={message.id} message={message} />
                 ))}
+
+                {loading && (
+                  <div className="flex justify-start mb-4 px-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center gap-1.5 w-fit">
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                    </div>
+                  </div>
+                )}
+
                 <div ref={messagesEndRef} />
               </>
             )}

@@ -87,6 +87,27 @@ serve(async (req) => {
         const userId = settings.user_id
         await logDebug('SettingsFound', `Found enabled bot for user: ${userId}`, { userId, botEnabled: settings.evolution_bot_enabled, instanceName })
 
+        // 2.5 Send "Composing" Presence
+        try {
+            const cleanBaseUrl = settings.evolution_base_url.replace(/\/$/, '')
+            const presenceUrl = `${cleanBaseUrl}/message/sendPresence/${instanceName}`
+            await fetch(presenceUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': settings.evolution_api_key
+                },
+                body: JSON.stringify({
+                    number: remoteJid,
+                    presence: 'composing',
+                    delay: 1200
+                })
+            })
+            await logDebug('Presence', 'Sent composing presence', { instanceName })
+        } catch (presenceError) {
+            console.error('Presence Error:', presenceError)
+        }
+
         // 3. Fetch Knowledge Base Context
         const { data: files, error: filesError } = await supabase
             .from('user_files')
@@ -100,8 +121,11 @@ serve(async (req) => {
 
         // 4. Generate AI Response
         let aiResponse = ''
-        const systemPrompt = `أنت مساعد ذكي يرد على الأسئلة بناءً على المعلومات التالية فقط. إذا لم تجد الإجابة، قل أنك لا تمتلك المعلومات الكافية.
-تواصل باللهجة العربية المفضلة للعميل.
+        const systemPrompt = `أنت مساعد ذكي لخدمة العملاء في شركتنا، وترد على استفسارات العملاء بدقة واحترافية.
+اعتمد في إجاباتك على المعلومات التالية فقط.
+**قاعدة صارمة:** لا تذكر أبداً أسماء الملفات، ولا تشرح للعميل ماذا تحتوي ملفاتك (مثلاً لا تقل "لدي بيانات عن الأوزان والطول").
+فقط أجب على السؤال المطروح مباشرة.
+إذا اضطررت لذكر مصدر معلوماتك، قل فقط: "أعتمد في إجاباتي على البيانات التي تم تزويدي بها من قبل فريق الشركة".
 
 سياق المعلومات:
 ${context}`
