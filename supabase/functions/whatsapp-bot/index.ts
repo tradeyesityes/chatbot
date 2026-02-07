@@ -40,16 +40,28 @@ serve(async (req) => {
         }
 
         // 2. Fetch User Settings by Instance Name
-        // We use .filter or .eq to find the right settings
+        // Using ilike for case-insensitive matching is safer as users might type it differently
         const { data: settings, error: settingsError } = await supabase
             .from('user_settings')
             .select('*')
-            .eq('evolution_instance_name', instanceName)
+            .ilike('evolution_instance_name', instanceName)
             .eq('evolution_bot_enabled', true)
             .maybeSingle()
 
-        if (settingsError || !settings) {
-            console.error('Bot settings not found or disabled for instance:', instanceName, settingsError)
+        if (settingsError) {
+            console.error('Database error fetching settings:', settingsError)
+            return new Response(JSON.stringify({ status: 'db_error', error: settingsError.message }), { status: 500 })
+        }
+
+        if (!settings) {
+            console.warn(`No enabled bot configuration found for instance: "${instanceName}".`)
+            // Log all instances to debug potential mismatches
+            const { data: allInstances } = await supabase
+                .from('user_settings')
+                .select('evolution_instance_name, evolution_bot_enabled')
+
+            console.log('Available instances in DB:', JSON.stringify(allInstances))
+
             return new Response(JSON.stringify({ status: 'not_configured', instance: instanceName }), { status: 200 })
         }
 
