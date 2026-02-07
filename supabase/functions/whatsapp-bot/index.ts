@@ -5,24 +5,42 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+const logDebug = async (step: string, message: string, details: any = {}) => {
+    console.log(`[${step}] ${message}`, details)
+    try {
+        await supabase.from('bot_debug_logs').insert({
+            instance_name: details?.instanceName || 'unknown',
+            step,
+            message,
+            details: details
+        })
+    } catch (e) {
+        console.error('Failed to log to DB:', e)
+    }
+}
+
 serve(async (req) => {
+    let instanceName = 'unknown'
     try {
         const payload = await req.json()
-        console.log('Incoming Webhook:', JSON.stringify(payload))
+        instanceName = payload.instance || 'unknown'
+
+        await logDebug('Start', 'Received Webhook', { payload, instanceName })
 
         // 1. Validate Payload
         const event = payload.event
-        console.log(`Processing event: ${event} for instance: ${payload.instance}`)
+        // console.log(`Processing event: ${event} for instance: ${payload.instance}`) // Replaced by logDebug
 
         if (event !== 'messages.upsert') {
+            await logDebug('Ignored', 'Event is not messages.upsert', { event, instanceName })
             return new Response(JSON.stringify({ status: 'ignored', reason: 'not_upsert' }), { status: 200 })
         }
 
         if (payload.data?.key?.fromMe) {
+            await logDebug('Ignored', 'Message is from me', { key: payload.data.key, instanceName })
             return new Response(JSON.stringify({ status: 'ignored', reason: 'from_me' }), { status: 200 })
         }
 
-        const instanceName = payload.instance
         const remoteJid = payload.data?.key?.remoteJid
 
         // Comprehensive text extraction
@@ -33,9 +51,10 @@ serve(async (req) => {
             message?.videoMessage?.caption ||
             message?.documentMessage?.caption || ''
 
-        console.log(`Incoming text from ${remoteJid}: "${incomingText}"`)
+        await logDebug('ExtractText', `Extracted text: "${incomingText}"`, { remoteJid, incomingText, instanceName })
 
         if (!incomingText) {
+            await logDebug('Error', 'No text found in message', { message, instanceName })
             return new Response(JSON.stringify({ status: 'no_text_to_process' }), { status: 200 })
         }
 
@@ -49,24 +68,24 @@ serve(async (req) => {
             .maybeSingle()
 
         if (settingsError) {
-            console.error('Database error fetching settings:', settingsError)
+            await logDebug('DBError', 'Error fetching settings', { error: settingsError, instanceName })
             return new Response(JSON.stringify({ status: 'db_error', error: settingsError.message }), { status: 500 })
         }
 
         if (!settings) {
-            console.warn(`No enabled bot configuration found for instance: "${instanceName}".`)
+            await logDebug('ConfigError', 'No enabled bot configuration found for instance', { instanceName })
             // Log all instances to debug potential mismatches
             const { data: allInstances } = await supabase
                 .from('user_settings')
                 .select('evolution_instance_name, evolution_bot_enabled')
 
-            console.log('Available instances in DB:', JSON.stringify(allInstances))
+            await logDebug('DebugInstances', 'Available instances in DB', { allInstances, instanceName })
 
             return new Response(JSON.stringify({ status: 'not_configured', instance: instanceName }), { status: 200 })
         }
 
         const userId = settings.user_id
-        console.log(`Found enabled bot for user: ${userId}`)
+        await logDebug('SettingsFound', `Found enabled bot for user: ${userId}`, { userId, botEnabled: settings.evolution_bot_enabled, instanceName })
 
         // 3. Fetch Knowledge Base Context
         const { data: files, error: filesError } = await supabase
@@ -74,10 +93,10 @@ serve(async (req) => {
             .select('name, content')
             .eq('user_id', userId)
 
-        if (filesError) console.warn('Error fetching files:', filesError)
+        if (filesError) await logDebug('FilesError', 'Error fetching files', { error: filesError, userId, instanceName })
 
         const context = files?.map(f => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
-        console.log(`Fetched ${files?.length || 0} files for context.`)
+        await logDebug('Context', `Fetched ${files?.length || 0} files for context.`, { contextLength: context.length, userId, instanceName })
 
         // 4. Generate AI Response
         let aiResponse = ''
@@ -88,7 +107,7 @@ serve(async (req) => {
 ${context}`
 
         if (settings.use_gemini && settings.gemini_api_key) {
-            console.log('Using Gemini for response...')
+            await logDebug('AI', 'Using Gemini for response...', { model: settings.gemini_model_name, userId, instanceName })
             const model = settings.gemini_model_name || 'gemini-1.5-flash-latest'
             const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${settings.gemini_api_key}`
 
@@ -102,10 +121,10 @@ ${context}`
                 })
             })
             const result = await response.json()
-            if (result.error) console.error('Gemini API Error:', result.error)
+            if (result.error) await logDebug('AIError', 'Gemini API Error', { error: result.error, userId, instanceName })
             aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
         } else if (settings.use_openai && settings.openai_api_key) {
-            console.log('Using OpenAI for response...')
+            await logDebug('AI', 'Using OpenAI for response...', { model: 'gpt-4o-mini', userId, instanceName })
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -121,20 +140,64 @@ ${context}`
                 })
             })
             const result = await response.json()
-            if (result.error) console.error('OpenAI API Error:', result.error)
+            if (result.error) await logDebug('AIError', 'OpenAI API Error', { error: result.error, userId, instanceName })
             aiResponse = result.choices?.[0]?.message?.content || ''
+        } else if (settings.use_remote_ollama && settings.ollama_base_url) {
+            const modelName = settings.local_model_name || 'gemma:2b'
+            await logDebug('AI', 'Using Remote Ollama', { model: modelName, baseUrl: settings.ollama_base_url, userId, instanceName })
+
+            // Normalize URL: remove trailing slash and ensure it doesn't end in /v1 (we add that)
+            // Actually, Ollama's OpenAI compatible endpoint is /v1/chat/completions
+            let baseUrl = settings.ollama_base_url.replace(/\/$/, '')
+            if (baseUrl.endsWith('/v1')) {
+                baseUrl = baseUrl.slice(0, -3)
+            }
+            const apiUrl = `${baseUrl}/v1/chat/completions`
+
+            const headers: any = { 'Content-Type': 'application/json' }
+            if (settings.ollama_api_key) {
+                headers['Authorization'] = `Bearer ${settings.ollama_api_key}`
+            }
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        model: modelName,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: incomingText }
+                        ],
+                        stream: false
+                    })
+                })
+
+                if (!response.ok) {
+                    const errorText = await response.text()
+                    await logDebug('AIError', 'Ollama HTTP Error', { status: response.status, text: errorText, userId, instanceName })
+                } else {
+                    const result = await response.json()
+                    aiResponse = result.choices?.[0]?.message?.content || ''
+                }
+            } catch (fetchError: any) {
+                await logDebug('AIError', 'Ollama Network Error', { error: fetchError.message, userId, instanceName })
+            }
         }
 
         if (!aiResponse) {
-            console.error('AI failed to generate a response.')
+            await logDebug('AIError', 'AI failed to generate a response.', { userId, instanceName })
             return new Response(JSON.stringify({ status: 'ai_error' }), { status: 200 })
         }
+
+        await logDebug('AIResponse', 'Generated AI response', { aiResponseLength: aiResponse.length, userId, instanceName })
 
         // 5. Send Response back to Evolution API
         const cleanBaseUrl = settings.evolution_base_url.replace(/\/$/, '')
         const sendUrl = `${cleanBaseUrl}/message/sendText/${instanceName}`
-        console.log(`Sending response to: ${sendUrl}`)
 
+        // Fix: Evolution API sendText endpoint often expects "text" at the root, or "textMessage" property depending on version.
+        // The error "instance requires property 'text'" suggests it wants "text" at the root.
         const sendResponse = await fetch(sendUrl, {
             method: 'POST',
             headers: {
@@ -143,23 +206,18 @@ ${context}`
             },
             body: JSON.stringify({
                 number: remoteJid,
-                options: {
-                    delay: 1200,
-                    presence: 'composing',
-                    linkPreview: false
-                },
-                textMessage: {
-                    text: aiResponse
-                }
+                text: aiResponse, // Corrected: moved text to root
+                delay: 1200,
+                linkPreview: false
             })
         })
 
         const sendResult = await sendResponse.json()
-        console.log('Evolution API Response:', JSON.stringify(sendResult))
+        await logDebug('EvolutionResponse', 'Evolution API Response', { result: sendResult, userId, instanceName })
 
         return new Response(JSON.stringify({ status: 'success', evolution_response: sendResult }), { status: 200 })
     } catch (err: any) {
-        console.error('Bot Error:', err.message)
+        await logDebug('FatalError', 'Bot Error', { message: err.message, stack: err.stack, instanceName })
         return new Response(JSON.stringify({ error: err.message }), { status: 500 })
     }
 })
