@@ -10,6 +10,11 @@ interface WhatsAppMessage {
     messageTimestamp: number
 }
 
+interface UserFile {
+    name: string
+    content: string
+}
+
 class WhatsAppPollingService {
     private pollingInterval: number | null = null
     private processedMessages: Set<string> = new Set()
@@ -17,12 +22,15 @@ class WhatsAppPollingService {
 
     async startPolling(userId: string) {
         if (this.isRunning) {
-            console.log('Polling already running')
+            console.log('⚠️ Polling already running')
             return
         }
 
         this.isRunning = true
-        console.log('Starting WhatsApp polling service...')
+        console.log('🚀 Starting WhatsApp polling service for user:', userId)
+
+        // Initial check immediately
+        this.checkForNewMessages(userId)
 
         // Poll every 5 seconds
         this.pollingInterval = window.setInterval(async () => {
@@ -35,26 +43,41 @@ class WhatsAppPollingService {
             clearInterval(this.pollingInterval)
             this.pollingInterval = null
             this.isRunning = false
-            console.log('Stopped WhatsApp polling service')
+            console.log('🛑 Stopped WhatsApp polling service')
         }
     }
 
     private async checkForNewMessages(userId: string) {
         try {
             // Get user settings
-            const { data: settings } = await supabase
+            const { data: settings, error: settingsError } = await supabase
                 .from('user_settings')
                 .select('*')
                 .eq('user_id', userId)
                 .eq('evolution_bot_enabled', true)
-                .single()
+                .maybeSingle()
 
-            if (!settings || !settings.evolution_base_url || !settings.evolution_instance_name) {
+            if (settingsError) {
+                console.error('❌ Error fetching settings:', settingsError)
+                return
+            }
+
+            if (!settings) {
+                // User might have logged out or disabled the bot
+                // console.log('Bot disabled or settings not found')
+                return
+            }
+
+            if (!settings.evolution_base_url || !settings.evolution_instance_name) {
+                console.warn('⚠️ WhatsApp Info missing')
                 return
             }
 
             const cleanBaseUrl = settings.evolution_base_url.replace(/\/$/, '')
             const instanceName = settings.evolution_instance_name
+            const apiKey = settings.evolution_global_api_key || settings.evolution_api_key
+
+            // console.log(`🔍 Checking messages for ${instanceName}...`)
 
             // Fetch recent messages from Evolution API
             const response = await fetch(
@@ -63,37 +86,40 @@ class WhatsAppPollingService {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'apikey': settings.evolution_global_api_key || settings.evolution_api_key
+                        'apikey': apiKey
                     },
                     body: JSON.stringify({
                         where: {},
-                        limit: 10
+                        limit: 5
                     })
                 }
             )
 
             if (!response.ok) {
-                console.error('Failed to fetch messages:', response.statusText)
+                console.error('❌ Failed to fetch messages:', response.status, response.statusText)
                 return
             }
 
             const messages: WhatsAppMessage[] = await response.json()
+            // console.log(`📥 Received ${messages.length} messages`)
 
             // Process new messages
             for (const msg of messages) {
-                if (msg.key.fromMe) continue // Skip messages sent by us
-
                 const messageId = msg.key.id
+
+                if (msg.key.fromMe) continue
+
                 if (this.processedMessages.has(messageId)) continue
 
-                // Mark as processed
+                console.log(`🆕 Processing NEW message: ${messageId}`)
+                console.log('💬 Text:', this.extractText(msg.message))
+
+                // Mark as processed immediately to prevent double processing
                 this.processedMessages.add(messageId)
 
                 // Extract text
                 const text = this.extractText(msg.message)
                 if (!text) continue
-
-                console.log('New message:', text, 'from:', msg.key.remoteJid)
 
                 // Generate and send response
                 await this.handleMessage(userId, settings, msg.key.remoteJid, text)
@@ -106,7 +132,7 @@ class WhatsAppPollingService {
             }
 
         } catch (error) {
-            console.error('Polling error:', error)
+            console.error('❌ Polling fatal error:', error)
         }
     }
 
@@ -124,6 +150,10 @@ class WhatsAppPollingService {
         remoteJid: string,
         incomingText: string
     ) {
+        console.log('--- Handling Message ---')
+        console.log('User:', userId)
+        console.log('From:', remoteJid)
+
         try {
             // Send typing indicator
             await this.sendPresence(settings, remoteJid, 'composing')
@@ -134,23 +164,27 @@ class WhatsAppPollingService {
                 .select('name, content')
                 .eq('user_id', userId)
 
-            const context = files?.map(f => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
+            const context = files?.map((f: UserFile) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
+            console.log(`📚 Context loaded from ${files?.length || 0} files`)
 
             // Generate AI response
+            console.log('🤖 Generating AI response...')
             const aiResponse = await this.generateAIResponse(settings, context, incomingText)
 
             if (!aiResponse) {
-                console.error('Failed to generate AI response')
+                console.error('❌ Failed to generate AI response (Empty)')
                 return
             }
+            console.log('✨ AI Response ready')
 
             // Send response
+            console.log('📤 Sending WhatsApp response...')
             await this.sendMessage(settings, remoteJid, aiResponse)
 
-            console.log('Sent auto-reply successfully')
+            console.log('✅ Sent auto-reply successfully')
 
         } catch (error) {
-            console.error('Error handling message:', error)
+            console.error('❌ Error handling message:', error)
         }
     }
 
@@ -158,57 +192,93 @@ class WhatsAppPollingService {
         const cleanBaseUrl = settings.evolution_base_url.replace(/\/$/, '')
         const instanceName = settings.evolution_instance_name
 
-        await fetch(`${cleanBaseUrl}/message/sendPresence/${instanceName}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': settings.evolution_api_key
-            },
-            body: JSON.stringify({
-                number: remoteJid,
-                presence,
-                delay: 1200
+        try {
+            await fetch(`${cleanBaseUrl}/message/sendPresence/${instanceName}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': settings.evolution_global_api_key || settings.evolution_api_key
+                },
+                body: JSON.stringify({
+                    number: remoteJid,
+                    presence,
+                    delay: 1200
+                })
             })
-        })
+        } catch (e) {
+            console.error('Error sending presence:', e)
+        }
     }
 
     private async generateAIResponse(settings: any, context: string, question: string): Promise<string> {
         const systemPrompt = `أنت مساعد ذكي لخدمة العملاء. أجب فقط بناءً على المعلومات التالية:\n\n${context}`
 
-        if (settings.use_gemini && settings.gemini_api_key) {
-            const model = settings.gemini_model_name || 'gemini-1.5-flash-latest'
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${settings.gemini_api_key}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: `${systemPrompt}\n\nالسؤال: ${question}` }]
-                        }]
-                    })
-                }
-            )
-            const result = await response.json()
-            return result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+        const geminiKey = settings.gemini_api_key || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY
+        const openaiKey = settings.openai_api_key || import.meta.env.VITE_OPENAI_API_KEY
 
-        } else if (settings.use_openai && settings.openai_api_key) {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${settings.openai_api_key}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: question }
-                    ]
+        // Determine which model to use
+        // specific preference > key existence
+        let useGemini = settings.use_gemini
+        let useOpenAI = settings.use_openai
+
+        // If no specific preference is saved, default to whatever key is available
+        if (!useGemini && !useOpenAI) {
+            if (geminiKey) useGemini = true
+            else if (openaiKey) useOpenAI = true
+        }
+
+        console.log(`🤖 AI Selection: Gemini=${useGemini}, OpenAI=${useOpenAI}`)
+
+        try {
+            if (useGemini && geminiKey) {
+                console.log('✨ Using Gemini...')
+                const model = settings.gemini_model_name || 'gemini-1.5-flash-latest'
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${geminiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: `${systemPrompt}\n\nالسؤال: ${question}` }]
+                            }]
+                        })
+                    }
+                )
+                const result = await response.json()
+                if (result.error) {
+                    console.error('Gemini API Error:', result.error)
+                    return ''
+                }
+                return result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+            } else if (useOpenAI && openaiKey) {
+                console.log('✨ Using OpenAI...')
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${openaiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: question }
+                        ]
+                    })
                 })
-            })
-            const result = await response.json()
-            return result.choices?.[0]?.message?.content || ''
+                const result = await response.json()
+                if (result.error) {
+                    console.error('OpenAI API Error:', result.error)
+                    return ''
+                }
+                return result.choices?.[0]?.message?.content || ''
+            } else {
+                console.warn('⚠️ No active AI service found (missing keys or configuration)')
+            }
+        } catch (e) {
+            console.error('AI Generation Error:', e)
         }
 
         return ''
@@ -222,7 +292,7 @@ class WhatsAppPollingService {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'apikey': settings.evolution_api_key
+                'apikey': settings.evolution_global_api_key || settings.evolution_api_key
             },
             body: JSON.stringify({
                 number: remoteJid,
