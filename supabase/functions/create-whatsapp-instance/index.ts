@@ -73,9 +73,13 @@ serve(async (req) => {
             const errorText = await createResponse.text()
             console.error('Instance creation failed:', errorText)
 
-            // Check if instance already exists
-            if (createResponse.status === 409 || errorText.includes('already exists')) {
-                console.log('Instance already exists, proceeding to connect...')
+            // Check if instance already exists (403 or 409 status, or error message contains "already")
+            const instanceExists = createResponse.status === 403 ||
+                createResponse.status === 409 ||
+                errorText.toLowerCase().includes('already')
+
+            if (instanceExists) {
+                console.log('Instance already exists, will reuse it and proceed to connect...')
             } else {
                 throw new Error(`Failed to create instance: ${errorText}`)
             }
