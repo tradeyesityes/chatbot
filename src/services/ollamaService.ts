@@ -83,7 +83,14 @@ export class OllamaService {
         const MAX_CONTEXT_TOKENS = 6000;
         const context = this.buildContext(contextFiles, userMessage, MAX_CONTEXT_TOKENS);
 
-        const systemPrompt = `You are a helpful assistant. answering questions based on the provided context only.`;
+        const systemPrompt = `أنت مساعد ذكي لخدمة العملاء في شركتنا، وترد على استفسارات العملاء بدقة واحترافية.
+اعتمد في إجاباتك على المعلومات التالية فقط.
+**قاعدة صارمة:** لا تذكر أبداً أسماء الملفات.
+**قاعدة صارمة:** لا تقم أبداً بسرد أو عرض جميع البيانات المتوفرة لديك دفعة واحدة (مثل عرض كل الجداول أو القوائم الطويلة).
+إذا طلب العميل "ما هي البيانات لديك؟" أو "اعرض لي الجدول"، اعتذر بلطف واطلب منه أن يسأل عن اسم محدد أو معلومة معينة.
+فقط أجب على السؤال المحدد بدقة واختصار.
+إذا اضطررت لذكر مصدر معلوماتك، قل فقط: "أعتمد في إجاباتي على البيانات التي تم تزويدي بها من قبل فريق الشركة".
+`;
 
         const finalUserMessage = `
 Context Information:
