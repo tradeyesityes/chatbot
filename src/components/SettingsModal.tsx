@@ -464,25 +464,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                             // ----------------- ENABLING -----------------
                                             if (baseUrl && globalKey) {
                                                 try {
-                                                    // Update settings with environment values if needed
                                                     const updatedSettings = {
                                                         ...settings,
+                                                        evolution_bot_enabled: true,
                                                         evolution_base_url: baseUrl,
                                                         evolution_global_api_key: globalKey,
                                                         evolution_instance_name: instanceName
                                                     }
                                                     setSettings(updatedSettings)
-
-                                                    // Save to database
                                                     await SettingsService.updateSettings(userId, updatedSettings)
-
-                                                    // Now open QR modal
                                                     setShowQRModal(true)
                                                 } catch (error: any) {
                                                     setMessage({ type: 'error', text: `خطأ في الحفظ: ${error.message}` })
                                                 }
                                             } else {
-                                                setMessage({ type: 'error', text: 'يرجى تكوين Evolution API في ملف .env أولاً' })
+                                                setMessage({ type: 'error', text: 'فشل التفعيل: إعدادات Evolution API غير مكتملة في الخادم.' })
                                             }
                                         } else {
                                             // ----------------- DISABLING -----------------
@@ -522,8 +518,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                             </label>
                         </div>
-
-
                     </div>
 
                     <div className="pt-4 border-t border-slate-100 dark:border-slate-700">

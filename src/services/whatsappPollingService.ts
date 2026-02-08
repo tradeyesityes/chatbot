@@ -88,14 +88,17 @@ class WhatsAppPollingService {
                 return
             }
 
-            if (!settings.evolution_base_url || !settings.evolution_instance_name) {
-                console.warn('⚠️ WhatsApp Info missing')
+            const baseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL
+            const globalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY
+
+            if (!baseUrl) {
+                console.warn('⚠️ WhatsApp Base URL missing (no DB setting and no .env)')
                 return
             }
 
-            const cleanBaseUrl = settings.evolution_base_url.replace(/\/$/, '')
-            const instanceName = settings.evolution_instance_name
-            const apiKey = settings.evolution_global_api_key || settings.evolution_api_key
+            const cleanBaseUrl = baseUrl.replace(/\/$/, '')
+            const instanceName = settings.evolution_instance_name || `user_${userId.substring(0, 8)}`
+            const apiKey = globalKey || settings.evolution_api_key
 
             // console.log(`🔍 Checking messages for ${instanceName}...`)
 
