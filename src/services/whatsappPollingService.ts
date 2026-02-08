@@ -157,18 +157,25 @@ class WhatsAppPollingService {
                     continue
                 }
 
-                // 3. DATABASE CHECK (for cross-environment: Local vs Prod)
-                const { data: dbChecked } = await supabase
-                    .from('processed_whatsapp_messages' as any)
-                    .select('msg_id')
-                    .eq('msg_id', messageId)
-                    .maybeSingle()
+                // 3. DATABASE CHECK & LOCK
+                // Try to register in DB - THIS IS OUR HARD LOCK
+                try {
+                    const { error: insertError } = await supabase
+                        .from('processed_whatsapp_messages' as any)
+                        .insert({ msg_id: messageId })
 
-                if (dbChecked) {
-                    // console.log(`🚫 Message ${messageId} already processed by another instance (DB)`)
-                    this.processedMessages.add(messageId)
-                    localStorage.setItem(storageKey, '1')
-                    continue
+                    if (insertError) {
+                        // 23505 = unique_violation (another instance is already processing)
+                        if (insertError.code === '23505') {
+                            this.processedMessages.add(messageId)
+                            localStorage.setItem(storageKey, '1')
+                            continue
+                        }
+                        // If it's 42P01 (table doesn't exist), we log once and proceed 
+                        // with duplication risk but service continuity
+                    }
+                } catch (e) {
+                    // Fail silently and proceed if anything else goes wrong with the DB check
                 }
 
                 console.log(`🆕 Processing NEW message: ${messageId} at ${msgTime}`)
@@ -177,13 +184,6 @@ class WhatsAppPollingService {
                 // Mark as processed immediately locally
                 this.processedMessages.add(messageId)
                 localStorage.setItem(storageKey, '1')
-
-                // Register in DB (Optional: ignore error if table doesn't exist)
-                try {
-                    await supabase.from('processed_whatsapp_messages' as any).insert({ msg_id: messageId })
-                } catch (e) {
-                    // Silently fail if table not present
-                }
 
                 // Extract text
                 const text = this.extractText(msg.message)
