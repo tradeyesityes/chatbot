@@ -82,17 +82,26 @@ class WhatsAppPollingService {
                 return
             }
 
-            if (!settings) {
-                // User might have logged out or disabled the bot
-                // console.log('Bot disabled or settings not found')
-                return
+            if (!settings) return
+
+            let baseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL
+            let globalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY
+
+            // AS A FINAL RESORT: Check the global_settings table in DB
+            if (!baseUrl || !globalKey) {
+                try {
+                    // We import SettingsService here to avoid potential circular dependencies if any
+                    const { SettingsService } = await import('./settingsService')
+                    const globals = await SettingsService.getGlobalSettings()
+                    baseUrl = baseUrl || globals['evolution_base_url']
+                    globalKey = globalKey || globals['evolution_global_api_key']
+                } catch (e) {
+                    console.error('Failed to fetch global settings fallback:', e)
+                }
             }
 
-            const baseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL
-            const globalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY
-
             if (!baseUrl) {
-                console.warn('⚠️ WhatsApp Base URL missing (no DB setting and no .env)')
+                console.warn('⚠️ WhatsApp Base URL missing (no DB setting, no .env, no global_settings)')
                 return
             }
 

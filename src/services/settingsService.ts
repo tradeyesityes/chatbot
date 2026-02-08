@@ -66,4 +66,20 @@ export class SettingsService {
 
         if (error) throw error
     }
+
+    static async getGlobalSettings(): Promise<Record<string, string>> {
+        const { data, error } = await supabase
+            .from('global_settings')
+            .select('key, value')
+
+        if (error) {
+            console.warn('Global settings table missing or error:', error.message)
+            return {}
+        }
+
+        return (data || []).reduce((acc: any, item: any) => {
+            acc[item.key] = item.value
+            return acc
+        }, {})
+    }
 }

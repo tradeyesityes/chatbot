@@ -462,13 +462,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
 
                                         if (isEnabled) {
                                             // ----------------- ENABLING -----------------
-                                            if (baseUrl && globalKey) {
+                                            let finalBaseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || ''
+                                            let finalGlobalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
+
+                                            // If both are missing, try fetching from the global_settings table
+                                            if (!finalBaseUrl || !finalGlobalKey) {
+                                                try {
+                                                    const globals = await SettingsService.getGlobalSettings()
+                                                    finalBaseUrl = finalBaseUrl || globals['evolution_base_url'] || ''
+                                                    finalGlobalKey = finalGlobalKey || globals['evolution_global_api_key'] || ''
+                                                } catch (e) {
+                                                    console.warn('Failed to fetch global settings', e)
+                                                }
+                                            }
+
+                                            if (finalBaseUrl && finalGlobalKey) {
                                                 try {
                                                     const updatedSettings = {
                                                         ...settings,
                                                         evolution_bot_enabled: true,
-                                                        evolution_base_url: baseUrl,
-                                                        evolution_global_api_key: globalKey,
+                                                        evolution_base_url: finalBaseUrl,
+                                                        evolution_global_api_key: finalGlobalKey,
                                                         evolution_instance_name: instanceName
                                                     }
                                                     setSettings(updatedSettings)
@@ -478,7 +492,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                                     setMessage({ type: 'error', text: `خطأ في الحفظ: ${error.message}` })
                                                 }
                                             } else {
-                                                setMessage({ type: 'error', text: 'فشل التفعيل: إعدادات Evolution API غير مكتملة في الخادم.' })
+                                                setMessage({ type: 'error', text: 'فشل التفعيل: إعدادات Evolution API غير مكتملة في السيرفر (قاعدة البيانات والبيئة).' })
                                             }
                                         } else {
                                             // ----------------- DISABLING -----------------
