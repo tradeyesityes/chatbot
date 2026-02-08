@@ -48,6 +48,8 @@ class WhatsAppPollingService {
         if (!this.isRunning) return
 
         this.pollingInterval = window.setTimeout(async () => {
+            // Add a small random jitter (0-800ms) to avoid synchronized polling between instances
+            await new Promise(r => setTimeout(r, Math.random() * 800))
             await this.checkForNewMessages(userId)
             this.runPolling(userId)
         }, 5000) as unknown as number
@@ -137,25 +139,50 @@ class WhatsAppPollingService {
 
                 if (msg.key.fromMe) continue
 
+                // 1. LOCAL MEMORY CHECK
                 if (this.processedMessages.has(messageId)) continue
+
+                // 2. LOCAL STORAGE CHECK (for multiple tabs on same domain)
+                const storageKey = `wa_msg_${messageId}`
+                if (localStorage.getItem(storageKey)) {
+                    this.processedMessages.add(messageId)
+                    continue
+                }
 
                 // IGNORE OLD MESSAGES: Only process if timestamp is after our start time
                 const msgTime = msg.messageTimestamp
                 if (msgTime <= this.lastCheckTime) {
-                    // console.log(`⏩ Skipping old message: ${messageId} (${msgTime} <= ${this.lastCheckTime})`)
-                    this.processedMessages.add(messageId) // Also mark as seen
+                    this.processedMessages.add(messageId)
+                    localStorage.setItem(storageKey, '1')
+                    continue
+                }
+
+                // 3. DATABASE CHECK (for cross-environment: Local vs Prod)
+                const { data: dbChecked } = await supabase
+                    .from('processed_whatsapp_messages' as any)
+                    .select('msg_id')
+                    .eq('msg_id', messageId)
+                    .maybeSingle()
+
+                if (dbChecked) {
+                    // console.log(`🚫 Message ${messageId} already processed by another instance (DB)`)
+                    this.processedMessages.add(messageId)
+                    localStorage.setItem(storageKey, '1')
                     continue
                 }
 
                 console.log(`🆕 Processing NEW message: ${messageId} at ${msgTime}`)
                 console.log('💬 Text:', this.extractText(msg.message))
 
-                // Mark as processed immediately to prevent double processing
+                // Mark as processed immediately locally
                 this.processedMessages.add(messageId)
+                localStorage.setItem(storageKey, '1')
 
-                // Update lastCheckTime to newest message seen to shrink our window
-                if (msgTime > this.lastCheckTime) {
-                    // We don't update lastCheckTime globally yet to ensure we don't miss peers in the same batch
+                // Register in DB (Optional: ignore error if table doesn't exist)
+                try {
+                    await supabase.from('processed_whatsapp_messages' as any).insert({ msg_id: messageId })
+                } catch (e) {
+                    // Silently fail if table not present
                 }
 
                 // Extract text
