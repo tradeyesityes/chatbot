@@ -40,7 +40,8 @@ export function WhatsAppQRModal({ isOpen, onClose, evolutionBaseUrl, instanceNam
                     throw new Error('Evolution API key not configured')
                 }
 
-                const globalApiKey = settings.evolution_global_api_key
+                const sanitize = (str: string) => str.trim().replace(/[^\x00-\x7F]/g, "")
+                const globalApiKey = sanitize(settings.evolution_global_api_key)
                 const cleanBaseUrl = evolutionBaseUrl.replace(/\/$/, '')
 
                 // Step 1: Create instance (if not exists)
@@ -124,7 +125,8 @@ export function WhatsAppQRModal({ isOpen, onClose, evolutionBaseUrl, instanceNam
 
         if (!settings?.evolution_global_api_key) return
 
-        const globalApiKey = settings.evolution_global_api_key
+        const sanitize = (str: string) => str.trim().replace(/[^\x00-\x7F]/g, "")
+        const globalApiKey = sanitize(settings.evolution_global_api_key)
         const cleanBaseUrl = evolutionBaseUrl.replace(/\/$/, '')
 
         const pollInterval = setInterval(async () => {

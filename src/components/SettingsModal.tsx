@@ -455,26 +455,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                     checked={settings.evolution_bot_enabled || false}
                                     onChange={async (e) => {
                                         const isEnabled = e.target.checked
-                                        // Check both settings and environment variables
-                                        const baseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || ''
-                                        const globalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
                                         const instanceName = settings.evolution_instance_name || `user_${userId.substring(0, 8)}`
+
+                                        const sanitize = (str: string) => str.trim().replace(/[^\x00-\x7F]/g, "")
+                                        let finalBaseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || ''
+                                        let finalGlobalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
+
+                                        // Try fetching from global_settings if missing
+                                        if (!finalBaseUrl || !finalGlobalKey) {
+                                            try {
+                                                const globals = await SettingsService.getGlobalSettings()
+                                                finalBaseUrl = finalBaseUrl || globals['evolution_base_url'] || ''
+                                                finalGlobalKey = finalGlobalKey || globals['evolution_global_api_key'] || ''
+                                            } catch (e) {
+                                                console.warn('Failed to fetch global settings', e)
+                                            }
+                                        }
+
+                                        finalBaseUrl = sanitize(finalBaseUrl)
+                                        finalGlobalKey = sanitize(finalGlobalKey)
 
                                         if (isEnabled) {
                                             // ----------------- ENABLING -----------------
-                                            let finalBaseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || ''
-                                            let finalGlobalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
-
-                                            // If both are missing, try fetching from the global_settings table
-                                            if (!finalBaseUrl || !finalGlobalKey) {
-                                                try {
-                                                    const globals = await SettingsService.getGlobalSettings()
-                                                    finalBaseUrl = finalBaseUrl || globals['evolution_base_url'] || ''
-                                                    finalGlobalKey = finalGlobalKey || globals['evolution_global_api_key'] || ''
-                                                } catch (e) {
-                                                    console.warn('Failed to fetch global settings', e)
-                                                }
-                                            }
 
                                             if (finalBaseUrl && finalGlobalKey) {
                                                 try {
@@ -501,11 +503,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                                     setMessage({ type: 'success', text: 'جاري حذف الربط...' })
 
                                                     // 1. Delete Instance from Evolution API
-                                                    const cleanBaseUrl = baseUrl.replace(/\/$/, '')
+                                                    const cleanBaseUrl = finalBaseUrl.replace(/\/$/, '')
                                                     await fetch(`${cleanBaseUrl}/instance/delete/${instanceName}`, {
                                                         method: 'DELETE',
                                                         headers: {
-                                                            'apikey': globalKey
+                                                            'apikey': finalGlobalKey
                                                         }
                                                     })
 
