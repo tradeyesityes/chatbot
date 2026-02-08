@@ -1,4 +1,7 @@
 import { supabase } from './supabaseService'
+import { OllamaService } from './ollamaService'
+
+const ollamaService = new OllamaService()
 
 interface WhatsAppMessage {
     key: {
@@ -100,10 +103,20 @@ class WhatsAppPollingService {
                 return
             }
 
-            const messages: WhatsAppMessage[] = await response.json()
-            // console.log(`📥 Received ${messages.length} messages`)
+            let messages: WhatsAppMessage[] = []
 
-            // Process new messages
+            // Handle different response structures
+            const responseData = await response.json()
+            if (Array.isArray(responseData)) {
+                messages = responseData
+            } else if (responseData.messages && Array.isArray(responseData.messages.records)) {
+                // Evolution API v2 structure
+                messages = responseData.messages.records
+            } else if (responseData.data && Array.isArray(responseData.data)) {
+                messages = responseData.data
+            }
+
+            // process messages
             for (const msg of messages) {
                 const messageId = msg.key.id
 
@@ -169,7 +182,9 @@ class WhatsAppPollingService {
 
             // Generate AI response
             console.log('🤖 Generating AI response...')
-            const aiResponse = await this.generateAIResponse(settings, context, incomingText)
+            // Generate AI response
+            console.log('🤖 Generating AI response...')
+            const aiResponse = await this.generateAIResponse(settings, context, incomingText, files || [])
 
             if (!aiResponse) {
                 console.error('❌ Failed to generate AI response (Empty)')
@@ -210,7 +225,7 @@ class WhatsAppPollingService {
         }
     }
 
-    private async generateAIResponse(settings: any, context: string, question: string): Promise<string> {
+    private async generateAIResponse(settings: any, context: string, question: string, files: any[] = []): Promise<string> {
         const systemPrompt = `أنت مساعد ذكي لخدمة العملاء. أجب فقط بناءً على المعلومات التالية:\n\n${context}`
 
         const geminiKey = settings.gemini_api_key || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY
@@ -222,19 +237,39 @@ class WhatsAppPollingService {
         let useOpenAI = settings.use_openai
 
         // If no specific preference is saved, default to whatever key is available
-        if (!useGemini && !useOpenAI) {
+        // If no specific preference is saved, default to whatever key is available
+        if (!useGemini && !useOpenAI && !settings.use_remote_ollama && !settings.use_local_model) {
             if (geminiKey) useGemini = true
             else if (openaiKey) useOpenAI = true
         }
 
-        console.log(`🤖 AI Selection: Gemini=${useGemini}, OpenAI=${useOpenAI}`)
+        console.log(`🤖 AI Selection: Gemini=${useGemini}, OpenAI=${useOpenAI}, Ollama=${settings.use_remote_ollama || settings.use_local_model}`)
 
         try {
+            // 1. Ollama (Remote or Local)
+            if (settings.use_remote_ollama || settings.use_local_model) {
+                console.log('✨ Using Ollama...')
+                const isRemote = settings.use_remote_ollama
+                const baseUrl = (isRemote ? settings.ollama_base_url : 'http://localhost:11434') || 'http://localhost:11434'
+                const model = isRemote ? settings.local_model_name : (settings.local_model_name || 'llama3')
+                const apiKey = settings.ollama_api_key
+
+                // Configure service
+                ollamaService.setBaseUrl(baseUrl)
+                ollamaService.setModel(model)
+                ollamaService.setApiKey(apiKey)
+
+                // Generate response using existing service (handles proxy automatically)
+                return await ollamaService.generateResponse(question, [], files)
+            }
+
+            // 2. Gemini
             if (useGemini && geminiKey) {
                 console.log('✨ Using Gemini...')
-                const model = settings.gemini_model_name || 'gemini-1.5-flash-latest'
+                // Use v1beta for newer models like 1.5-flash
+                const model = settings.gemini_model_name || 'gemini-1.5-flash'
                 const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${geminiKey}`,
+                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
                     {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

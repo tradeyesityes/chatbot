@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <title>فحص اتصال واتساب</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #f0fdf4;
+        }
+
+        .log-container {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 2px;
+        }
+
+        .log-time {
+            color: #888;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .status {
+            padding: 10px;
+            background: #fff;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🛠️ فحص اتصال واتساب والرد التلقائي</h1>
+
+    <div class="status">
+        <h3>حالة النظام:</h3>
+        <div id="status">جاري التحميل...</div>
+    </div>
+
+    <button class="btn" onclick="startTest()">بدء الفحص (قراءة)</button>
+    <div id="test-actions" style="display:none; margin-top: 10px;">
+        <button class="btn" onclick="testAI()" style="background:#8b5cf6">فحص الذكاء الاصطناعي</button>
+        <button class="btn" onclick="testSend()" style="background:#ea580c">فحص إرسال رسالة</button>
+    </div>
+    <h3>سجل العمليات (Logs):</h3>
+    <div class="log-container" id="logs"></div>
+
+    <script>
+        // Configuration from .env.local
+        const SUPABASE_URL = 'https://rawobjxsbzpmlwwhmsec.supabase.co'
+        const SUPABASE_KEY = 'sb_publishable_KoIv4-t9vXXtEAbTlRDhmg_Gv0VYe2B'
+
+        // Initialize Supabase
+        // CDN provides 'supabase' global which has createClient
+        const { createClient } = supabase
+        const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+        function log(msg, type = 'info') {
+            const container = document.getElementById('logs')
+            const entry = document.createElement('div')
+            entry.className = 'log-entry'
+            entry.style.color = type === 'error' ? '#ff6b6b' : (type === 'success' ? '#4ade80' : '#fff')
+
+            const time = new Date().toLocaleTimeString()
+            entry.innerHTML = `<span class="log-time">${time}</span> ${msg}`
+
+            container.appendChild(entry)
+            container.scrollTop = container.scrollHeight
+            console.log(msg)
+        }
+
+        window.onerror = function (msg, url, line) {
+            log(`❌ Global Error: ${msg} (Line ${line})`, 'error')
+            return false
+        }
+
+        async function startTest() {
+            log('🚀 بدء الفحص...', 'info')
+
+            try {
+                // 1. Check Session
+                const { data: { session } } = await sb.auth.getSession()
+
+                if (!session) {
+                    log('❌ بجب تسجيل الدخول أولاً في الموقع الرئيسي!', 'error')
+                    document.getElementById('status').innerHTML = '<span style="color:red">غير مسجل دخول</span>'
+                    return
+                }
+
+                const userId = session.user.id
+                log(`✅ تم التعرف على المستخدم: ${userId}`, 'success')
+
+                // 2. Fetch Settings
+                const { data: settings, error } = await sb
+                    .from('user_settings')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .single()
+
+                if (error || !settings) {
+                    log(`❌ خطأ في جلب الإعدادات: ${error?.message || 'لا توجد إعدادات'}`, 'error')
+                    return
+                }
+
+                if (!settings.evolution_bot_enabled) {
+                    log('⚠️ تنبيه: البوت غير مفعل في الإعدادات!', 'error')
+                } else {
+                    log('✅ البوت مفعل في الإعدادات', 'success')
+                }
+
+                const instanceName = settings.evolution_instance_name
+                const baseUrl = settings.evolution_base_url.replace(/\/$/, '')
+                const apiKey = settings.evolution_global_api_key || settings.evolution_api_key
+
+                log(`📦 Instance: ${instanceName}`, 'info')
+                log(`🌐 Base URL: ${baseUrl}`, 'info')
+
+                // 3. Check Connection State
+                log('🔍 فحص حالة الاتصال...', 'info')
+                const connRes = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
+                    headers: { 'apikey': apiKey }
+                })
+
+                const connData = await connRes.json()
+                log(`حالة الاتصال: ${JSON.stringify(connData)}`, 'info')
+
+                if (connData.instance?.state === 'open') {
+                    log('✅ واتساب متصل وجاهز!', 'success')
+                    document.getElementById('status').innerHTML = '<span style="color:green">✅ متصل</span>'
+                } else {
+                    log('❌ واتساب غير متصل!', 'error')
+                    document.getElementById('status').innerHTML = '<span style="color:red">❌ غير متصل</span>'
+                }
+
+                // 4. Check Messages (POST)
+                log('📩 جلب آخر الرسائل...', 'info')
+                const msgRes = await fetch(`${baseUrl}/chat/findMessages/${instanceName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': apiKey
+                    },
+                    body: JSON.stringify({
+                        where: {},
+                        limit: 3
+                    })
+                })
+
+                if (!msgRes.ok) {
+                    log(`❌ فشل جلب الرسائل: ${msgRes.status}`, 'error')
+                    const errText = await msgRes.text()
+                    log(`تفاصيل الخطأ: ${errText}`, 'error')
+                    return
+                }
+
+                const messagesResponse = await msgRes.json()
+                log(`📥 الاستجابة الكاملة للرسائل:`, 'info')
+                // log(JSON.stringify(messagesResponse, null, 2), 'info')
+
+                let messages = []
+                if (Array.isArray(messagesResponse)) {
+                    messages = messagesResponse
+                } else if (messagesResponse.messages && Array.isArray(messagesResponse.messages.records)) {
+                    messages = messagesResponse.messages.records
+                } else if (messagesResponse.data && Array.isArray(messagesResponse.data)) {
+                    messages = messagesResponse.data
+                }
+
+                log(`📥 تم جلب ${messages.length} رسالة`, 'success')
+
+                messages.forEach(msg => {
+                    const fromMe = msg.key.fromMe ? 'مني' : 'من العميل'
+                    const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || 'بدون نص'
+                    log(`- رسالة ${fromMe}: ${text}`, 'info')
+                })
+
+                log('✅ فحص القراءة مكتمل.', 'success')
+                document.getElementById('test-actions').style.display = 'block'
+
+                // Store settings for other tests
+                window.currentSettings = { baseUrl, instanceName, apiKey, settings }
+
+            } catch (e) {
+                log(`❌ خطأ غير متوقع: ${e.message}`, 'error')
+                console.error(e)
+            }
+        }
+
+        async function testAI() {
+            log('🤖 بدء فحص الذكاء الاصطناعي...', 'info')
+            const { settings } = window.currentSettings
+
+            // 1. Gemini
+            if (settings.use_gemini) {
+                const geminiKey = settings.gemini_api_key
+                const modelName = settings.gemini_model_name || 'gemini-1.5-flash'
+                log(`🔹 المزود المفعّل: Gemini (${modelName})`, 'info')
+
+                if (!geminiKey) { log('❌ مفتاح Gemini مفقود!', 'error'); return }
+
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: 'قل كلمة "نجاح"' }] }] })
+                    })
+                    const data = await res.json()
+                    if (data.candidates) {
+                        log(`✅ Gemini يعمل: ${data.candidates[0].content.parts[0].text}`, 'success')
+                    } else {
+                        log(`❌ Gemini فشل: ${JSON.stringify(data)}`, 'error')
+                    }
+                } catch (e) { log(`❌ خطأ Gemini: ${e.message}`, 'error') }
+                return
+            }
+
+            // 2. OpenAI
+            if (settings.use_openai) {
+                const openaiKey = settings.openai_api_key
+                log('🔹 المزود المفعّل: OpenAI', 'info')
+
+                if (!openaiKey) { log('❌ مفتاح OpenAI مفقود!', 'error'); return }
+
+                try {
+                    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${openaiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: "gpt-3.5-turbo",
+                            messages: [{ role: "user", content: "قل كلمة نجاح" }]
+                        })
+                    })
+                    const data = await res.json()
+                    if (data.choices) {
+                        log(`✅ OpenAI يعمل: ${data.choices[0].message.content}`, 'success')
+                    } else {
+                        log(`❌ OpenAI فشل: ${JSON.stringify(data)}`, 'error')
+                    }
+                } catch (e) { log(`❌ خطأ OpenAI: ${e.message}`, 'error') }
+                return
+            }
+
+            // 3. Ollama (Remote/Local)
+            if (settings.use_remote_ollama || settings.use_local_model) {
+                const isRemote = settings.use_remote_ollama
+                const baseUrl = (isRemote ? settings.ollama_base_url : 'http://localhost:11434').replace(/\/$/, '')
+                const model = isRemote ? settings.local_model_name : (settings.local_model_name || 'llama3')
+
+                log(`🔹 المزود المفعّل: Ollama (${isRemote ? 'Remote' : 'Local'})`, 'info')
+                log(`🔗 URL: ${baseUrl}, Model: ${model}`, 'info')
+
+                // Proxy Logic (copied from ollamaService.ts)
+                let endpoint = ''
+                if (baseUrl.includes('ollama.com')) {
+                    endpoint = '/api/ollama-cloud/api/chat'
+                } else if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+                    endpoint = '/api/ollama/api/chat'
+                } else {
+                    endpoint = `${baseUrl}/api/chat`
+                }
+
+                log(`🔄 Using Endpoint: ${endpoint}`, 'info')
+
+                try {
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(isRemote && settings.ollama_api_key ? { 'Authorization': `Bearer ${settings.ollama_api_key}` } : {})
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [{ role: 'user', content: 'قل كلمة نجاح' }],
+                            stream: false
+                        })
+                    })
+
+                    if (!res.ok) {
+                        const errText = await res.text()
+                        log(`❌ فشل الاتصال (${res.status}): ${errText}`, 'error')
+                        return
+                    }
+
+                    const data = await res.json()
+                    const responseText = data.message?.content || data.response
+
+                    if (responseText) {
+                        log(`✅ Ollama يعمل: ${responseText}`, 'success')
+                    } else {
+                        log(`❌ Ollama فشل (لا توجد إجابة): ${JSON.stringify(data)}`, 'error')
+                    }
+                } catch (e) { log(`❌ خطأ Ollama: ${e.message}`, 'error') }
+                return
+            }
+
+            log('⚠️ لم يتم تفعيل أي نموذج AI في الإعدادات!', 'error')
+        }
+
+        async function testSend() {
+            const phone = prompt('أدخل رقم هاتف مع مفتاح الدولة (مثال: 966500000000) لإرسال رسالة تجريبية:')
+            if (!phone) return
+
+            log(`📤 جاري إرسال رسالة إلى ${phone}...`, 'info')
+            const { baseUrl, instanceName, apiKey } = window.currentSettings
+
+            try {
+                const res = await fetch(`${baseUrl}/message/sendText/${instanceName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': apiKey
+                    },
+                    body: JSON.stringify({
+                        number: phone,
+                        text: 'رسالة تجريبية من التشخيص 🛠️',
+                        delay: 1200
+                    })
+                })
+
+                if (res.ok) {
+                    const data = await res.json()
+                    log(`✅ تم الإرسال بنجاح! الاستجابة: ${JSON.stringify(data)}`, 'success')
+                } else {
+                    log(`❌ فشل الإرسال: ${res.status} ${await res.text()}`, 'error')
+                }
+            } catch (e) {
+                log(`❌ خطأ في الإرسال: ${e.message}`, 'error')
+            }
+        }
+    </script>
+</body>
+
+</html>
