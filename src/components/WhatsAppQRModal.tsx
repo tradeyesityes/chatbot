@@ -44,25 +44,49 @@ export function WhatsAppQRModal({ isOpen, onClose, evolutionBaseUrl, instanceNam
                 const globalApiKey = sanitize(settings.evolution_global_api_key)
                 const cleanBaseUrl = evolutionBaseUrl.replace(/\/$/, '')
 
-                // Step 1: Create instance (if not exists)
-                console.log(`Creating instance: ${instanceName}`)
-                const createResponse = await fetch(`${cleanBaseUrl}/instance/create`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': globalApiKey
-                    },
-                    body: JSON.stringify({
-                        instanceName: instanceName,
-                        qrcode: true,
-                        integration: 'WHATSAPP-BAILEYS'
-                    })
-                })
+                // Potential endpoints to try (Evolution API v1 vs v2 common differences)
+                const endpoints = [
+                    `${cleanBaseUrl}/instance/create`,
+                    `${cleanBaseUrl}/v2/instance/create`
+                ]
 
-                // Instance might already exist, that's okay
+                let createResponse = null
+                let lastTriedUrl = ''
+
+                for (const url of endpoints) {
+                    lastTriedUrl = url
+                    console.log(`Attempting to create instance at: ${url}`)
+                    try {
+                        const resp = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'apikey': globalApiKey
+                            },
+                            body: JSON.stringify({
+                                instanceName: instanceName,
+                                qrcode: true,
+                                integration: 'WHATSAPP-BAILEYS'
+                            })
+                        })
+
+                        // If success (200, 201) or already exists (403/409 is often "already exists")
+                        if (resp.ok || resp.status === 403 || resp.status === 409) {
+                            createResponse = resp
+                            break
+                        }
+                    } catch (e) {
+                        console.warn(`Failed attempt at ${url}:`, e)
+                    }
+                }
+
+                if (!createResponse) {
+                    throw new Error(`تعذر الوصول لمسار إنشاء النسخة (405). حاولنا الروابط التالية وفشلت: ${endpoints.join(' , ')}`)
+                }
+
                 if (!createResponse.ok && createResponse.status !== 403 && createResponse.status !== 409) {
                     const errorText = await createResponse.text()
-                    throw new Error(`Failed to create instance: ${errorText}`)
+                    throw new Error(`خطأ في الإنشاء على المسار (${lastTriedUrl}): ${errorText}`)
                 }
 
                 // Step 2: Fetch QR Code with retry logic

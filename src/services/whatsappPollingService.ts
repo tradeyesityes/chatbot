@@ -109,26 +109,54 @@ class WhatsAppPollingService {
             const instanceName = settings.evolution_instance_name || `user_${userId.substring(0, 8)}`
             const apiKey = globalKey || settings.evolution_api_key
 
-            // console.log(`🔍 Checking messages for ${instanceName}...`)
-
-            // Fetch recent messages from Evolution API
-            const response = await fetch(
+            // Try standard and v2 endpoints
+            const endpoints = [
                 `${cleanBaseUrl}/chat/findMessages/${instanceName}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': apiKey
-                    },
-                    body: JSON.stringify({
-                        where: {},
-                        limit: 5
-                    })
-                }
-            )
+                `${cleanBaseUrl}/v2/chat/findMessages/${instanceName}`
+            ]
 
-            if (!response.ok) {
-                console.error('❌ Failed to fetch messages:', response.status, response.statusText)
+            let response = null
+            let successfulUrl = (this as any)._cachedPollUrl || null
+
+            if (successfulUrl) {
+                try {
+                    const resp = await fetch(successfulUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': apiKey
+                        },
+                        body: JSON.stringify({ where: {}, limit: 5 })
+                    })
+                    if (resp.ok) response = resp
+                } catch (e) {
+                    (this as any)._cachedPollUrl = null
+                }
+            }
+
+            if (!response) {
+                for (const url of endpoints) {
+                    try {
+                        const resp = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'apikey': apiKey
+                            },
+                            body: JSON.stringify({ where: {}, limit: 5 })
+                        })
+                        if (resp.ok) {
+                            response = resp
+                                ; (this as any)._cachedPollUrl = url
+                            break
+                        }
+                    } catch (e) {
+                        console.warn(`Polling attempt failed at ${url}`)
+                    }
+                }
+            }
+
+            if (!response || !response.ok) {
                 return
             }
 

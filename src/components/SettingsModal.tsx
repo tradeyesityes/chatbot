@@ -504,12 +504,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
 
                                                     // 1. Delete Instance from Evolution API
                                                     const cleanBaseUrl = finalBaseUrl.replace(/\/$/, '')
-                                                    await fetch(`${cleanBaseUrl}/instance/delete/${instanceName}`, {
-                                                        method: 'DELETE',
-                                                        headers: {
-                                                            'apikey': finalGlobalKey
+                                                    const endpoints = [
+                                                        `${cleanBaseUrl}/instance/delete/${instanceName}`,
+                                                        `${cleanBaseUrl}/v2/instance/delete/${instanceName}`
+                                                    ]
+
+                                                    for (const url of endpoints) {
+                                                        try {
+                                                            const resp = await fetch(url, {
+                                                                method: 'DELETE',
+                                                                headers: {
+                                                                    'apikey': finalGlobalKey
+                                                                }
+                                                            })
+                                                            if (resp.ok || resp.status === 404) break
+                                                        } catch (e) {
+                                                            console.warn(`Delete failed at ${url}, trying next...`)
                                                         }
-                                                    })
+                                                    }
 
                                                     // 2. Update Settings
                                                     const updatedSettings = { ...settings, evolution_bot_enabled: false }
