@@ -31,6 +31,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         evolution_bot_enabled: false
     })
     const [discoveryLoading, setDiscoveryLoading] = useState(false)
+    const [testResults, setTestResults] = useState<{ url: string; status: string; ok: boolean }[]>([])
+
+    const testEvolutionConnection = async () => {
+        setDiscoveryLoading(true)
+        setTestResults([])
+        const sanitize = (str: string) => str.trim().replace(/[^\x00-\x7F]/g, "")
+        let baseUrl = sanitize(settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || '')
+        let apiKey = sanitize(settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || '')
+
+        if (!baseUrl || !apiKey) {
+            try {
+                const globals = await SettingsService.getGlobalSettings()
+                baseUrl = baseUrl || sanitize(globals['evolution_base_url'] || '')
+                apiKey = apiKey || sanitize(globals['evolution_global_api_key'] || '')
+            } catch (e) { }
+        }
+
+        if (!baseUrl) {
+            setMessage({ type: 'error', text: 'لا يوجد رابط لسيرفر Evolution' })
+            setDiscoveryLoading(false)
+            return
+        }
+
+        const cleanBase = baseUrl.replace(/\/$/, '')
+        const endpoints = [
+            `${cleanBase}/instance/fetchInstances`,
+            `${cleanBase}/v2/instance/fetchInstances`
+        ]
+
+        const results = []
+        for (const url of endpoints) {
+            try {
+                const resp = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'apikey': apiKey }
+                })
+                results.push({ url: url.replace(cleanBase, ''), status: `${resp.status} ${resp.statusText}`, ok: resp.ok })
+            } catch (e: any) {
+                results.push({ url: url.replace(cleanBase, ''), status: `Error: ${e.message}`, ok: false })
+            }
+        }
+        setTestResults(results)
+        setDiscoveryLoading(false)
+    }
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -426,6 +470,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         استخدم الرقم مع مفتاح الدولة بدون أصفار أو علامة +
                                     </p>
                                 </div>
+
+                                {/* Diagnostic Tool */}
+                                {settings.evolution_bot_enabled && (
+                                    <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">أداة التشخيص</span>
+                                            <button
+                                                onClick={testEvolutionConnection}
+                                                disabled={discoveryLoading}
+                                                className="text-[9px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 transition-colors"
+                                            >
+                                                {discoveryLoading ? '...' : 'اختبار'}
+                                            </button>
+                                        </div>
+                                        {testResults.length > 0 && (
+                                            <div className="space-y-1">
+                                                {testResults.map((r, i) => (
+                                                    <div key={i} className="flex items-center justify-between text-[8px] font-mono">
+                                                        <span>{r.url}</span>
+                                                        <span className={r.ok ? 'text-green-500' : 'text-red-500'}>{r.status}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                                         الرسالة الافتراضية
@@ -476,6 +546,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         finalGlobalKey = sanitize(finalGlobalKey)
 
                                         if (isEnabled) {
+                                            // Diagnostic section (Hidden by default, shown when testing)
+                                            if (testResults.length > 0) {
+                                                testEvolutionConnection() // Refresh if already showing? Or just show results
+                                            }
+
                                             // ----------------- ENABLING -----------------
 
                                             if (finalBaseUrl && finalGlobalKey) {

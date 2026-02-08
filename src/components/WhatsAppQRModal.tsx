@@ -47,15 +47,17 @@ export function WhatsAppQRModal({ isOpen, onClose, evolutionBaseUrl, instanceNam
                 // Potential endpoints to try (Evolution API v1 vs v2 common differences)
                 const endpoints = [
                     `${cleanBaseUrl}/instance/create`,
-                    `${cleanBaseUrl}/v2/instance/create`
+                    `${cleanBaseUrl}/instance/create/`,
+                    `${cleanBaseUrl}/v2/instance/create`,
+                    `${cleanBaseUrl}/v2/instance/create/`
                 ]
 
                 let createResponse = null
                 let lastTriedUrl = ''
+                const errorLog: string[] = []
 
                 for (const url of endpoints) {
                     lastTriedUrl = url
-                    console.log(`Attempting to create instance at: ${url}`)
                     try {
                         const resp = await fetch(url, {
                             method: 'POST',
@@ -74,14 +76,16 @@ export function WhatsAppQRModal({ isOpen, onClose, evolutionBaseUrl, instanceNam
                         if (resp.ok || resp.status === 403 || resp.status === 409) {
                             createResponse = resp
                             break
+                        } else {
+                            errorLog.push(`${url.replace(cleanBaseUrl, '')} (${resp.status})`)
                         }
-                    } catch (e) {
-                        console.warn(`Failed attempt at ${url}:`, e)
+                    } catch (e: any) {
+                        errorLog.push(`${url.replace(cleanBaseUrl, '')} (Error: ${e.message})`)
                     }
                 }
 
                 if (!createResponse) {
-                    throw new Error(`تعذر الوصول لمسار إنشاء النسخة (405). حاولنا الروابط التالية وفشلت: ${endpoints.join(' , ')}`)
+                    throw new Error(`فشل الاتصال: ${errorLog.join(' , ')}`)
                 }
 
                 if (!createResponse.ok && createResponse.status !== 403 && createResponse.status !== 409) {
