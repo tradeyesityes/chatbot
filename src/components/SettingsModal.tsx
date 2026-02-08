@@ -446,7 +446,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                                    <span className="text-lg">🤖</span> أتمتة الواتساب
+                                    <span className="text-lg">🤖</span> ربط الواتساب
                                 </h3>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
@@ -458,33 +458,63 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         // Check both settings and environment variables
                                         const baseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || ''
                                         const globalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
+                                        const instanceName = settings.evolution_instance_name || `user_${userId.substring(0, 8)}`
 
-                                        if (isEnabled && baseUrl && globalKey) {
-                                            try {
-                                                // Generate instance name from user ID
-                                                const instanceName = `user_${userId.substring(0, 8)}`
+                                        if (isEnabled) {
+                                            // ----------------- ENABLING -----------------
+                                            if (baseUrl && globalKey) {
+                                                try {
+                                                    // Update settings with environment values if needed
+                                                    const updatedSettings = {
+                                                        ...settings,
+                                                        evolution_base_url: baseUrl,
+                                                        evolution_global_api_key: globalKey,
+                                                        evolution_instance_name: instanceName
+                                                    }
+                                                    setSettings(updatedSettings)
 
-                                                // Update settings with environment values
-                                                const updatedSettings = {
-                                                    ...settings,
-                                                    evolution_base_url: baseUrl,
-                                                    evolution_global_api_key: globalKey,
-                                                    evolution_instance_name: instanceName
+                                                    // Save to database
+                                                    await SettingsService.updateSettings(userId, updatedSettings)
+
+                                                    // Now open QR modal
+                                                    setShowQRModal(true)
+                                                } catch (error: any) {
+                                                    setMessage({ type: 'error', text: `خطأ في الحفظ: ${error.message}` })
                                                 }
-                                                setSettings(updatedSettings)
-
-                                                // Save to database first so Edge Function can access it
-                                                await SettingsService.updateSettings(userId, updatedSettings)
-
-                                                // Now open QR modal
-                                                setShowQRModal(true)
-                                            } catch (error: any) {
-                                                setMessage({ type: 'error', text: `خطأ في الحفظ: ${error.message}` })
+                                            } else {
+                                                setMessage({ type: 'error', text: 'يرجى تكوين Evolution API في ملف .env أولاً' })
                                             }
-                                        } else if (isEnabled) {
-                                            setMessage({ type: 'error', text: 'يرجى إدخال رابط Evolution API والمفتاح العام أولاً' })
                                         } else {
-                                            setSettings({ ...settings, evolution_bot_enabled: false })
+                                            // ----------------- DISABLING -----------------
+                                            if (window.confirm('هل أنت متأكد؟ سيتم حذف رقم الواتس، وسوف تحتاج إلى إعادة تفعيله عبر QR code.')) {
+                                                try {
+                                                    setMessage({ type: 'success', text: 'جاري حذف الربط...' })
+
+                                                    // 1. Delete Instance from Evolution API
+                                                    const cleanBaseUrl = baseUrl.replace(/\/$/, '')
+                                                    await fetch(`${cleanBaseUrl}/instance/delete/${instanceName}`, {
+                                                        method: 'DELETE',
+                                                        headers: {
+                                                            'apikey': globalKey
+                                                        }
+                                                    })
+
+                                                    // 2. Update Settings
+                                                    const updatedSettings = { ...settings, evolution_bot_enabled: false }
+                                                    setSettings(updatedSettings)
+
+                                                    // 3. Save to database
+                                                    await SettingsService.updateSettings(userId, updatedSettings)
+
+                                                    setMessage({ type: 'success', text: 'تم إلغاء الربط وحذف الرقم بنجاح' })
+                                                } catch (error: any) {
+                                                    console.error('Logout Error:', error)
+                                                    // Even if API fails, we disable locally to reflect user intent
+                                                    setSettings({ ...settings, evolution_bot_enabled: false })
+                                                    setMessage({ type: 'error', text: 'حدث خطأ أثناء الحذف من السيرفر، لكن تم التعطيل محلياً' })
+                                                }
+                                            }
+                                            // If cancelled, do nothing (checkbox stays checked)
                                         }
                                     }}
                                     className="sr-only peer"
