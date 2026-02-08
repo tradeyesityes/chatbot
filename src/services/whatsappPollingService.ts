@@ -22,6 +22,8 @@ class WhatsAppPollingService {
     private pollingInterval: number | null = null
     private processedMessages: Set<string> = new Set()
     private isRunning = false
+    private isChecking = false
+    private lastCheckTime = 0
 
     async startPolling(userId: string) {
         if (this.isRunning) {
@@ -30,20 +32,30 @@ class WhatsAppPollingService {
         }
 
         this.isRunning = true
-        console.log('🚀 Starting WhatsApp polling service for user:', userId)
+        // Initialize lastCheckTime to NOW (in seconds) to avoid processing history
+        this.lastCheckTime = Math.floor(Date.now() / 1000)
 
-        // Initial check immediately
+        console.log('🚀 Starting WhatsApp polling service for user:', userId, 'Filter Time:', this.lastCheckTime)
+
+        // Initial check
         this.checkForNewMessages(userId)
 
-        // Poll every 5 seconds
-        this.pollingInterval = window.setInterval(async () => {
+        // Use a more robust polling approach with setTimeout
+        this.runPolling(userId)
+    }
+
+    private runPolling(userId: string) {
+        if (!this.isRunning) return
+
+        this.pollingInterval = window.setTimeout(async () => {
             await this.checkForNewMessages(userId)
-        }, 5000)
+            this.runPolling(userId)
+        }, 5000) as unknown as number
     }
 
     stopPolling() {
         if (this.pollingInterval) {
-            clearInterval(this.pollingInterval)
+            clearTimeout(this.pollingInterval)
             this.pollingInterval = null
             this.isRunning = false
             console.log('🛑 Stopped WhatsApp polling service')
@@ -51,6 +63,9 @@ class WhatsAppPollingService {
     }
 
     private async checkForNewMessages(userId: string) {
+        if (this.isChecking) return // Prevent overlapping checks
+        this.isChecking = true
+
         try {
             // Get user settings
             const { data: settings, error: settingsError } = await supabase
@@ -124,11 +139,24 @@ class WhatsAppPollingService {
 
                 if (this.processedMessages.has(messageId)) continue
 
-                console.log(`🆕 Processing NEW message: ${messageId}`)
+                // IGNORE OLD MESSAGES: Only process if timestamp is after our start time
+                const msgTime = msg.messageTimestamp
+                if (msgTime <= this.lastCheckTime) {
+                    // console.log(`⏩ Skipping old message: ${messageId} (${msgTime} <= ${this.lastCheckTime})`)
+                    this.processedMessages.add(messageId) // Also mark as seen
+                    continue
+                }
+
+                console.log(`🆕 Processing NEW message: ${messageId} at ${msgTime}`)
                 console.log('💬 Text:', this.extractText(msg.message))
 
                 // Mark as processed immediately to prevent double processing
                 this.processedMessages.add(messageId)
+
+                // Update lastCheckTime to newest message seen to shrink our window
+                if (msgTime > this.lastCheckTime) {
+                    // We don't update lastCheckTime globally yet to ensure we don't miss peers in the same batch
+                }
 
                 // Extract text
                 const text = this.extractText(msg.message)
@@ -146,6 +174,8 @@ class WhatsAppPollingService {
 
         } catch (error) {
             console.error('❌ Polling fatal error:', error)
+        } finally {
+            this.isChecking = false
         }
     }
 
