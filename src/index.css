@@ -198,3 +198,21 @@ body,
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 77, 90, 0.2);
 }
+/* AI Bot Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes bot-glow {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; filter: brightness(1.2); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-bot-glow {
+  animation: bot-glow 3s ease-in-out infinite;
+}
