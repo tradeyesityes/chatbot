@@ -100,17 +100,25 @@ export class FileProcessingService {
 
         for (const item of textContent.items as any[]) {
           const currentY = item.transform[5];
+          const currentX = item.transform[4];
+
           if (lastY !== null && Math.abs(currentY - lastY) > 5) {
             pageText += '\n';
           } else if (pageText.length > 0 && !pageText.endsWith('\n')) {
+            // Check for spacing: if currentX is significantly different from lastX + width, add space
+            // This is a basic check, as item doesn't always have width in getTextContent
             pageText += ' ';
           }
           pageText += item.str;
           lastY = currentY;
         }
 
-        // Heuristic: If text is very short, it might be a scanned image
-        if (pageText.trim().length < 50) {
+        // Improved Arabic detection heuristic
+        const hasArabic = /[\u0600-\u06FF]/.test(pageText);
+        const textLen = pageText.trim().length;
+
+        // Revised Heuristic: Lower threshold for Arabic or if it looks valid
+        if (textLen < 20 || (textLen < 100 && !hasArabic)) {
           if (i <= MAX_OCR_PAGES) {
             console.log(`Page ${i} looks like an image (${pageText.trim().length} chars). Attempting OCR...`);
             try {
@@ -217,8 +225,9 @@ export class FileProcessingService {
 
   private static cleanContent(content: string): string {
     return content
-      .replace(/\s+/g, ' ')
-      .replace(/([.!?])\s+/g, '$1\n')
+      .replace(/[ \t]+/g, ' ') // Only replace horizontal whitespace with a single space
+      .replace(/(\r\n|\n|\r){3,}/g, '\n\n') // Limit consecutive newlines
+      .replace(/([.!?؟])\s+/g, '$1\n') // Handle Arabic question mark
       .trim();
   }
 
