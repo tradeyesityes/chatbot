@@ -188,7 +188,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <p className="text-center mt-8 text-salla-muted text-sm font-bold opacity-60">
-                    جميع الحقوق محفوظة © 2024 KB Chatbot
+                    جميع الحقوق محفوظة © {new Date().getFullYear()} KB Chatbot
                 </p>
             </div>
         </div>

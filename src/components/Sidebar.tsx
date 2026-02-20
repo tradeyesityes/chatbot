@@ -201,7 +201,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
         <div className="flex justify-between items-center text-[10px] text-salla-muted opacity-50 font-bold px-2">
           <span>v2.1.0</span>
-          <span>© 2024</span>
+          <span>© {new Date().getFullYear()}</span>
         </div>
       </div>
 
