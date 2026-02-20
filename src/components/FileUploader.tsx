@@ -57,7 +57,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
   }
 
   return (
-    <div className="group relative border-2 border-dashed border-slate-300/60 dark:border-slate-600 rounded-2xl p-10 text-center hover:border-blue-500 transition-all duration-300 bg-slate-50/50 hover:bg-blue-50/30">
+    <div className="group relative border-2 border-dashed border-salla-accent rounded-salla p-10 text-center hover:border-salla-primary transition-all duration-300 bg-salla-bg-soft hover:bg-salla-accent-light/50">
       <input
         ref={inputRef}
         type="file"
@@ -69,7 +69,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
       />
 
       <div className="flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 bg-blue-100/50 text-blue-600 rounded-full flex items-center justify-center text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">
+        <div className="w-16 h-16 bg-salla-accent-light text-salla-primary rounded-full flex items-center justify-center text-3xl mb-2 group-hover:scale-110 transition-transform duration-300 shadow-sm">
           ☁️
         </div>
 
@@ -77,7 +77,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
           <button
             onClick={handleClick}
             disabled={isLoading}
-            className="px-8 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-500/30 font-bold disabled:opacity-50 disabled:shadow-none transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-lg"
+            className="px-8 py-4 bg-salla-primary text-white rounded-salla hover:opacity-90 shadow-xl shadow-salla-primary/10 font-bold disabled:opacity-50 disabled:shadow-none transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-lg"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -90,20 +90,20 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
           </button>
         </div>
 
-        <p className="text-sm text-slate-500 font-medium">
+        <p className="text-sm text-salla-muted font-bold opacity-80">
           PDF, DOCX, Excel, TXT, CSV, JSON, والصور
         </p>
       </div>
 
       {uploadProgress > 0 && uploadProgress < 100 && (
         <div className="mt-6 w-full max-w-xs mx-auto">
-          <div className="flex justify-between text-xs text-slate-500 mb-1">
+          <div className="flex justify-between text-xs text-salla-primary mb-1 font-bold">
             <span>جاري الرفع...</span>
             <span>{Math.round(uploadProgress)}%</span>
           </div>
-          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-salla-accent-light rounded-full overflow-hidden shadow-inner">
             <div
-              className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out"
+              className="h-full bg-salla-primary rounded-full transition-all duration-300 ease-out"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>

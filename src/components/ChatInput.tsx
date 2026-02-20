@@ -32,7 +32,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }
 
   return (
-    <div className="flex gap-2 items-end">
+    <div className="flex gap-3 items-end">
       <textarea
         ref={inputRef}
         value={value}
@@ -40,15 +40,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         onKeyDown={handleKeyDown}
         disabled={isLoading}
         placeholder={placeholder}
-        className="flex-1 p-3 border border-slate-300 dark:border-slate-700 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 dark:disabled:bg-slate-900 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+        className="flex-1 p-4 bg-white border border-slate-200 rounded-salla resize-none focus:outline-none focus:ring-2 focus:ring-salla-accent focus:border-salla-primary disabled:bg-slate-50 text-salla-primary placeholder-salla-muted shadow-sm transition-all"
         rows={1}
       />
       <button
         onClick={onSubmit}
         disabled={isLoading || !value.trim()}
-        className="px-4 md:px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium min-w-fit flex items-center justify-center gap-2 transition-all active:scale-95"
+        className="px-6 py-4 bg-salla-primary text-white rounded-salla hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-bold min-w-fit flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-salla-primary/10"
       >
-        <span className="text-lg">{isLoading ? '⏳' : '➤'}</span>
+        <span className="text-xl leading-none">{isLoading ? '⏳' : '➤'}</span>
         <span className="hidden md:inline">{isLoading ? 'جاري المعالجة...' : 'إرسال'}</span>
       </button>
     </div>

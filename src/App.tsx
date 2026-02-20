@@ -400,34 +400,34 @@ export default function App() {
         }}
       />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-salla-bg-soft">
         {/* Beta Label */}
         <div className="absolute top-4 left-4 z-20 pointer-events-none select-none">
-          <div className="px-3 py-1 bg-amber-500/10 backdrop-blur-md border border-amber-500/20 rounded-full flex items-center gap-1.5 shadow-sm">
-            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">نسخة تجريبية</span>
+          <div className="px-3 py-1 bg-salla-accent-light backdrop-blur-md border border-salla-accent/30 rounded-full flex items-center gap-1.5 shadow-sm">
+            <span className="w-1.5 h-1.5 bg-salla-primary rounded-full animate-pulse"></span>
+            <span className="text-[10px] font-bold text-salla-primary uppercase tracking-wider">نسخة تجريبية</span>
           </div>
         </div>
 
         {/* Mobile Header */}
-        <div className="lg:hidden flex items-center justify-between p-4 glass border-b border-white/10 sticky top-0 z-10 shadow-sm">
+        <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-100 sticky top-0 z-10 shadow-sm">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-600"
+            className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-salla-primary"
           >
             <span className="text-2xl">☰</span>
           </button>
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs">🤖</div>
-              <span className="font-bold text-slate-800 text-sm">KB Chatbot</span>
+              <div className="w-8 h-8 bg-salla-primary rounded-lg flex items-center justify-center text-white text-xs">🤖</div>
+              <span className="font-bold text-salla-primary text-sm">KB Chatbot</span>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 mb-4 md:mb-6">
+        <div className="flex-1 flex flex-col p-4 md:p-8 overflow-hidden max-w-6xl mx-auto w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
             <div className="lg:col-span-1">
               <FileList files={files} onRemove={handleRemoveFile} />
             </div>
@@ -437,19 +437,22 @@ export default function App() {
           </div>
 
           {error && (
-            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg animate-in">
-              <p className="font-medium">⚠️ خطأ</p>
-              <p className="text-sm mt-1">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-salla animate-in flex items-start gap-3">
+              <span className="mt-0.5">⚠️</span>
+              <div>
+                <p className="font-bold text-sm">خطأ</p>
+                <p className="text-xs mt-1 opacity-90">{error}</p>
+              </div>
             </div>
           )}
 
-          <div className="flex-1 bg-white rounded-2xl border border-slate-200 p-3 md:p-4 mb-4 overflow-y-auto flex flex-col shadow-sm">
+          <div className="flex-1 bg-white rounded-salla border border-slate-100 p-4 md:p-6 mb-6 overflow-y-auto flex flex-col shadow-sm">
             {messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-slate-500 text-center p-6">
-                <div>
-                  <p className="text-4xl mb-3">💬</p>
-                  <p className="text-xl font-medium mb-2">ابدأ محادثة جديدة</p>
-                  <p className="text-sm opacity-70">حمّل الملفات واسأل أسئلتك</p>
+              <div className="flex items-center justify-center h-full text-salla-muted text-center p-6">
+                <div className="max-w-xs transition-all animate-in">
+                  <p className="text-5xl mb-6">💬</p>
+                  <p className="text-2xl font-bold text-salla-primary mb-3">ابدأ محادثة جديدة</p>
+                  <p className="text-sm font-medium opacity-70 leading-relaxed">حمّل ملفاتك الآن وابدأ بطرح الأسئلة للحصول على إجابات دقيقة ومدعومة بالذكاء الاصطناعي</p>
                 </div>
               </div>
             ) : (
@@ -460,10 +463,10 @@ export default function App() {
 
                 {loading && (
                   <div className="flex justify-start mb-4 px-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center gap-1.5 w-fit">
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                    <div className="bg-salla-accent-light border border-salla-accent/20 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center gap-1.5 w-fit">
+                      <div className="w-2 h-2 bg-salla-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                      <div className="w-2 h-2 bg-salla-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                      <div className="w-2 h-2 bg-salla-primary/40 rounded-full animate-bounce"></div>
                     </div>
                   </div>
                 )}

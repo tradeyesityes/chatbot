@@ -77,98 +77,98 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         <>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                                    البريد الإلكتروني
-                                </label>
-                                <input
-                                    type="email"
-                                    required
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    className="w-full px-5 py-3 rounded-xl bg-slate-50 border-2 border-slate-100 outline-none focus:border-blue-500 focus:bg-white transition-all text-left dir-ltr"
-                                    placeholder="name@example.com"
-                                />
-                            </div>
+                                    <div className="min-h-screen bg-salla-bg-soft flex items-center justify-center p-4">
+                                        <div className="w-full max-w-md animate-in">
+                                            <div className="text-center mb-10">
+                                                <div className="w-20 h-20 bg-salla-primary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-xl shadow-salla-primary/10">
+                                                    🤖
+                                                </div>
+                                                <h1 className="text-4xl font-bold text-salla-primary mb-2">KB Chatbot</h1>
+                                                <p className="text-salla-muted font-bold text-lg">منصة الإجابة الذكية - بوابة الدخول</p>
+                                            </div>
 
-                            {!isForgotPassword && (
-                                <div>
-                                    <div className="flex justify-between mb-2">
-                                        <label className="block text-sm font-bold text-slate-700">
-                                            كلمة المرور
-                                        </label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsForgotPassword(true)}
-                                            className="text-xs font-bold text-blue-600 hover:text-blue-700"
-                                        >
-                                            نسيت كلمة المرور؟
-                                        </button>
-                                    </div>
-                                    <input
-                                        type="password"
-                                        required
-                                        value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        className="w-full px-5 py-3 rounded-xl bg-slate-50 border-2 border-slate-100 outline-none focus:border-blue-500 focus:bg-white transition-all text-left dir-ltr"
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">
-                                كود التحقق
-                            </label>
-                            <input
-                                type="text"
-                                required
-                                value={otp}
-                                onChange={e => setOtp(e.target.value)}
-                                className="w-full px-5 py-3 rounded-xl bg-slate-50 border-2 border-slate-100 outline-none focus:border-blue-500 focus:bg-white transition-all text-center text-2xl tracking-widest"
-                                placeholder="123456"
-                            />
-                        </div>
-                    )}
+                                            <div className="bg-white rounded-salla border border-slate-100 p-8 shadow-2xl relative overflow-hidden">
+                                                {/* Accent Blobs */}
+                                                <div className="absolute -top-10 -right-10 w-32 h-32 bg-salla-accent-light rounded-full opacity-50 blur-3xl"></div>
+                                                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-salla-accent-light rounded-full opacity-50 blur-3xl"></div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-xl hover:bg-blue-700 hover:shadow-2xl hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? 'جاري المعالجة...' : (showOtpInput ? 'تفعيل الحساب' : (isForgotPassword ? 'إرسال رابط الاستعادة' : (isSignUp ? 'إنشاء حساب' : 'دخول')))}
-                    </button>
-                </form>
+                                                <div className="relative z-10">
+                                                    <div className="flex bg-salla-bg-soft p-1 rounded-2xl mb-8 border border-slate-100">
+                                                        <button
+                                                            onClick={() => setMode('login')}
+                                                            className={`flex-1 py-3 rounded-xl font-bold transition-all ${mode === 'login' ? 'bg-salla-primary text-white shadow-md' : 'text-salla-muted hover:text-salla-primary'
+                                                                }`}
+                                                        >
+                                                            تسجيل دخول
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setMode('signup')}
+                                                            className={`flex-1 py-3 rounded-xl font-bold transition-all ${mode === 'signup' ? 'bg-salla-primary text-white shadow-md' : 'text-salla-muted hover:text-salla-primary'
+                                                                }`}
+                                                        >
+                                                            إنشاء حساب
+                                                        </button>
+                                                    </div>
 
-                {!showOtpInput ? (
-                    <div className="mt-8 text-center space-y-3">
-                        {isForgotPassword ? (
-                            <button
-                                onClick={() => setIsForgotPassword(false)}
-                                className="text-slate-500 hover:text-blue-600 font-bold text-sm transition-colors"
+                                                    <form onSubmit={handleSubmit} className="space-y-6">
+                                                        {mode === 'signup' && (
+                                                            <div className="space-y-1">
+                                                                <label className="text-xs font-bold text-salla-muted px-1">اسم المستخدم</label>
+                                                                <input
+                                                                    type="text"
+                                                                    required
+                                                                    placeholder="ادخل اسمك"
+                                                                    className="w-full px-4 py-4 bg-salla-bg-soft border border-slate-100 rounded-salla focus:ring-2 focus:ring-salla-accent focus:border-salla-primary transition-all outline-none font-medium text-salla-primary"
+                                                                    value={username}
+                                                                    onChange={(e) => setUsername(e.target.value)}
+                                                                />
+                                                            </div>
+                                                        )}
+
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-bold text-salla-muted px-1">البريد الإلكتروني</label>
+                                                            <input
+                                                                type="email"
+                                                                required
+                                                                placeholder="name@example.com"
+                                                                className="w-full px-4 py-4 bg-salla-bg-soft border border-slate-100 rounded-salla focus:ring-2 focus:ring-salla-accent focus:border-salla-primary transition-all outline-none font-medium text-salla-primary"
+                                                                value={email}
+                                                                onChange={(e) => setEmail(e.target.value)}
+                                                            />
+                                                        </div>
+
+                                                        {(mode === 'login' || mode === 'signup') && (
+                                                            <div className="space-y-1">
+                                                                <div className="flex justify-between px-1">
+                                                                    <label className="text-xs font-bold text-salla-muted">كلمة المرور</label>
+                                                                    {mode === 'login' && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setMode('reset')}
+                                                                            className="text-xs font-bold text-salla-primary hover:underline"
+                                                                        >
+                                                                            نسيت كلمة المرور؟
+                                                                        </button>
+                                                                    )}
+                                                                    onClick={() => setIsSignUp(!isSignUp)}
+                                                                    className="text-slate-500 hover:text-blue-600 font-bold text-sm transition-colors block w-full"
                             >
-                                العودة لتسجيل الدخول
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => setIsSignUp(!isSignUp)}
-                                className="text-slate-500 hover:text-blue-600 font-bold text-sm transition-colors block w-full"
-                            >
-                                {isSignUp ? 'لدي حساب بالفعل؟ تسجيل الدخول' : 'ليس لديك حساب؟ إنشاء حساب جديد'}
-                            </button>
+                                                                    {isSignUp ? 'لدي حساب بالفعل؟ تسجيل الدخول' : 'ليس لديك حساب؟ إنشاء حساب جديد'}
+                                                                </button>
                         )}
-                    </div>
-                ) : (
-                    <div className="mt-8 text-center">
-                        <button
-                            type="button"
-                            onClick={() => setShowOtpInput(false)}
-                            className="text-slate-500 hover:text-blue-600 font-bold text-sm transition-colors"
-                        >
-                            الرجوع للخلف
-                        </button>
-                    </div>
+                                                            </div>
+                                                        ) : (
+                                                        <div className="mt-8 text-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowOtpInput(false)}
+                                                                className="text-slate-500 hover:text-blue-600 font-bold text-sm transition-colors"
+                                                            >
+                                                                الرجوع للخلف
+                                                            </button>
+                                                        </div>
                 )}
-            </div>
-        </div>
-    )
+                                                </div>
+                                            </div>
+                                            )
 }

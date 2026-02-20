@@ -18,8 +18,8 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemove }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="font-semibold text-slate-900 mb-3 text-right">قاعدة المعرفة ({files.length})</h3>
+    <div className="bg-white rounded-salla border border-slate-100 p-6 shadow-sm">
+      <h3 className="font-bold text-salla-primary mb-4 text-right">قاعدة المعرفة ({files.length})</h3>
       {files.length === 0 ? (
         <p className="text-slate-500 text-sm text-right">لم يتم تحميل أي ملفات بعد</p>
       ) : (
@@ -27,13 +27,13 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemove }) => {
           {files.map((file, idx) => (
             <li
               key={idx}
-              className="flex items-center justify-between p-2 bg-slate-50 rounded hover:bg-slate-100 border border-slate-200/50"
+              className="flex items-center justify-between p-3 bg-salla-bg-soft rounded-xl hover:bg-salla-accent-light transition-colors border border-slate-50"
             >
               <div className="flex items-center gap-2 min-w-0 flex-row-reverse w-full text-right">
                 <span className="text-lg opacity-70">{getFileIcon(file.type)}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-900 truncate">{file.name}</p>
-                  <p className="text-[10px] text-slate-500 flex gap-2 justify-end">
+                  <p className="text-sm font-bold text-salla-primary truncate">{file.name}</p>
+                  <p className="text-[10px] text-salla-muted flex gap-2 justify-end font-medium">
                     <span>{file.content.length.toLocaleString()} حرف</span>
                     <span>•</span>
                     <span>{file.size ? `${(file.size / 1024).toFixed(0)} KB` : 'بدون حجم'}</span>
@@ -43,7 +43,7 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemove }) => {
               {onRemove && (
                 <button
                   onClick={() => onRemove(file.name)}
-                  className="text-slate-400 hover:text-red-500 mr-2 flex-shrink-0 transition-colors"
+                  className="text-salla-muted hover:text-red-500 mr-2 flex-shrink-0 transition-colors p-1"
                 >
                   ✕
                 </button>
