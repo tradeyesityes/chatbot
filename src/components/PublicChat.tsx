@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Message, FileContext } from '../types'
+import { BotAvatar } from './BotAvatar'
 import { GeminiService } from '../services/geminiService'
 import { OpenAIService } from '../services/openaiService'
 import { OllamaService } from '../services/ollamaService'
@@ -223,7 +224,7 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
                     <div className="pointer-events-auto w-full max-w-[400px] h-[600px] max-h-[85vh] glass-dark rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-300">
                         <header className="px-6 py-5 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border-b border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-xl shadow-lg">🤖</div>
+                                <BotAvatar size="sm" />
                                 <div>
                                     <h3 className="text-white font-bold text-sm">مساعد خدمة العملاء</h3>
                                     <p className="text-[9px] text-emerald-400 flex items-center gap-1">

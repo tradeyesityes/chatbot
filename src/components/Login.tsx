@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { AuthService } from '../services/authService'
+import { BotAvatar } from './BotAvatar'
 
 interface LoginProps {
     onLogin: () => void
@@ -49,8 +50,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="min-h-screen bg-salla-bg-soft flex items-center justify-center p-4">
             <div className="w-full max-w-md animate-in">
                 <div className="text-center mb-10">
-                    <div className="w-20 h-20 bg-salla-primary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-xl shadow-salla-primary/10">
-                        🤖
+                    <div className="mx-auto mb-6">
+                        <BotAvatar size="xl" className="mx-auto" />
                     </div>
                     <h1 className="text-4xl font-bold text-salla-primary mb-2">KB Chatbot</h1>
                     <p className="text-salla-muted font-bold text-lg">منصة الإجابة الذكية</p>

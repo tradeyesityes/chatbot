@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { SettingsService, UserSettings } from '../services/settingsService'
 import { WhatsAppQRModal } from './WhatsAppQRModal'
+import { BotAvatar } from './BotAvatar'
 
 interface SettingsModalProps {
     userId: string
@@ -516,7 +517,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                                    <span className="text-lg">🤖</span> ربط الواتساب
+                                    <BotAvatar size="sm" /> ربط الواتساب
                                 </h3>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">

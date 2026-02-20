@@ -6,6 +6,7 @@ import { OllamaService } from './services/ollamaService'
 import { StorageService } from './services/storageService'
 import { ChatService } from './services/chatService'
 import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle } from './components'
+import { BotAvatar } from './components/BotAvatar'
 import { AuthService } from './services/authService'
 import { supabase } from './services/supabaseService'
 import { SettingsService, UserSettings } from './services/settingsService'
@@ -420,7 +421,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-salla-primary rounded-lg flex items-center justify-center text-white text-xs">🤖</div>
+              <BotAvatar size="sm" />
               <span className="font-bold text-salla-primary text-sm">KB Chatbot</span>
             </div>
           </div>

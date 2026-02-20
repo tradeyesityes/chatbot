@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import remarkGfm from 'remark-gfm'
 import ReactMarkdown from 'react-markdown'
 import { Message } from '../types'
+import { BotAvatar } from './BotAvatar'
 
 interface ChatMessageProps {
   message: Message
@@ -20,9 +21,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   return (
     <div className={`flex mb-6 animate-in ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex max-w-[85%] md:max-w-[80%] ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end gap-2`}>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0 ${isUser ? 'bg-salla-accent-light text-salla-primary' : 'bg-salla-primary text-white'
-          }`}>
-          {isUser ? '👤' : '🤖'}
+        <div className={`shrink-0 ${isUser ? 'w-8 h-8 rounded-full bg-salla-accent-light text-salla-primary flex items-center justify-center text-xs' : ''}`}>
+          {isUser ? '👤' : <BotAvatar size="sm" />}
         </div>
 
         <div

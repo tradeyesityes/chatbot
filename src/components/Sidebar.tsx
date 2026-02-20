@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { User, Conversation } from '../types'
 import { SettingsModal } from './SettingsModal'
+import { BotAvatar } from './BotAvatar'
 
 interface SidebarProps {
   user: User | null
@@ -34,15 +35,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [editTitle, setEditTitle] = useState('')
 
   return (
-    <aside className={`fixed inset-y-0 right-0 z-40 w-80 bg-white border-l border-slate-100 p-6 flex flex-col shadow-xl transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}>
+    <aside className={`fixed inset-y-0 right-0 z-40 w-80 bg-white border-l border-slate-100 p-6 flex flex-col shadow-xl transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
       <div className="flex items-center justify-between mb-10">
         <div className="flex items-center space-x-3 space-x-reverse">
-          <div className="w-10 h-10 bg-salla-primary rounded-xl flex items-center justify-center shadow-lg shadow-salla-primary/10">
-            <span className="text-2xl">🤖</span>
-          </div>
+          <BotAvatar size="md" />
           <div>
-            <h1 className="text-2xl font-bold text-salla-primary">
+            <h1 className="text-2xl font-bold text-salla-primary leading-tight">
               KB Chatbot
             </h1>
             <p className="text-[11px] text-salla-muted font-medium tracking-wide">مساعد الإجابة الذكي</p>
@@ -72,9 +70,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <h3 className="text-xs font-bold text-salla-muted mb-4 px-1 uppercase tracking-widest">المحادثات المحفوظة</h3>
         <div className="space-y-2">
           {conversations.length === 0 ? (
-            <div className="text-center py-8 opacity-40">
-              <span className="text-4xl block mb-2">📥</span>
-              <p className="text-xs text-salla-primary">لا توجد محادثات بعد</p>
+            <div className="flex items-center gap-3">
+              <BotAvatar size="md" />
+              <div>
+                <h2 className="font-bold text-salla-primary leading-tight">KB Chatbot</h2>
+                <p className="text-[10px] text-salla-primary/60 font-medium">النسخة الذكية</p>
+              </div>
             </div>
           ) : (
             conversations.map((conv) => (
@@ -83,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={`relative group rounded-salla transition-all ${currentConversationId === conv.id
                   ? 'bg-salla-accent-light border border-salla-accent/30'
                   : 'hover:bg-slate-50'
-                  }`}
+                  } `}
               >
                 {editingId === conv.id ? (
                   <div className="p-3 flex items-center gap-2">
@@ -115,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       className={`w-full text-right p-3 rounded-salla transition-all flex items-start gap-3 ${currentConversationId === conv.id
                         ? 'text-salla-primary'
                         : 'text-salla-muted hover:text-salla-primary'
-                        }`}
+                        } `}
                     >
                       <span className="text-lg mt-0.5">💬</span>
                       <div className="flex-1 min-w-0">
@@ -181,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${user.plan === 'pro'
                 ? 'bg-amber-50 border-amber-200 text-amber-600'
                 : 'bg-slate-50 border-slate-200 text-slate-500'
-                }`}>
+                } `}>
                 {user.plan === 'pro' ? 'PRO' : 'FREE'}
               </span>
             </div>
