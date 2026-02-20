@@ -97,65 +97,74 @@ export class FileProcessingService {
       const pagesToProcess = Math.min(pdf.numPages, MAX_PAGES_TO_PROCESS);
 
       for (let i = 1; i <= pagesToProcess; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
+        try {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const items = textContent.items as any[];
 
-        let pageText = '';
-        let lastY: number | null = null;
-        let lastX: number | null = null;
+          let pageText = '';
+          if (items.length > 0) {
+            // Sort items: Top to Bottom (Y desc), then Left to Right (X asc)
+            // This is CRITICAL for preventing jumbled text or "random truncation"
+            items.sort((a, b) => {
+              if (Math.abs(b.transform[5] - a.transform[5]) > 5) {
+                return b.transform[5] - a.transform[5];
+              }
+              return a.transform[4] - b.transform[4];
+            });
 
-        // Group items by line for better reconstruction
-        for (const item of textContent.items as any[]) {
-          if (!item.str) continue;
+            let lastY: number | null = null;
+            let lastX: number | null = null;
 
-          const currentY = item.transform[5];
-          const currentX = item.transform[4];
+            for (const item of items) {
+              if (!item.str) continue;
+              const currentY = item.transform[5];
+              const currentX = item.transform[4];
 
-          if (lastY !== null && Math.abs(currentY - lastY) > 8) {
-            pageText += '\n';
-          } else if (lastX !== null && Math.abs(currentX - lastX) > 50 && pageText.length > 0 && !pageText.endsWith('\n')) {
-            // Significant horizontal gap: add space
-            pageText += ' ';
+              // Newline detection
+              if (lastY !== null && Math.abs(currentY - lastY) > 8) {
+                pageText += '\n';
+              }
+              // Space detection (simplified)
+              else if (lastX !== null && Math.abs(currentX - lastX) > 10 && pageText.length > 0 && !pageText.endsWith('\n')) {
+                pageText += ' ';
+              }
+
+              pageText += item.str;
+              lastY = currentY;
+              lastX = currentX;
+            }
           }
 
-          pageText += item.str;
-          lastY = currentY;
-          lastX = currentX;
-        }
+          const cleanPageText = pageText.trim();
 
-        // Improved Arabic detection heuristic
-        const hasArabic = /[\u0600-\u06FF]/.test(pageText);
-        const textLen = pageText.trim().length;
-
-        // Trigger OCR if text is very short or looks like empty/garbage
-        if (textLen < 30 || (textLen < 150 && !hasArabic)) {
-          if (i <= MAX_OCR_PAGES) {
-            console.log(`Page ${i} looks like an image (${pageText.trim().length} chars). Attempting OCR...`);
+          // SPEED OPTIMIZATION: Only OCR the FIRST page if it appears scanned
+          // This avoids the massive slowdown while still catching the "empty file" case
+          if (i === 1 && cleanPageText.length < 20) {
+            console.log("Page 1 is empty, attempting deep OCR...");
             try {
-              const viewport = page.getViewport({ scale: 2.0 });
+              const viewport = page.getViewport({ scale: 1.5 });
               const canvas = document.createElement('canvas');
               const context = canvas.getContext('2d');
               if (context) {
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
-
                 await page.render({ canvasContext: context, viewport: viewport }).promise;
                 const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-
                 if (blob) {
                   const ocrText = await this.performOcr(blob);
-                  pageText = `[OCR Result Page ${i}]\n${ocrText}`;
+                  pageText = `[Deep OCR Page 1]\n${ocrText}`;
                 }
               }
             } catch (ocrErr) {
-              console.error(`OCR failed for page ${i}:`, ocrErr);
+              console.error("OCR Failed:", ocrErr);
             }
-          } else {
-            pageText += '\n[Scanned Page - OCR Skipped for performance]';
           }
-        }
 
-        fullText += `[Page ${i}]\n${pageText}\n\n`;
+          fullText += `[Page ${i}]\n${pageText}\n\n`;
+        } catch (pageErr) {
+          console.error(`Page ${i} error:`, pageErr);
+        }
       }
 
       if (pdf.numPages > MAX_PAGES_TO_PROCESS) {
