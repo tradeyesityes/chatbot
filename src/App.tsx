@@ -230,7 +230,7 @@ export default function App() {
       } else if (useGemini && geminiKey) {
         // --- Gemini Selection ---
         try {
-          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey, userSettings?.gemini_model_name)
+          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey, userSettings?.gemini_model_name, user?.id)
         } catch (e: any) {
           if (e.message.includes('quota') || e.message.includes('limit') || e.message.includes('rate')) {
             throw new Error('انتهى رصيد الاستخدام المجاني لـ Gemini. يرجى المحاولة بعد دقيقة أو شحن الرصيد.');
@@ -241,12 +241,12 @@ export default function App() {
       } else if (useOpenAI && openAiKey) {
         // --- OpenAI Selection ---
         try {
-          response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey)
+          response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey, undefined, user?.id)
         } catch (e: any) {
           // If OpenAI fails and Gemini is available, fallback as a courtesy
           if (geminiKey && (e.message.includes('quota') || e.message.includes('key') || e.message.includes('رصيدك') || e.message.includes('limit'))) {
             try {
-              response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey, userSettings?.gemini_model_name)
+              response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey, userSettings?.gemini_model_name, user?.id)
             } catch (gemErr: any) {
               if (gemErr.message.includes('quota') || gemErr.message.includes('limit')) {
                 throw new Error('انتهى رصيد الاستخدام في كل من OpenAI و Gemini. يرجى المحاولة لاحقاً.');
@@ -261,9 +261,9 @@ export default function App() {
       } else {
         // --- Default Fallback logic if nothing specific selected ---
         if (openAiKey) {
-          response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey)
+          response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey, undefined, user?.id)
         } else if (geminiKey) {
-          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey)
+          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey, undefined, user?.id)
         } else {
           throw new Error('لم يتم إعداد أي مفاتيح API في الإعدادات.');
         }

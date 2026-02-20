@@ -1,6 +1,8 @@
 import React, { useRef, useState } from 'react'
 import { FileContext } from '../types'
 import { FileProcessingService } from '../services/fileProcessingService'
+import { EmbeddingService } from '../services/embeddingService'
+import { SettingsService } from '../services/settingsService'
 
 interface FileUploaderProps {
   userId: string
@@ -28,6 +30,22 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
         }
 
         const processed = await FileProcessingService.processFile(fileArray[i])
+
+        // ENTERPRISE UPGRADE: Automatic Vector Indexing
+        try {
+          const settings = await SettingsService.getSettings(userId);
+          const apiKey = settings.openai_api_key || (import.meta.env as any).VITE_OPENAI_API_KEY;
+          if (apiKey) {
+            console.log(`Triggering vector indexing for: ${fileArray[i].name}`);
+            // Proceed without waiting for indexing to finish (background) if it's too slow, 
+            // but for reliability we await here.
+            await EmbeddingService.indexFile(userId, fileArray[i].name, processed.content, apiKey);
+          }
+        } catch (idxErr) {
+          console.error('Vector indexing failed:', idxErr);
+          // Non-blocking for the user
+        }
+
         uploadedFiles.push(processed)
         setUploadProgress(((i + 1) / fileArray.length) * 100)
       } catch (err: any) {

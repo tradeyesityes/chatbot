@@ -1,4 +1,5 @@
 import { Message, FileContext, UserPlan } from '../types';
+import { EmbeddingService } from './embeddingService';
 
 export class OpenAIService {
   private getModel(plan: UserPlan) {
@@ -67,7 +68,7 @@ export class OpenAIService {
     return selectedParagraphs.join('\n\n---\n\n');
   }
 
-  async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', customApiKey?: string, systemPrompt?: string): Promise<string> {
+  async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', customApiKey?: string, systemPrompt?: string, userId?: string): Promise<string> {
     const apiKey = customApiKey || (import.meta.env as any).VITE_OPENAI_API_KEY;
     if (!apiKey) return '⚠️ خطأ: مفتاح OpenAI غير موجود.';
 
@@ -75,7 +76,24 @@ export class OpenAIService {
 
     // Optimize context usage
     const MAX_CONTEXT_TOKENS = 12000; // Leave buffer for response
-    const context = this.buildContext(contextFiles, userMessage, MAX_CONTEXT_TOKENS);
+
+    // -------------------------------------------------------------------------
+    // ENTERPRISE UPGRADE: Semantic Retrieval
+    // -------------------------------------------------------------------------
+    let context = '';
+    try {
+      const segments = await EmbeddingService.searchSegments(userId || '', userMessage, apiKey, 8);
+      if (segments.length > 0) {
+        console.log(`Semantic search found ${segments.length} relevant segments.`);
+        context = segments.join('\n\n---\n\n');
+      } else {
+        console.log('Semantic search returned no results, falling back to keyword context.');
+        context = this.buildContext(contextFiles, userMessage, MAX_CONTEXT_TOKENS);
+      }
+    } catch (err) {
+      console.error('Semantic search failed, falling back:', err);
+      context = this.buildContext(contextFiles, userMessage, MAX_CONTEXT_TOKENS);
+    }
 
     const model = this.getModel(plan);
 

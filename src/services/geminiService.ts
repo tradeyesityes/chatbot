@@ -7,7 +7,7 @@ export class GeminiService {
         return 'gemini-1.5-flash';
     }
 
-    async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', overrideApiKey?: string, customModel?: string): Promise<string> {
+    async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', overrideApiKey?: string, customModel?: string, userId?: string): Promise<string> {
         const apiKey = overrideApiKey || (import.meta.env as any).VITE_GEMINI_API_KEY || (import.meta.env as any).VITE_API_KEY;
         if (!apiKey) return '⚠️ خطأ: مفتاح Gemini API غير موجود. يرجى إضافته في الإعدادات.';
 

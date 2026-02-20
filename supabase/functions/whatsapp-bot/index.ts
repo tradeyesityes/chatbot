@@ -108,16 +108,60 @@ serve(async (req) => {
             console.error('Presence Error:', presenceError)
         }
 
-        // 3. Fetch Knowledge Base Context
-        const { data: files, error: filesError } = await supabase
-            .from('user_files')
-            .select('name, content')
-            .eq('user_id', userId)
+        // 3. Fetch Knowledge Base Context (Semantic vs Full)
+        let context = ''
+        const openAiKey = settings.openai_api_key
 
-        if (filesError) await logDebug('FilesError', 'Error fetching files', { error: filesError, userId, instanceName })
+        if (openAiKey) {
+            try {
+                await logDebug('SemanticSearch', 'Attempting vector retrieval...', { userId, instanceName })
+                // 1. Generate Embedding for Query
+                const embResponse = await fetch('https://api.openai.com/v1/embeddings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${openAiKey}`
+                    },
+                    body: JSON.stringify({
+                        input: incomingText,
+                        model: 'text-embedding-3-small'
+                    })
+                })
 
-        const context = files?.map(f => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
-        await logDebug('Context', `Fetched ${files?.length || 0} files for context.`, { contextLength: context.length, userId, instanceName })
+                if (embResponse.ok) {
+                    const embData = await embResponse.json()
+                    const queryEmbedding = embData.data[0].embedding
+
+                    // 2. Query Supabase for matching segments
+                    const { data: segments, error: rpcError } = await supabase.rpc('match_file_segments', {
+                        query_embedding: queryEmbedding,
+                        match_threshold: 0.5,
+                        match_count: 8,
+                        p_user_id: userId
+                    })
+
+                    if (!rpcError && segments && segments.length > 0) {
+                        context = segments.map((s: any) => s.content).join('\n\n---\n\n')
+                        await logDebug('SemanticSearch', `Found ${segments.length} relevant segments.`, { userId, instanceName })
+                    }
+                }
+            } catch (err) {
+                console.error('Semantic Search Error:', err)
+            }
+        }
+
+        // Fallback to full file context if semantic search returned nothing or failed
+        if (!context) {
+            const { data: files, error: filesError } = await supabase
+                .from('user_files')
+                .select('name, content')
+                .eq('user_id', userId)
+
+            if (filesError) await logDebug('FilesError', 'Error fetching files', { error: filesError, userId, instanceName })
+
+            context = files?.map(f => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
+            await logDebug('Context', `Fetched full context (${files?.length || 0} files).`, { contextLength: context.length, userId, instanceName })
+        }
 
         // 4. Generate AI Response
         let aiResponse = ''
