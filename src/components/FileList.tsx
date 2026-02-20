@@ -32,7 +32,16 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemove }) => {
               <div className="flex items-center gap-2 min-w-0 flex-row-reverse w-full text-right">
                 <span className="text-lg opacity-70">{getFileIcon(file.type)}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-salla-primary truncate">{file.name}</p>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => alert(`محتوى الملف (${file.name}):\n\n${file.content.substring(0, 2000)}${file.content.length > 2000 ? '...' : ''}`)}
+                      className="text-[9px] bg-salla-accent-light text-salla-primary px-2 py-0.5 rounded hover:bg-salla-primary hover:text-white transition-colors"
+                      title="معاينة النص المستخرج"
+                    >
+                      معاينة
+                    </button>
+                    <p className="text-sm font-bold text-salla-primary truncate">{file.name}</p>
+                  </div>
                   <p className="text-[10px] text-salla-muted flex gap-2 justify-end font-medium">
                     <span>{file.content.length.toLocaleString()} حرف</span>
                     <span>•</span>

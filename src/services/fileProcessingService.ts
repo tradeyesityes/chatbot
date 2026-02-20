@@ -104,44 +104,38 @@ export class FileProcessingService {
 
           let pageText = '';
           if (items.length > 0) {
-            // Sort items: Top to Bottom (Y desc), then Left to Right (X asc)
-            // This is CRITICAL for preventing jumbled text or "random truncation"
+            // Sort items: Top to Bottom, then Left to Right
+            // Use a 10px tolerance for "same line" detection
             items.sort((a, b) => {
-              if (Math.abs(b.transform[5] - a.transform[5]) > 5) {
-                return b.transform[5] - a.transform[5];
-              }
+              const yDiff = b.transform[5] - a.transform[5];
+              if (Math.abs(yDiff) > 10) return yDiff;
               return a.transform[4] - b.transform[4];
             });
 
             let lastY: number | null = null;
-            let lastX: number | null = null;
 
             for (const item of items) {
               if (!item.str) continue;
               const currentY = item.transform[5];
-              const currentX = item.transform[4];
 
-              // Newline detection
-              if (lastY !== null && Math.abs(currentY - lastY) > 8) {
+              // Newline detection: if Y changed significantly
+              if (lastY !== null && Math.abs(currentY - lastY) > 10) {
                 pageText += '\n';
-              }
-              // Space detection (simplified)
-              else if (lastX !== null && Math.abs(currentX - lastX) > 10 && pageText.length > 0 && !pageText.endsWith('\n')) {
+              } else if (pageText.length > 0 && !pageText.endsWith('\n') && !pageText.endsWith(' ')) {
+                // Same line: add space if not already there
                 pageText += ' ';
               }
 
               pageText += item.str;
               lastY = currentY;
-              lastX = currentX;
             }
           }
 
-          const cleanPageText = pageText.trim();
+          let pageResult = pageText.trim();
 
           // SPEED OPTIMIZATION: Only OCR the FIRST page if it appears scanned
-          // This avoids the massive slowdown while still catching the "empty file" case
-          if (i === 1 && cleanPageText.length < 20) {
-            console.log("Page 1 is empty, attempting deep OCR...");
+          if (i === 1 && pageResult.length < 30) {
+            console.log("Page 1 appears empty or scanned, triggering diagnostic OCR...");
             try {
               const viewport = page.getViewport({ scale: 1.5 });
               const canvas = document.createElement('canvas');
@@ -153,7 +147,7 @@ export class FileProcessingService {
                 const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
                 if (blob) {
                   const ocrText = await this.performOcr(blob);
-                  pageText = `[Deep OCR Page 1]\n${ocrText}`;
+                  pageResult = `[OCR Page 1]\n${ocrText}`;
                 }
               }
             } catch (ocrErr) {
@@ -161,7 +155,7 @@ export class FileProcessingService {
             }
           }
 
-          fullText += `[Page ${i}]\n${pageText}\n\n`;
+          fullText += `[Page ${i}]\n${pageResult}\n\n`;
         } catch (pageErr) {
           console.error(`Page ${i} error:`, pageErr);
         }
