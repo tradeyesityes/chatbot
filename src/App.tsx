@@ -401,6 +401,14 @@ export default function App() {
       />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        {/* Beta Label */}
+        <div className="absolute top-4 left-4 z-20 pointer-events-none select-none">
+          <div className="px-3 py-1 bg-amber-500/10 backdrop-blur-md border border-amber-500/20 rounded-full flex items-center gap-1.5 shadow-sm">
+            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">نسخة تجريبية</span>
+          </div>
+        </div>
+
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between p-4 glass border-b border-white/10 sticky top-0 z-10 shadow-sm">
           <button
