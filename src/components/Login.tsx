@@ -46,129 +46,151 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-            <div className="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-md border border-white/50">
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-lg shadow-blue-500/30">
+        <div className="min-h-screen bg-salla-bg-soft flex items-center justify-center p-4">
+            <div className="w-full max-w-md animate-in">
+                <div className="text-center mb-10">
+                    <div className="w-20 h-20 bg-salla-primary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-xl shadow-salla-primary/10">
                         🤖
                     </div>
-                    <h2 className="text-3xl font-black text-slate-800">
-                        {showOtpInput ? 'تفعيل الحساب' : (isForgotPassword ? 'استعادة كلمة المرور' : (isSignUp ? 'إنشاء حساب' : 'تسجيل الدخول'))}
-                    </h2>
-                    <p className="text-slate-500 mt-2 font-medium">
-                        {showOtpInput ? 'أدخل الكود المرسل لبريدك الإلكتروني' : (isForgotPassword ? 'أدخل بريدك الإلكتروني لاستلام رابط الاستعادة' : (isSignUp ? 'أنشئ حسابك للبدء' : 'مرحباً بعودتك!'))}
-                    </p>
+                    <h1 className="text-4xl font-bold text-salla-primary mb-2">KB Chatbot</h1>
+                    <p className="text-salla-muted font-bold text-lg">منصة الإجابة الذكية</p>
                 </div>
 
-                {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
-                        ⚠️ {error}
-                    </div>
-                )}
+                <div className="bg-white rounded-salla border border-slate-100 p-8 shadow-2xl relative overflow-hidden">
+                    {/* Accent Blobs */}
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-salla-accent-light rounded-full opacity-50 blur-3xl"></div>
+                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-salla-accent-light rounded-full opacity-50 blur-3xl"></div>
 
-                {successMessage && (
-                    <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-xl text-sm font-bold animate-in fade-in slide-in-from-top-2">
-                        ✅ {successMessage}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    {!showOtpInput ? (
-                        <>
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">
-                                    <div className="min-h-screen bg-salla-bg-soft flex items-center justify-center p-4">
-                                        <div className="w-full max-w-md animate-in">
-                                            <div className="text-center mb-10">
-                                                <div className="w-20 h-20 bg-salla-primary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-xl shadow-salla-primary/10">
-                                                    🤖
-                                                </div>
-                                                <h1 className="text-4xl font-bold text-salla-primary mb-2">KB Chatbot</h1>
-                                                <p className="text-salla-muted font-bold text-lg">منصة الإجابة الذكية - بوابة الدخول</p>
-                                            </div>
-
-                                            <div className="bg-white rounded-salla border border-slate-100 p-8 shadow-2xl relative overflow-hidden">
-                                                {/* Accent Blobs */}
-                                                <div className="absolute -top-10 -right-10 w-32 h-32 bg-salla-accent-light rounded-full opacity-50 blur-3xl"></div>
-                                                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-salla-accent-light rounded-full opacity-50 blur-3xl"></div>
-
-                                                <div className="relative z-10">
-                                                    <div className="flex bg-salla-bg-soft p-1 rounded-2xl mb-8 border border-slate-100">
-                                                        <button
-                                                            onClick={() => setMode('login')}
-                                                            className={`flex-1 py-3 rounded-xl font-bold transition-all ${mode === 'login' ? 'bg-salla-primary text-white shadow-md' : 'text-salla-muted hover:text-salla-primary'
-                                                                }`}
-                                                        >
-                                                            تسجيل دخول
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setMode('signup')}
-                                                            className={`flex-1 py-3 rounded-xl font-bold transition-all ${mode === 'signup' ? 'bg-salla-primary text-white shadow-md' : 'text-salla-muted hover:text-salla-primary'
-                                                                }`}
-                                                        >
-                                                            إنشاء حساب
-                                                        </button>
-                                                    </div>
-
-                                                    <form onSubmit={handleSubmit} className="space-y-6">
-                                                        {mode === 'signup' && (
-                                                            <div className="space-y-1">
-                                                                <label className="text-xs font-bold text-salla-muted px-1">اسم المستخدم</label>
-                                                                <input
-                                                                    type="text"
-                                                                    required
-                                                                    placeholder="ادخل اسمك"
-                                                                    className="w-full px-4 py-4 bg-salla-bg-soft border border-slate-100 rounded-salla focus:ring-2 focus:ring-salla-accent focus:border-salla-primary transition-all outline-none font-medium text-salla-primary"
-                                                                    value={username}
-                                                                    onChange={(e) => setUsername(e.target.value)}
-                                                                />
-                                                            </div>
-                                                        )}
-
-                                                        <div className="space-y-1">
-                                                            <label className="text-xs font-bold text-salla-muted px-1">البريد الإلكتروني</label>
-                                                            <input
-                                                                type="email"
-                                                                required
-                                                                placeholder="name@example.com"
-                                                                className="w-full px-4 py-4 bg-salla-bg-soft border border-slate-100 rounded-salla focus:ring-2 focus:ring-salla-accent focus:border-salla-primary transition-all outline-none font-medium text-salla-primary"
-                                                                value={email}
-                                                                onChange={(e) => setEmail(e.target.value)}
-                                                            />
-                                                        </div>
-
-                                                        {(mode === 'login' || mode === 'signup') && (
-                                                            <div className="space-y-1">
-                                                                <div className="flex justify-between px-1">
-                                                                    <label className="text-xs font-bold text-salla-muted">كلمة المرور</label>
-                                                                    {mode === 'login' && (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => setMode('reset')}
-                                                                            className="text-xs font-bold text-salla-primary hover:underline"
-                                                                        >
-                                                                            نسيت كلمة المرور؟
-                                                                        </button>
-                                                                    )}
-                                                                    onClick={() => setIsSignUp(!isSignUp)}
-                                                                    className="text-slate-500 hover:text-blue-600 font-bold text-sm transition-colors block w-full"
-                            >
-                                                                    {isSignUp ? 'لدي حساب بالفعل؟ تسجيل الدخول' : 'ليس لديك حساب؟ إنشاء حساب جديد'}
-                                                                </button>
+                    <div className="relative z-10">
+                        {!showOtpInput && !isForgotPassword && (
+                            <div className="flex bg-salla-bg-soft p-1 rounded-2xl mb-8 border border-slate-100">
+                                <button
+                                    onClick={() => setIsSignUp(false)}
+                                    className={`flex-1 py-3 rounded-xl font-bold transition-all ${!isSignUp ? 'bg-salla-primary text-white shadow-md' : 'text-salla-muted hover:text-salla-primary'}`}
+                                >
+                                    تسجيل دخول
+                                </button>
+                                <button
+                                    onClick={() => setIsSignUp(true)}
+                                    className={`flex-1 py-3 rounded-xl font-bold transition-all ${isSignUp ? 'bg-salla-primary text-white shadow-md' : 'text-salla-muted hover:text-salla-primary'}`}
+                                >
+                                    إنشاء حساب
+                                </button>
+                            </div>
                         )}
-                                                            </div>
-                                                        ) : (
-                                                        <div className="mt-8 text-center">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setShowOtpInput(false)}
-                                                                className="text-slate-500 hover:text-blue-600 font-bold text-sm transition-colors"
-                                                            >
-                                                                الرجوع للخلف
-                                                            </button>
-                                                        </div>
-                )}
-                                                </div>
+
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold text-salla-primary text-center">
+                                {showOtpInput ? 'تفعيل الحساب' : (isForgotPassword ? 'استعادة كلمة المرور' : (isSignUp ? 'أنشئ حسابك' : 'مرحباً بك'))}
+                            </h2>
+                        </div>
+
+                        {error && (
+                            <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-bold animate-in">
+                                ⚠️ {error}
+                            </div>
+                        )}
+
+                        {successMessage && (
+                            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-xl text-xs font-bold animate-in">
+                                ✅ {successMessage}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            {!showOtpInput ? (
+                                <>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-salla-muted px-1">البريد الإلكتروني</label>
+                                        <input
+                                            type="email"
+                                            required
+                                            value={email}
+                                            onChange={e => setEmail(e.target.value)}
+                                            className="w-full px-4 py-4 bg-salla-bg-soft border border-slate-100 rounded-salla focus:ring-2 focus:ring-salla-accent focus:border-salla-primary transition-all outline-none font-medium text-salla-primary"
+                                            placeholder="name@example.com"
+                                        />
+                                    </div>
+
+                                    {!isForgotPassword && (
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between px-1">
+                                                <label className="text-xs font-bold text-salla-muted">كلمة المرور</label>
+                                                {!isSignUp && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsForgotPassword(true)}
+                                                        className="text-xs font-bold text-salla-primary hover:underline"
+                                                    >
+                                                        نسيت كلمة المرور؟
+                                                    </button>
+                                                )}
                                             </div>
-                                            )
+                                            <input
+                                                type="password"
+                                                required
+                                                value={password}
+                                                onChange={e => setPassword(e.target.value)}
+                                                className="w-full px-4 py-4 bg-salla-bg-soft border border-slate-100 rounded-salla focus:ring-2 focus:ring-salla-accent focus:border-salla-primary transition-all outline-none font-medium text-salla-primary"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-salla-muted px-1">كود التحقق</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={otp}
+                                        onChange={e => setOtp(e.target.value)}
+                                        className="w-full px-4 py-4 bg-salla-bg-soft border border-slate-100 rounded-salla focus:ring-2 focus:ring-salla-accent focus:border-salla-primary transition-all outline-none font-bold text-2xl text-center tracking-widest text-salla-primary"
+                                        placeholder="123456"
+                                    />
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full py-4 bg-salla-primary text-white rounded-salla font-bold text-lg shadow-xl shadow-salla-primary/20 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                        جاري المعالجة...
+                                    </>
+                                ) : (
+                                    showOtpInput ? 'تفعيل الحساب' : (isForgotPassword ? 'إرسال رابط الاستعادة' : (isSignUp ? 'إنشاء حساب جديد' : 'دخول للمنصة'))
+                                )}
+                            </button>
+                        </form>
+
+                        <div className="mt-8 text-center">
+                            {isForgotPassword ? (
+                                <button
+                                    onClick={() => setIsForgotPassword(false)}
+                                    className="text-salla-primary hover:underline font-bold text-sm"
+                                >
+                                    العودة لتسجيل الدخول
+                                </button>
+                            ) : showOtpInput ? (
+                                <button
+                                    onClick={() => setShowOtpInput(false)}
+                                    className="text-salla-primary hover:underline font-bold text-sm"
+                                >
+                                    الرجوع للخلف
+                                </button>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+
+                <p className="text-center mt-8 text-salla-muted text-sm font-bold opacity-60">
+                    جميع الحقوق محفوظة © 2024 KB Chatbot
+                </p>
+            </div>
+        </div>
+    )
 }
