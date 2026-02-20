@@ -20,7 +20,7 @@ export const BotAvatar: React.FC<BotAvatarProps> = ({ size = 'md', className = '
             <img
                 src={botLogo}
                 alt="AI Assistant"
-                className={`w-full h-full object-contain ${animate ? 'animate-float animate-bot-glow' : ''} drop-shadow-md`}
+                className={`w-full h-full object-contain ${animate ? 'animate-float animate-bot-glow' : ''} drop-shadow-md mix-blend-multiply transition-all duration-300`}
             />
         </div>
     )
