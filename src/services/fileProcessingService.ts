@@ -4,11 +4,8 @@ import * as pdfjs from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 
-// Import worker using Vite's ?url suffix to get the file path
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-// Set worker source
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+// Set worker source to CDN for stability across different domains/deployments
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs`;
 
 export class FileProcessingService {
   // Process uploaded file and return FileContext
