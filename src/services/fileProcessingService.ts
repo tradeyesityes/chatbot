@@ -81,12 +81,18 @@ export class FileProcessingService {
     try {
       console.log(`Reading PDF: ${file.name}`);
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      // Using CDN for CMaps to ensure Arabic/Special chars are handled correctly
+      const pdf = await pdfjs.getDocument({
+        data: arrayBuffer,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/cmaps/',
+        cMapPacked: true,
+      }).promise;
+
       console.log(`PDF loaded. Pages: ${pdf.numPages}`);
       let fullText = '';
 
-      const MAX_PAGES_TO_PROCESS = 50;
-      const MAX_OCR_PAGES = 10;
+      const MAX_PAGES_TO_PROCESS = 100; // Increased limit
+      const MAX_OCR_PAGES = 15;
 
       const pagesToProcess = Math.min(pdf.numPages, MAX_PAGES_TO_PROCESS);
 
@@ -94,31 +100,35 @@ export class FileProcessingService {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
 
-        // Improve text joining: join items in the same line with space, join different lines with newline
-        let lastY: number | null = null;
         let pageText = '';
+        let lastY: number | null = null;
+        let lastX: number | null = null;
 
+        // Group items by line for better reconstruction
         for (const item of textContent.items as any[]) {
+          if (!item.str) continue;
+
           const currentY = item.transform[5];
           const currentX = item.transform[4];
 
-          if (lastY !== null && Math.abs(currentY - lastY) > 5) {
+          if (lastY !== null && Math.abs(currentY - lastY) > 8) {
             pageText += '\n';
-          } else if (pageText.length > 0 && !pageText.endsWith('\n')) {
-            // Check for spacing: if currentX is significantly different from lastX + width, add space
-            // This is a basic check, as item doesn't always have width in getTextContent
+          } else if (lastX !== null && Math.abs(currentX - lastX) > 50 && pageText.length > 0 && !pageText.endsWith('\n')) {
+            // Significant horizontal gap: add space
             pageText += ' ';
           }
+
           pageText += item.str;
           lastY = currentY;
+          lastX = currentX;
         }
 
         // Improved Arabic detection heuristic
         const hasArabic = /[\u0600-\u06FF]/.test(pageText);
         const textLen = pageText.trim().length;
 
-        // Revised Heuristic: Lower threshold for Arabic or if it looks valid
-        if (textLen < 20 || (textLen < 100 && !hasArabic)) {
+        // Trigger OCR if text is very short or looks like empty/garbage
+        if (textLen < 30 || (textLen < 150 && !hasArabic)) {
           if (i <= MAX_OCR_PAGES) {
             console.log(`Page ${i} looks like an image (${pageText.trim().length} chars). Attempting OCR...`);
             try {
