@@ -115,9 +115,14 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
 
       {uploadProgress > 0 && uploadProgress < 100 && (
         <div className="mt-6 w-full max-w-xs mx-auto">
-          <div className="flex justify-between text-xs text-salla-primary mb-1 font-bold">
-            <span>جاري الرفع...</span>
-            <span>{Math.round(uploadProgress)}%</span>
+          <div className="flex flex-col gap-2 mb-2">
+            <p className="text-salla-primary font-bold text-sm text-center animate-pulse">
+              ⏳ نأمل الانتظار حتى يتم رفع الملف...
+            </p>
+            <div className="flex justify-between text-xs text-salla-primary font-bold">
+              <span>جاري الرفع...</span>
+              <span>{Math.round(uploadProgress)}%</span>
+            </div>
           </div>
           <div className="h-2 bg-salla-accent-light rounded-full overflow-hidden shadow-inner">
             <div
@@ -129,13 +134,13 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
       )}
 
       {error && (
-        <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 animate-in">
+        <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 animate-in text-right font-bold">
           ⚠️ {error}
         </div>
       )}
 
       {success && (
-        <div className="mt-4 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-lg border border-emerald-100 animate-in">
+        <div className="mt-4 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-lg border border-emerald-100 animate-in text-right font-bold">
           ✅ {success}
         </div>
       )}

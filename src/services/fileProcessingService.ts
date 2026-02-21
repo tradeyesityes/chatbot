@@ -243,7 +243,7 @@ export class FileProcessingService {
 
   static validateFile(file: File): { valid: boolean; message: string } {
     const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) return { valid: false, message: 'حجم الملف أكبر من 10MB' };
+    if (file.size > maxSize) return { valid: false, message: 'يتعذر رفع الملف إن كان أكبر من ١٠ ميجا' };
     return { valid: true, message: 'الملف صالح' };
   }
 
