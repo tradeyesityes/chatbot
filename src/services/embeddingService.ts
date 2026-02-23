@@ -1,4 +1,5 @@
 import { supabase } from './supabaseService';
+import { normalizeArabic } from '../utils/helpers';
 
 export class EmbeddingService {
     private static OPENAI_API_URL = 'https://api.openai.com/v1/embeddings';
@@ -129,8 +130,9 @@ export class EmbeddingService {
      * Performs semantic search to find relevant segments
      */
     static async searchSegments(userId: string, query: string, apiKey: string, limit: number = 5): Promise<string[]> {
-        console.log(`🔍 Searching segments for query: "${query}"`);
-        const embedding = await this.generateEmbedding(query, apiKey);
+        const normalizedQuery = normalizeArabic(query);
+        console.log(`🔍 Searching segments for query: "${query}" (normalized: "${normalizedQuery}")`);
+        const embedding = await this.generateEmbedding(normalizedQuery, apiKey);
 
         const { data, error } = await supabase.rpc('match_file_segments', {
             query_embedding: embedding,

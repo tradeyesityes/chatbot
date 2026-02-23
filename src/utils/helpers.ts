@@ -16,6 +16,20 @@ export const sanitizeText = (text: string): string => {
     .trim()
 }
 
+/**
+ * Normalizes Arabic text for better search matching.
+ * Handles Alif/Hamza variations and common interchangeable characters.
+ */
+export const normalizeArabic = (text: string): string => {
+  if (!text) return ''
+  return text
+    .replace(/[\u064B-\u0652]/g, '') // Remove diacritics (harakat)
+    .replace(/[أإآ]/g, 'ا') // Normalize Alif with Hamza
+    .replace(/ة/g, 'ه') // Normalize Te Marbuta
+    .replace(/ى/g, 'ي') // Normalize Alif Maksura (optional, but helpful for search)
+    .trim()
+}
+
 // Number utilities
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes'

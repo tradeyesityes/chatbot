@@ -3,6 +3,7 @@ import { createWorker } from 'tesseract.js';
 import * as pdfjs from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
+import { normalizeArabic } from '../utils/helpers';
 
 // Set worker source to CDN for stability across different domains/deployments
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs`;
@@ -234,12 +235,13 @@ export class FileProcessingService {
   }
 
   private static cleanContent(content: string): string {
-    return content
+    const cleaned = content
       .replace(/[ \t]+/g, ' ') // Only replace horizontal whitespace with a single space
       .replace(/(\r\n|\n|\r){3,}/g, '\n\n') // Limit consecutive newlines
       .replace(/([.!?؟])\s*/g, '$1\n') // Handle Arabic question mark and ensure newline after sentence
-      .replace(/[\u064B-\u0652]/g, '') // Remove Arabic diacritics (harakat) for better search matching
       .trim();
+
+    return normalizeArabic(cleaned);
   }
 
   static validateFile(file: File): { valid: boolean; message: string } {
