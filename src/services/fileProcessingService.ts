@@ -237,7 +237,8 @@ export class FileProcessingService {
     return content
       .replace(/[ \t]+/g, ' ') // Only replace horizontal whitespace with a single space
       .replace(/(\r\n|\n|\r){3,}/g, '\n\n') // Limit consecutive newlines
-      .replace(/([.!?؟])\s+/g, '$1\n') // Handle Arabic question mark
+      .replace(/([.!?؟])\s*/g, '$1\n') // Handle Arabic question mark and ensure newline after sentence
+      .replace(/[\u064B-\u0652]/g, '') // Remove Arabic diacritics (harakat) for better search matching
       .trim();
   }
 

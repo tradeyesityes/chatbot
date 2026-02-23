@@ -13,8 +13,24 @@ export class GeminiService {
 
         if (!contextFiles || contextFiles.length === 0) return 'عذراً، لا توجد ملفات في قاعدة المعرفة.';
 
-        // System prompt and context consolidated into one initial message
-        // System prompt and context consolidated into one initial message
+        // -------------------------------------------------------------------------
+        // ENTERPRISE UPGRADE: Semantic Retrieval
+        // -------------------------------------------------------------------------
+        let context = '';
+        try {
+            const segments = await (await import('./embeddingService')).EmbeddingService.searchSegments(userId || '', userMessage, apiKey, 8);
+            if (segments.length > 0) {
+                console.log(`Gemini RAG: Semantic search found ${segments.length} relevant segments.`);
+                context = segments.join('\n\n---\n\n');
+            } else {
+                console.log('Gemini RAG: Semantic search returned no results, falling back to full context (if small).');
+                context = contextFiles.map(f => `[${f.name}]\n${f.content}`).join('\n\n');
+            }
+        } catch (err) {
+            console.error('Gemini RAG: Semantic search failed, falling back:', err);
+            context = contextFiles.map(f => `[${f.name}]\n${f.content}`).join('\n\n');
+        }
+
         const systemPrompt = `أنت مساعد ذكي لخدمة العملاء في شركتنا، وترد على استفسارات العملاء بدقة واحترافية.
         **قاعدة صارمة جداً:** أجب فقط بناءً على المعلومات الموجودة في "معلومات السياق" أدناه. لا تستخدم أي معرفة خارجية أو عامة أبداً.
         **قاعدة صارمة:** لا تذكر أبداً أسماء الملفات.
@@ -24,7 +40,7 @@ export class GeminiService {
         فقط أجب على السؤال المحدد بدقة واختصار.
 
         معلومات السياق:
-        ${contextFiles.map(f => `[${f.name}]\n${f.content}`).join('\n\n')}`;
+        ${context}`;
 
         // Ensure alternating roles: user, model, user, model...
         const contents: any[] = [];

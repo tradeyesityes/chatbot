@@ -14,6 +14,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploadProgress, setUploadProgress] = useState<number>(0)
   const [isProcessing, setIsProcessing] = useState<boolean>(false)
+  const [eta, setEta] = useState<number | null>(null)
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
 
@@ -22,6 +23,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
     setSuccess('')
     setIsProcessing(true)
     const uploadedFiles: FileContext[] = []
+    const startTime = Date.now()
 
     for (let i = 0; i < fileArray.length; i++) {
       try {
@@ -33,13 +35,42 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
 
         const processed = await FileProcessingService.processFile(fileArray[i])
 
-        // ENTERPRISE UPGRADE: Automatic Vector Indexing
+        // ENTERPRISE UPGRADE: Automatic Vector Indexing with ETA
         try {
           const settings = await SettingsService.getSettings(userId);
           const apiKey = settings.openai_api_key || (import.meta.env as any).VITE_OPENAI_API_KEY;
           if (apiKey) {
             console.log(`Triggering vector indexing for: ${fileArray[i].name}`);
-            await EmbeddingService.indexFile(userId, fileArray[i].name, processed.content, apiKey);
+
+            const indexStartTime = Date.now();
+            await EmbeddingService.indexFile(
+              userId,
+              fileArray[i].name,
+              processed.content,
+              apiKey,
+              (processedChunks, totalChunks) => {
+                // Calculate percentage based on current file progress + previous files
+                const fileProgress = (processedChunks / totalChunks) * (1 / fileArray.length);
+                const previousFilesProgress = i / fileArray.length;
+                const totalProgress = (previousFilesProgress + fileProgress) * 100;
+                setUploadProgress(totalProgress);
+
+                // Calculate ETA
+                const elapsed = (Date.now() - indexStartTime) / 1000; // seconds since start of THIS file
+                if (processedChunks > 1) {
+                  const rate = processedChunks / elapsed; // chunks per second
+                  const remainingChunks = totalChunks - processedChunks;
+                  // Add time for remaining chunks in THIS file + estimate for remaining files
+                  const remainingFiles = fileArray.length - (i + 1);
+                  const estimatedThisFile = remainingChunks / rate;
+                  // Roughly estimate other files based on this file's average time
+                  const avgTimePerFile = elapsed / (processedChunks / totalChunks);
+                  const estimatedOtherFiles = remainingFiles * avgTimePerFile;
+
+                  setEta(Math.ceil(estimatedThisFile + estimatedOtherFiles));
+                }
+              }
+            );
           }
         } catch (idxErr) {
           console.error('Vector indexing failed:', idxErr);
@@ -47,6 +78,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
 
         uploadedFiles.push(processed)
         setUploadProgress(((i + 1) / fileArray.length) * 100)
+        setEta(null)
       } catch (err: any) {
         setError(`خطأ في معالجة ${fileArray[i].name}: ${err.message}`)
       }
@@ -134,6 +166,11 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
               style={{ width: `${uploadProgress || 5}%` }}
             />
           </div>
+          {eta !== null && eta > 0 && (
+            <p className="mt-2 text-[10px] text-salla-muted font-bold text-center">
+              ⏳ الوقت المتبقي المقدر: {eta > 60 ? `${Math.floor(eta / 60)} دقيقة و ${eta % 60} ثانية` : `${eta} ثانية`}
+            </p>
+          )}
         </div>
       )}
 
