@@ -58,17 +58,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
                         </button>
                     </div>
 
-                    {/* Feature Highlight */}
-                    <div className="relative max-w-5xl mx-auto mt-20 p-2 glass rounded-[32px] shadow-2xl">
-                        <div className="bg-slate-50 rounded-[28px] p-4 aspect-video flex items-center justify-center overflow-hidden border border-white">
-                            <div className="flex flex-col items-center gap-4">
-                                <BotAvatar size="lg" />
-                                <div className="px-6 py-3 bg-white rounded-2xl shadow-sm border border-slate-100 animate-fade-up">
-                                    <p className="text-sm font-bold">أهلاً بك! كيف يمكنني مساعدتك بناءً على ملفاتك؟</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </section>
 
