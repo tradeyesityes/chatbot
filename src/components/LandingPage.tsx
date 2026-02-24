@@ -12,7 +12,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
             {/* Navigation */}
             <nav className="fixed top-0 w-full z-50 glass border-b border-salla-accent/10">
                 <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
+                    <div
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                         <BotAvatar size="sm" />
                         <span className="text-xl font-black tracking-tight">KB Chatbot</span>
                     </div>
