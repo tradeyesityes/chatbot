@@ -3,10 +3,11 @@ import { AuthService } from '../services/authService'
 import { BotAvatar } from './BotAvatar'
 
 interface LoginProps {
-    onLogin: () => void
+    onLogin: () => void;
+    onBackToLanding?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isSignUp, setIsSignUp] = useState(false)
@@ -78,7 +79,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     return (
         <div className="min-h-screen bg-salla-bg-soft flex items-center justify-center p-4">
             <div className="w-full max-w-md animate-in">
-                <div className="text-center mb-10">
+                <div
+                    className={`text-center mb-10 ${onBackToLanding ? 'cursor-pointer hover:opacity-80 transition-all' : ''}`}
+                    onClick={onBackToLanding}
+                >
                     <div className="mx-auto mb-6">
                         <BotAvatar size="xl" className="mx-auto" />
                     </div>

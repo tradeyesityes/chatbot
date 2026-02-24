@@ -373,7 +373,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <Login onLogin={() => { }} />
+    return <Login onLogin={() => { }} onBackToLanding={() => setShowLanding(true)} />
   }
 
   return (
