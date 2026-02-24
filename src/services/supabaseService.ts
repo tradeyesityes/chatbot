@@ -30,8 +30,13 @@ const createMissingClient = (): any => {
 }
 
 let client: SupabaseClient | any
-if (SUPABASE_URL && SUPABASE_KEY && isValidUrl(SUPABASE_URL)) {
-	client = createClient(SUPABASE_URL, SUPABASE_KEY)
+if (SUPABASE_URL && SUPABASE_KEY) {
+	// Attempt to use proxy if we are in local development to avoid NetworkError
+	const useProxy = (import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+	const finalUrl = useProxy ? '/api/supabase' : SUPABASE_URL
+
+	console.log(`🔌 Initializing Supabase with URL: ${finalUrl} (Proxy: ${useProxy})`)
+	client = createClient(finalUrl, SUPABASE_KEY)
 } else {
 	console.warn('⚠️', missingClientMessage)
 	client = createMissingClient()

@@ -57,6 +57,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ollama/, ''),
       },
+      '/api/supabase': {
+        target: 'https://rawobjxsbzpmlwwhmsec.supabase.co',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/supabase/, ''),
+      },
     },
   },
   define: {
