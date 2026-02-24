@@ -20,6 +20,26 @@ export class AuthService {
     }
   }
 
+  static async signInWithGoogle(): Promise<void> {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
+      }
+    })
+    if (error) throw error
+  }
+
+  static async signInWithMicrosoft(): Promise<void> {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+      options: {
+        redirectTo: window.location.origin
+      }
+    })
+    if (error) throw error
+  }
+
   static async signUp(email: string, password: string): Promise<User> {
     const { data, error } = await supabase.auth.signUp({
       email,
