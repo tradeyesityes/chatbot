@@ -130,7 +130,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
             {/* Footer */}
             <footer className="py-20 bg-white border-t border-slate-100">
                 <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="flex items-center gap-3">
+                    <div
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                         <BotAvatar size="sm" />
                         <span className="text-xl font-black tracking-tight">KB Chatbot</span>
                     </div>
