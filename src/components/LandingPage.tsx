@@ -34,7 +34,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
             </nav>
 
             {/* Hero Section */}
-            <section className="pt-40 pb-20 gradient-bg">
+            <section className="pt-40 pb-0 gradient-bg">
                 <div className="max-w-7xl mx-auto px-4 md:px-8 text-center animate-in">
                     <div className="hero-subtitle">
                         <span className="w-2 h-2 bg-salla-primary rounded-full animate-pulse"></span>
@@ -46,7 +46,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
                     <p className="max-w-2xl mx-auto text-lg md:text-xl text-salla-muted mb-12 font-medium leading-relaxed">
                         استخدم قوة الذكاء الاصطناعي لتحليل وثائق شركتك وتقديم إجابات دقيقة واحترافية لعملائك على مدار الساعة عبر الواتساب والموقع.
                     </p>
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
                         <button
                             onClick={onGetStarted}
                             className="px-10 py-5 bg-salla-primary text-white rounded-2xl text-xl font-black shadow-2xl shadow-salla-primary/20 hover:scale-105 active:scale-95 transition-all"
@@ -62,7 +62,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
             </section>
 
             {/* Features Grid */}
-            <section className="py-32 bg-white">
+            <section className="pt-16 pb-32 bg-white">
                 <div className="max-w-7xl mx-auto px-4 md:px-8">
                     <div className="text-center mb-20">
                         <h2 className="text-4xl font-black mb-4">لماذا تختار KB Chatbot؟</h2>
