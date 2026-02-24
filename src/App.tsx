@@ -5,7 +5,7 @@ import { GeminiService } from './services/geminiService'
 import { OllamaService } from './services/ollamaService'
 import { StorageService } from './services/storageService'
 import { ChatService } from './services/chatService'
-import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle } from './components'
+import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle, LandingPage } from './components'
 import { BotAvatar } from './components/BotAvatar'
 import { AuthService } from './services/authService'
 import { supabase } from './services/supabaseService'
@@ -43,6 +43,7 @@ export default function App() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const [showLanding, setShowLanding] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Initialize user session
@@ -360,6 +361,15 @@ export default function App() {
 
   if (isResetMode) {
     return <UpdatePassword onComplete={() => setIsResetMode(false)} />
+  }
+
+  if (!user && showLanding) {
+    return (
+      <LandingPage
+        onGetStarted={() => setShowLanding(false)}
+        onLogin={() => setShowLanding(false)}
+      />
+    )
   }
 
   if (!user) {
