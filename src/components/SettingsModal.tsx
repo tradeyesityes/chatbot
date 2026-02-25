@@ -657,7 +657,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                                     return
                                                 }
                                                 const redirectUri = `${window.location.origin}/auth/instagram/callback`
-                                                const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_basic,instagram_manage_messages,pages_show_list,pages_manage_metadata,pages_messaging&response_type=code`
+                                                const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_basic,instagram_manage_messages,pages_show_list,pages_manage_metadata,pages_read_engagement,pages_messaging&response_type=code`
                                                 window.open(url, 'instagram_auth', 'width=600,height=700')
                                             }
                                             return
@@ -698,7 +698,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                                 return
                                             }
                                             const redirectUri = `${window.location.origin}/auth/instagram/callback`
-                                            const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_basic,instagram_manage_messages,pages_show_list,pages_manage_metadata,pages_messaging&response_type=code`
+                                            const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_basic,instagram_manage_messages,pages_show_list,pages_manage_metadata,pages_read_engagement,pages_messaging&response_type=code`
                                             window.open(url, 'instagram_auth', 'width=600,height=700')
                                         }}
                                         className="w-full px-4 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-pink-500/20 active:scale-[0.98]"
