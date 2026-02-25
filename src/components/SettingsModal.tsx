@@ -204,6 +204,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                 </div>
 
                 <div className="p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar">
+                    {message && (
+                        <div className={`p-4 rounded-xl text-sm font-medium animate-in slide-in-from-top-2 duration-300 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}>
+                            <div className="flex items-center gap-2">
+                                <span>{message.type === 'success' ? '✅' : '❌'}</span>
+                                {message.text}
+                            </div>
+                        </div>
+                    )}
+
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <div>
@@ -702,14 +711,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
 
                             <div>
                                 <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                    Meta App ID (اتركه فارغاً للاستخدام التلقائي)
+                                    Meta App ID (مطلوب للربط)
                                 </label>
                                 <input
                                     type="text"
                                     value={settings.meta_app_id || ''}
                                     onChange={(e) => setSettings({ ...settings, meta_app_id: e.target.value })}
                                     className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-pink-500"
-                                    placeholder="Meta App ID..."
+                                    placeholder="أدخل Meta App ID هنا..."
                                 />
                             </div>
                         </div>
@@ -751,11 +760,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                         </div>
                     </div>
 
-                    {message && (
-                        <div className={`p-4 rounded-xl text-sm font-medium ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}>
-                            {message.text}
-                        </div>
-                    )}
 
                 </div>
 
