@@ -649,7 +649,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         if (isEnabled && !settings.instagram_access_token) {
                                             if (window.confirm('يرجى ربط حساب إنستقرام أولاً قبل التفعيل. هل تريد ربط الحساب الآن؟')) {
                                                 // Trigger OAuth flow same as button
-                                                const appId = settings.meta_app_id || import.meta.env.VITE_META_APP_ID
+                                                const appId = settings.meta_app_id || import.meta.env.VITE_META_APP_ID || '4017241231826023'
                                                 if (!appId || appId === 'YOUR_DEFAULT_APP_ID') {
                                                     const msg = 'يرجى إدخال Meta App ID أولاً في الحقل أدناه قبل محاولة الربط'
                                                     alert(msg)
@@ -690,7 +690,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            const appId = import.meta.env.VITE_META_APP_ID || settings.meta_app_id
+                                            const appId = import.meta.env.VITE_META_APP_ID || settings.meta_app_id || '4017241231826023'
                                             if (!appId || appId === 'YOUR_DEFAULT_APP_ID') {
                                                 const msg = 'عذراً، لم يتم ضبط إعدادات المنصة (Meta App ID). يرجى التأكد من وجود VITE_META_APP_ID في ملف البيئة.'
                                                 alert(msg)
