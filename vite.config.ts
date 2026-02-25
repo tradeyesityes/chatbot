@@ -68,5 +68,8 @@ export default defineConfig({
     'process.env.VITE_OPENAI_API_KEY': JSON.stringify(process.env.VITE_OPENAI_API_KEY),
     'process.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL),
     'process.env.VITE_SUPABASE_KEY': JSON.stringify(process.env.VITE_SUPABASE_KEY),
+    'process.env.VITE_META_APP_ID': JSON.stringify(process.env.VITE_META_APP_ID),
+    'process.env.VITE_EVOLUTION_BASE_URL': JSON.stringify(process.env.VITE_EVOLUTION_BASE_URL),
+    'process.env.VITE_EVOLUTION_GLOBAL_API_KEY': JSON.stringify(process.env.VITE_EVOLUTION_GLOBAL_API_KEY),
   }
 });
