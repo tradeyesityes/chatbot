@@ -4,9 +4,10 @@ import { BotAvatar } from './BotAvatar';
 interface LandingPageProps {
     onGetStarted: () => void;
     onLogin: () => void;
+    onOpenLegal: (type: 'privacy' | 'terms') => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onOpenLegal }) => {
     return (
         <div className="min-h-screen bg-white text-salla-primary overflow-x-hidden">
             {/* Navigation */}
@@ -139,8 +140,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
                     </div>
                     <p className="text-salla-muted text-sm font-bold">© {new Date().getFullYear()} جميع الحقوق محفوظة.</p>
                     <div className="flex gap-6 text-sm font-bold text-salla-primary">
-                        <a href="#">سياسة الخصوصية</a>
-                        <a href="#">الشروط والأحكام</a>
+                        <button onClick={() => onOpenLegal('privacy')} className="hover:underline">سياسة الخصوصية</button>
+                        <button onClick={() => onOpenLegal('terms')} className="hover:underline">الشروط والأحكام</button>
                     </div>
                 </div>
             </footer>

@@ -5,9 +5,10 @@ import { BotAvatar } from './BotAvatar'
 interface LoginProps {
     onLogin: () => void;
     onBackToLanding?: () => void;
+    onOpenLegal?: (type: 'privacy' | 'terms') => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLegal }) => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isSignUp, setIsSignUp] = useState(false)
@@ -231,9 +232,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
                                 </button>
                             ) : (
                                 <div className="pt-4 border-t border-slate-50 flex justify-center gap-4 text-[10px] font-bold text-salla-muted">
-                                    <a href="#" className="hover:text-salla-primary hover:underline transition-colors tracking-tight">سياسة الخصوصية</a>
+                                    <button onClick={() => onOpenLegal?.('privacy')} className="hover:text-salla-primary hover:underline transition-colors tracking-tight">سياسة الخصوصية</button>
                                     <span className="opacity-20">•</span>
-                                    <a href="#" className="hover:text-salla-primary hover:underline transition-colors tracking-tight">شروط الاستخدام</a>
+                                    <button onClick={() => onOpenLegal?.('terms')} className="hover:text-salla-primary hover:underline transition-colors tracking-tight">شروط الاستخدام</button>
                                     <span className="opacity-20">•</span>
                                     <a href="#" className="hover:text-salla-primary hover:underline transition-colors tracking-tight">الدعم الفني</a>
                                 </div>

@@ -44,6 +44,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [showLanding, setShowLanding] = useState(true)
+  const [legalView, setLegalView] = useState<'none' | 'privacy' | 'terms'>('none')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Initialize user session
@@ -364,17 +365,28 @@ export default function App() {
     return <UpdatePassword onComplete={() => setIsResetMode(false)} />
   }
 
+  if (legalView !== 'none') {
+    return <LegalPage type={legalView as 'privacy' | 'terms'} onBack={() => setLegalView('none')} />
+  }
+
   if (!user && showLanding) {
     return (
       <LandingPage
         onGetStarted={() => setShowLanding(false)}
         onLogin={() => setShowLanding(false)}
+        onOpenLegal={(type) => setLegalView(type)}
       />
     )
   }
 
   if (!user) {
-    return <Login onLogin={() => { }} onBackToLanding={() => setShowLanding(true)} />
+    return (
+      <Login
+        onLogin={() => { }}
+        onBackToLanding={() => setShowLanding(true)}
+        onOpenLegal={(type) => setLegalView(type)}
+      />
+    )
   }
 
   return (
