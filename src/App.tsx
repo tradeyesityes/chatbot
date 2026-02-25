@@ -105,15 +105,17 @@ export default function App() {
           setLoading(true)
           setError('جاري ربط حساب إنستقرام...')
 
-          // Exchange code for token (This should ideally call a Supabase Edge Function)
-          // For now, we'll simulate the successful exchange or instructions
-          // In a real app, you'd fetch the token from Meta using the code + client_secret
-
           console.log('Instagram Auth Code received:', code)
 
-          // Updated settings will be saved here
-          // This is a placeholder for the actual exchange logic
-          // await InstagramService.completeAuth(user.id, code)
+          const redirectUri = `${window.location.origin}/auth/instagram/callback`
+          const { InstagramService } = await import('./services/instagramService')
+          const result = await InstagramService.completeAuth(user.id, code, redirectUri)
+
+          console.log('Instagram Auth Completed:', result)
+
+          setError('')
+          // Success message
+          alert('تم ربط حساب إنستقرام بنجاح! سيتم تفعيل البوت الآن.')
 
           setError('')
           // Clean up URL

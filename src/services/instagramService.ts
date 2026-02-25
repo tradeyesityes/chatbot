@@ -55,8 +55,28 @@ export class InstagramService {
     }
 
     /**
-     * Exchanges auth code for a short-lived token, then a long-lived one
-     * Note: This usually requires a backend/edge function to keep client_secret safe.
-     * For this MVP, we might expect the user to provide their own backend or handle it via Edge Function.
+     * Exchanges auth code for a short-lived token, then a long-lived one via Edge Function
      */
+    static async completeAuth(userId: string, code: string, redirectUri: string): Promise<any> {
+        try {
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+            const supabaseKey = import.meta.env.VITE_SUPABASE_KEY
+
+            const response = await fetch(`${supabaseUrl}/functions/v1/instagram-auth`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseKey}`
+                },
+                body: JSON.stringify({ userId, code, redirectUri }),
+            })
+
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.error || 'Failed to complete Instagram auth')
+            return data
+        } catch (error: any) {
+            console.error('Instagram Auth Completion Failed:', error)
+            throw error
+        }
+    }
 }
