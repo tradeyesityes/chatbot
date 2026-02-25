@@ -182,7 +182,7 @@ export default function App() {
     let convId = currentConversationId;
 
     // Create a new conversation if it's the first message
-    if (!convId && user) {
+    if (!convId && user && user.id !== '00000000-0000-0000-0000-000000000000') {
       try {
         const title = input.length > 30 ? input.substring(0, 30) + '...' : input;
         const newConv = await ChatService.createConversation(user.id, title);
@@ -198,7 +198,7 @@ export default function App() {
     setInput('')
 
     // Save user message to Supabase
-    if (user) {
+    if (user && user.id !== '00000000-0000-0000-0000-000000000000') {
       ChatService.saveMessage(user.id, userMessage, convId).catch(e => {
         console.error('Save User Message Error:', e);
         setError(`فشل حفظ الرسالة في قاعدة البيانات: ${e.message}`);
@@ -301,7 +301,7 @@ export default function App() {
 
   const handleDemoLogin = () => {
     setUser({
-      id: 'demo-user',
+      id: '00000000-0000-0000-0000-000000000000', // Valid NIL UUID
       username: 'ضيف (Demo)',
       email: 'demo@example.com',
       isLoggedIn: true,
