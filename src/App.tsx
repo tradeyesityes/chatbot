@@ -299,6 +299,17 @@ export default function App() {
     }
   }
 
+  const handleDemoLogin = () => {
+    setUser({
+      id: 'demo-user',
+      username: 'ضيف (Demo)',
+      email: 'demo@example.com',
+      isLoggedIn: true,
+      plan: 'free'
+    })
+    setShowLanding(false)
+  }
+
   const handleNewChat = () => {
     setCurrentConversationId(null)
     setMessages([])
@@ -368,12 +379,13 @@ export default function App() {
       <LandingPage
         onGetStarted={() => setShowLanding(false)}
         onLogin={() => setShowLanding(false)}
+        onDemo={handleDemoLogin}
       />
     )
   }
 
   if (!user) {
-    return <Login onLogin={() => { }} onBackToLanding={() => setShowLanding(true)} />
+    return <Login onLogin={() => { }} onBackToLanding={() => setShowLanding(true)} onDemo={handleDemoLogin} />
   }
 
   return (

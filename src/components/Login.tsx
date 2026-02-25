@@ -5,9 +5,10 @@ import { BotAvatar } from './BotAvatar'
 interface LoginProps {
     onLogin: () => void;
     onBackToLanding?: () => void;
+    onDemo?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onDemo }) => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isSignUp, setIsSignUp] = useState(false)
@@ -48,10 +49,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
     }
 
     const handleDemoLogin = async () => {
+        if (onDemo) {
+            onDemo();
+            return;
+        }
         setLoading(true)
         try {
-            // Demo mode just triggers onLogin with a guest state or predefined demo user
-            // For now, we'll use a specific demo account or just bypass
             onLogin()
         } catch (e: any) {
             setError('فشل الدخول لنسخة الديمو')
