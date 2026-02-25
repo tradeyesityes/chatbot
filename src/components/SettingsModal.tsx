@@ -662,7 +662,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            const appId = settings.meta_app_id || 'YOUR_DEFAULT_APP_ID'
+                                            const appId = settings.meta_app_id || import.meta.env.VITE_META_APP_ID
+
+                                            if (!appId || appId === 'YOUR_DEFAULT_APP_ID') {
+                                                setMessage({ type: 'error', text: 'يرجى إدخال Meta App ID أولاً في الحقل أدناه' })
+                                                return
+                                            }
+
                                             const redirectUri = `${window.location.origin}/auth/instagram/callback`
                                             const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_basic,instagram_manage_messages,pages_show_list,pages_manage_metadata,pages_messaging&response_type=code`
                                             window.open(url, 'instagram_auth', 'width=600,height=700')
