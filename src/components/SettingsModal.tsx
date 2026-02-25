@@ -625,6 +625,55 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                     </div>
 
                     <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                                    📸 ربط Instagram
+                                </h3>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.instagram_bot_enabled || false}
+                                    onChange={async (e) => {
+                                        const isEnabled = e.target.checked
+                                        const instanceName = settings.instagram_instance_name || `insta_${userId.substring(0, 8)}`
+
+                                        if (isEnabled) {
+                                            if (window.confirm('لتفعيل إنستقرام، يجب أن يكون لديك Access Token من Meta. هل تريد المتابعة؟')) {
+                                                const token = window.prompt('أدخل Meta Access Token:')
+                                                if (token) {
+                                                    try {
+                                                        const updatedSettings = {
+                                                            ...settings,
+                                                            instagram_bot_enabled: true,
+                                                            instagram_instance_name: instanceName
+                                                        }
+                                                        setSettings(updatedSettings)
+                                                        await SettingsService.updateSettings(userId, updatedSettings)
+                                                        setMessage({ type: 'success', text: 'تم تفعيل إنستقرام بنجاح! تأكد من إعداد Webhook في Meta Developer Portal.' })
+                                                    } catch (error: any) {
+                                                        setMessage({ type: 'error', text: `خطأ: ${error.message}` })
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            if (window.confirm('هل أنت متأكد من تعطيل ربط إنستقرام؟')) {
+                                                const updatedSettings = { ...settings, instagram_bot_enabled: false }
+                                                setSettings(updatedSettings)
+                                                await SettingsService.updateSettings(userId, updatedSettings)
+                                                setMessage({ type: 'success', text: 'تم تعطيل إنستقرام' })
+                                            }
+                                        }
+                                    }}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
                         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                             🚀 تضمين الشات في موقعك
                         </label>
