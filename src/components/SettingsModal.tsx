@@ -648,7 +648,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         const isEnabled = e.target.checked
                                         if (isEnabled && !settings.instagram_access_token) {
                                             if (window.confirm('يرجى ربط حساب إنستقرام أولاً قبل التفعيل. هل تريد ربط الحساب الآن؟')) {
-                                                // Trigger OAuth flow
+                                                // Trigger OAuth flow same as button
+                                                const appId = settings.meta_app_id || import.meta.env.VITE_META_APP_ID
+                                                if (!appId || appId === 'YOUR_DEFAULT_APP_ID') {
+                                                    const msg = 'يرجى إدخال Meta App ID أولاً في الحقل أدناه قبل محاولة الربط'
+                                                    alert(msg)
+                                                    setMessage({ type: 'error', text: msg })
+                                                    return
+                                                }
+                                                const redirectUri = `${window.location.origin}/auth/instagram/callback`
+                                                const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_basic,instagram_manage_messages,pages_show_list,pages_manage_metadata,pages_messaging&response_type=code`
+                                                window.open(url, 'instagram_auth', 'width=600,height=700')
                                             }
                                             return
                                         }
@@ -674,7 +684,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                             const appId = settings.meta_app_id || import.meta.env.VITE_META_APP_ID
 
                                             if (!appId || appId === 'YOUR_DEFAULT_APP_ID') {
-                                                setMessage({ type: 'error', text: 'يرجى إدخال Meta App ID أولاً في الحقل أدناه' })
+                                                const msg = 'يرجى إدخال Meta App ID أولاً في الحقل أدناه (رقم يتكون من 15 رقم تقريباً)'
+                                                alert(msg)
+                                                setMessage({ type: 'error', text: msg })
                                                 return
                                             }
 
