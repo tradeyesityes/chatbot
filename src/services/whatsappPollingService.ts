@@ -87,7 +87,6 @@ class WhatsAppPollingService {
             // Poll for each enabled channel
             const channels = []
             if (settings.evolution_bot_enabled) channels.push({ type: 'whatsapp', instance: settings.evolution_instance_name || `user_${userId.substring(0, 8)}` })
-            if (settings.instagram_bot_enabled) channels.push({ type: 'instagram', instance: settings.instagram_instance_name || `insta_${userId.substring(0, 8)}` })
 
             if (channels.length === 0) return
 
@@ -112,7 +111,7 @@ class WhatsAppPollingService {
 
             for (const channel of channels) {
                 const instanceName = channel.instance
-                const isInstagram = channel.type === 'instagram'
+                const isInstagram = false
 
                 // Try standard and v2 endpoints
                 const endpoints = [

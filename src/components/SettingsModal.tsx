@@ -628,7 +628,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                                    📸 ربط Instagram
+                                    📸 ربط Instagram (Direct)
                                 </h3>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
@@ -637,39 +637,75 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                     checked={settings.instagram_bot_enabled || false}
                                     onChange={async (e) => {
                                         const isEnabled = e.target.checked
-                                        const instanceName = settings.instagram_instance_name || `insta_${userId.substring(0, 8)}`
-
-                                        if (isEnabled) {
-                                            if (window.confirm('لتفعيل إنستقرام، يجب أن يكون لديك Access Token من Meta. هل تريد المتابعة؟')) {
-                                                const token = window.prompt('أدخل Meta Access Token:')
-                                                if (token) {
-                                                    try {
-                                                        const updatedSettings = {
-                                                            ...settings,
-                                                            instagram_bot_enabled: true,
-                                                            instagram_instance_name: instanceName
-                                                        }
-                                                        setSettings(updatedSettings)
-                                                        await SettingsService.updateSettings(userId, updatedSettings)
-                                                        setMessage({ type: 'success', text: 'تم تفعيل إنستقرام بنجاح! تأكد من إعداد Webhook في Meta Developer Portal.' })
-                                                    } catch (error: any) {
-                                                        setMessage({ type: 'error', text: `خطأ: ${error.message}` })
-                                                    }
-                                                }
+                                        if (isEnabled && !settings.instagram_access_token) {
+                                            if (window.confirm('يرجى ربط حساب إنستقرام أولاً قبل التفعيل. هل تريد ربط الحساب الآن؟')) {
+                                                // Trigger OAuth flow
                                             }
-                                        } else {
-                                            if (window.confirm('هل أنت متأكد من تعطيل ربط إنستقرام؟')) {
-                                                const updatedSettings = { ...settings, instagram_bot_enabled: false }
-                                                setSettings(updatedSettings)
-                                                await SettingsService.updateSettings(userId, updatedSettings)
-                                                setMessage({ type: 'success', text: 'تم تعطيل إنستقرام' })
-                                            }
+                                            return
                                         }
+                                        const updatedSettings = { ...settings, instagram_bot_enabled: isEnabled }
+                                        setSettings(updatedSettings)
+                                        await SettingsService.updateSettings(userId, updatedSettings)
                                     }}
                                     className="sr-only peer"
                                 />
                                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
                             </label>
+                        </div>
+
+                        <div className="space-y-4">
+                            {!settings.instagram_access_token ? (
+                                <div className="p-4 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800 rounded-xl">
+                                    <p className="text-xs text-pink-700 dark:text-pink-400 mb-3 leading-relaxed">
+                                        يرجى ربط حسابك الرسمي على Instagram ليتمكن البوت من الرد على الرسائل مباشرة.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const appId = settings.meta_app_id || 'YOUR_DEFAULT_APP_ID'
+                                            const redirectUri = `${window.location.origin}/auth/instagram/callback`
+                                            const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_basic,instagram_manage_messages,pages_show_list,pages_manage_metadata,pages_messaging&response_type=code`
+                                            window.open(url, 'instagram_auth', 'width=600,height=700')
+                                        }}
+                                        className="w-full px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-xs font-semibold transition-all shadow-sm"
+                                    >
+                                        🔗 ربط الحساب الآن
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                        <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">الحساب مرتبط بنجاح</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            if (window.confirm('هل أنت متأكد من إلغاء ربط الحساب؟')) {
+                                                const updated = { ...settings, instagram_access_token: null, instagram_account_id: null, instagram_bot_enabled: false }
+                                                setSettings(updated)
+                                                await SettingsService.updateSettings(userId, updated)
+                                            }
+                                        }}
+                                        className="text-[10px] text-red-600 dark:text-red-400 underline"
+                                    >
+                                        إلغاء الربط
+                                    </button>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+                                    Meta App ID (اتركه فارغاً للاستخدام التلقائي)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={settings.meta_app_id || ''}
+                                    onChange={(e) => setSettings({ ...settings, meta_app_id: e.target.value })}
+                                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-pink-500"
+                                    placeholder="Meta App ID..."
+                                />
+                            </div>
                         </div>
                     </div>
 

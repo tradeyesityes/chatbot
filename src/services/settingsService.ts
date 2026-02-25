@@ -20,7 +20,10 @@ export interface UserSettings {
     evolution_instance_name?: string | null
     evolution_bot_enabled?: boolean
     instagram_bot_enabled?: boolean
-    instagram_instance_name?: string | null
+    instagram_access_token?: string | null
+    instagram_account_id?: string | null
+    meta_app_id?: string | null
+    meta_app_secret?: string | null
 }
 
 export class SettingsService {
@@ -55,7 +58,10 @@ export class SettingsService {
             evolution_instance_name: data?.evolution_instance_name || null,
             evolution_bot_enabled: data?.evolution_bot_enabled || false,
             instagram_bot_enabled: data?.instagram_bot_enabled || false,
-            instagram_instance_name: data?.instagram_instance_name || null
+            instagram_access_token: data?.instagram_access_token || null,
+            instagram_account_id: data?.instagram_account_id || null,
+            meta_app_id: data?.meta_app_id || null,
+            meta_app_secret: data?.meta_app_secret || null
         }
     }
 

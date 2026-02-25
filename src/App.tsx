@@ -93,6 +93,41 @@ export default function App() {
     }
   }, [user])
 
+  // Handle Instagram OAuth Callback
+  useEffect(() => {
+    const code = params.get('code')
+    const state = params.get('state') // could be used for security
+
+    if (code && window.location.pathname.includes('/auth/instagram/callback')) {
+      const handleCallback = async () => {
+        if (!user) return
+        try {
+          setLoading(true)
+          setError('جاري ربط حساب إنستقرام...')
+
+          // Exchange code for token (This should ideally call a Supabase Edge Function)
+          // For now, we'll simulate the successful exchange or instructions
+          // In a real app, you'd fetch the token from Meta using the code + client_secret
+
+          console.log('Instagram Auth Code received:', code)
+
+          // Updated settings will be saved here
+          // This is a placeholder for the actual exchange logic
+          // await InstagramService.completeAuth(user.id, code)
+
+          setError('')
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname)
+        } catch (e: any) {
+          setError(`فشل ربط إنستقرام: ${e.message}`)
+        } finally {
+          setLoading(false)
+        }
+      }
+      handleCallback()
+    }
+  }, [user])
+
   // Load user files from storage and chat history
   useEffect(() => {
     if (!user) return
