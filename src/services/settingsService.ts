@@ -19,6 +19,8 @@ export interface UserSettings {
     evolution_global_api_key?: string | null
     evolution_instance_name?: string | null
     evolution_bot_enabled?: boolean
+    instagram_bot_enabled?: boolean
+    instagram_instance_name?: string | null
 }
 
 export class SettingsService {
@@ -51,7 +53,9 @@ export class SettingsService {
             evolution_api_key: data?.evolution_api_key || null,
             evolution_global_api_key: data?.evolution_global_api_key || null,
             evolution_instance_name: data?.evolution_instance_name || null,
-            evolution_bot_enabled: data?.evolution_bot_enabled || false
+            evolution_bot_enabled: data?.evolution_bot_enabled || false,
+            instagram_bot_enabled: data?.instagram_bot_enabled || false,
+            instagram_instance_name: data?.instagram_instance_name || null
         }
     }
 

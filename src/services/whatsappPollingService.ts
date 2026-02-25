@@ -84,6 +84,13 @@ class WhatsAppPollingService {
 
             if (!settings) return
 
+            // Poll for each enabled channel
+            const channels = []
+            if (settings.evolution_bot_enabled) channels.push({ type: 'whatsapp', instance: settings.evolution_instance_name || `user_${userId.substring(0, 8)}` })
+            if (settings.instagram_bot_enabled) channels.push({ type: 'instagram', instance: settings.instagram_instance_name || `insta_${userId.substring(0, 8)}` })
+
+            if (channels.length === 0) return
+
             let baseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL
             let globalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY
 
@@ -100,44 +107,25 @@ class WhatsAppPollingService {
                 }
             }
 
-            if (!baseUrl) {
-                console.warn('⚠️ WhatsApp Base URL missing (no DB setting, no .env, no global_settings)')
-                return
-            }
-
             const cleanBaseUrl = baseUrl.replace(/\/$/, '')
-            const instanceName = settings.evolution_instance_name || `user_${userId.substring(0, 8)}`
             const apiKey = globalKey || settings.evolution_api_key
 
-            // Try standard and v2 endpoints
-            const endpoints = [
-                `${cleanBaseUrl}/chat/findMessages/${instanceName}`,
-                `${cleanBaseUrl}/v2/chat/findMessages/${instanceName}`
-            ]
+            for (const channel of channels) {
+                const instanceName = channel.instance
+                const isInstagram = channel.type === 'instagram'
 
-            let response = null
-            let successfulUrl = (this as any)._cachedPollUrl || null
+                // Try standard and v2 endpoints
+                const endpoints = [
+                    `${cleanBaseUrl}/chat/findMessages/${instanceName}`,
+                    `${cleanBaseUrl}/v2/chat/findMessages/${instanceName}`
+                ]
 
-            if (successfulUrl) {
-                try {
-                    const resp = await fetch(successfulUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'apikey': apiKey
-                        },
-                        body: JSON.stringify({ where: {}, limit: 5 })
-                    })
-                    if (resp.ok) response = resp
-                } catch (e) {
-                    (this as any)._cachedPollUrl = null
-                }
-            }
+                let response = null
+                let successfulUrl = (this as any)[`_cachedPollUrl_${channel.type}`] || null
 
-            if (!response) {
-                for (const url of endpoints) {
+                if (successfulUrl) {
                     try {
-                        const resp = await fetch(url, {
+                        const resp = await fetch(successfulUrl, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -145,92 +133,110 @@ class WhatsAppPollingService {
                             },
                             body: JSON.stringify({ where: {}, limit: 5 })
                         })
-                        if (resp.ok) {
-                            response = resp
-                                ; (this as any)._cachedPollUrl = url
-                            break
+                        if (resp.ok) response = resp
+                    } catch (e) {
+                        (this as any)[`_cachedPollUrl_${channel.type}`] = null
+                    }
+                }
+
+                if (!response) {
+                    for (const url of endpoints) {
+                        try {
+                            const resp = await fetch(url, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'apikey': apiKey
+                                },
+                                body: JSON.stringify({ where: {}, limit: 5 })
+                            })
+                            if (resp.ok) {
+                                response = resp
+                                    ; (this as any)[`_cachedPollUrl_${channel.type}`] = url
+                                break
+                            }
+                        } catch (e) {
+                            console.warn(`Polling attempt failed at ${url}`)
+                        }
+                    }
+                }
+
+                if (!response || !response.ok) {
+                    continue // Try next channel
+                }
+
+                let messages: WhatsAppMessage[] = []
+
+                // Handle different response structures
+                const responseData = await response.json()
+                if (Array.isArray(responseData)) {
+                    messages = responseData
+                } else if (responseData.messages && Array.isArray(responseData.messages.records)) {
+                    // Evolution API v2 structure
+                    messages = responseData.messages.records
+                } else if (responseData.data && Array.isArray(responseData.data)) {
+                    messages = responseData.data
+                }
+
+                // process messages
+                for (const msg of messages) {
+                    const messageId = msg.key.id
+
+                    if (msg.key.fromMe) continue
+
+                    // 1. LOCAL MEMORY CHECK
+                    if (this.processedMessages.has(messageId)) continue
+
+                    // 2. LOCAL STORAGE CHECK (for multiple tabs on same domain)
+                    const storageKey = `wa_msg_${messageId}`
+                    if (localStorage.getItem(storageKey)) {
+                        this.processedMessages.add(messageId)
+                        continue
+                    }
+
+                    // IGNORE OLD MESSAGES: Only process if timestamp is after our start time
+                    const msgTime = msg.messageTimestamp
+                    if (msgTime <= this.lastCheckTime) {
+                        this.processedMessages.add(messageId)
+                        localStorage.setItem(storageKey, '1')
+                        continue
+                    }
+
+                    // 3. DATABASE CHECK & LOCK
+                    // Try to register in DB - THIS IS OUR HARD LOCK
+                    try {
+                        const { error: insertError } = await supabase
+                            .from('processed_whatsapp_messages' as any)
+                            .insert({ msg_id: messageId })
+
+                        if (insertError) {
+                            // 23505 = unique_violation (another instance is already processing)
+                            if (insertError.code === '23505') {
+                                this.processedMessages.add(messageId)
+                                localStorage.setItem(storageKey, '1')
+                                continue
+                            }
+                            // If it's 42P01 (table doesn't exist), we log once and proceed 
+                            // with duplication risk but service continuity
                         }
                     } catch (e) {
-                        console.warn(`Polling attempt failed at ${url}`)
+                        // Fail silently and proceed if anything else goes wrong with the DB check
                     }
-                }
-            }
 
-            if (!response || !response.ok) {
-                return
-            }
+                    console.log(`🆕 Processing NEW ${channel.type} message: ${messageId} at ${msgTime}`)
+                    console.log('💬 Text:', this.extractText(msg.message))
 
-            let messages: WhatsAppMessage[] = []
-
-            // Handle different response structures
-            const responseData = await response.json()
-            if (Array.isArray(responseData)) {
-                messages = responseData
-            } else if (responseData.messages && Array.isArray(responseData.messages.records)) {
-                // Evolution API v2 structure
-                messages = responseData.messages.records
-            } else if (responseData.data && Array.isArray(responseData.data)) {
-                messages = responseData.data
-            }
-
-            // process messages
-            for (const msg of messages) {
-                const messageId = msg.key.id
-
-                if (msg.key.fromMe) continue
-
-                // 1. LOCAL MEMORY CHECK
-                if (this.processedMessages.has(messageId)) continue
-
-                // 2. LOCAL STORAGE CHECK (for multiple tabs on same domain)
-                const storageKey = `wa_msg_${messageId}`
-                if (localStorage.getItem(storageKey)) {
-                    this.processedMessages.add(messageId)
-                    continue
-                }
-
-                // IGNORE OLD MESSAGES: Only process if timestamp is after our start time
-                const msgTime = msg.messageTimestamp
-                if (msgTime <= this.lastCheckTime) {
+                    // Mark as processed immediately locally
                     this.processedMessages.add(messageId)
                     localStorage.setItem(storageKey, '1')
-                    continue
+
+                    // Extract text
+                    const text = this.extractText(msg.message)
+                    if (!text) continue
+
+                    // Generate and send response
+                    await this.handleMessage(userId, settings, msg.key.remoteJid, text, isInstagram)
                 }
-
-                // 3. DATABASE CHECK & LOCK
-                // Try to register in DB - THIS IS OUR HARD LOCK
-                try {
-                    const { error: insertError } = await supabase
-                        .from('processed_whatsapp_messages' as any)
-                        .insert({ msg_id: messageId })
-
-                    if (insertError) {
-                        // 23505 = unique_violation (another instance is already processing)
-                        if (insertError.code === '23505') {
-                            this.processedMessages.add(messageId)
-                            localStorage.setItem(storageKey, '1')
-                            continue
-                        }
-                        // If it's 42P01 (table doesn't exist), we log once and proceed 
-                        // with duplication risk but service continuity
-                    }
-                } catch (e) {
-                    // Fail silently and proceed if anything else goes wrong with the DB check
-                }
-
-                console.log(`🆕 Processing NEW message: ${messageId} at ${msgTime}`)
-                console.log('💬 Text:', this.extractText(msg.message))
-
-                // Mark as processed immediately locally
-                this.processedMessages.add(messageId)
-                localStorage.setItem(storageKey, '1')
-
-                // Extract text
-                const text = this.extractText(msg.message)
-                if (!text) continue
-
-                // Generate and send response
-                await this.handleMessage(userId, settings, msg.key.remoteJid, text)
             }
 
             // Keep only last 100 processed messages in memory
@@ -258,7 +264,8 @@ class WhatsAppPollingService {
         userId: string,
         settings: any,
         remoteJid: string,
-        incomingText: string
+        incomingText: string,
+        isInstagram: boolean = false
     ) {
         console.log('--- Handling Message ---')
         console.log('User:', userId)
@@ -290,8 +297,8 @@ class WhatsAppPollingService {
             console.log('✨ AI Response ready')
 
             // Send response
-            console.log('📤 Sending WhatsApp response...')
-            await this.sendMessage(settings, remoteJid, aiResponse)
+            console.log(`📤 Sending ${isInstagram ? 'Instagram' : 'WhatsApp'} response...`)
+            await this.sendMessage(settings, remoteJid, aiResponse, isInstagram)
 
             console.log('✅ Sent auto-reply successfully')
 
@@ -416,9 +423,9 @@ class WhatsAppPollingService {
         return ''
     }
 
-    private async sendMessage(settings: any, remoteJid: string, text: string) {
+    private async sendMessage(settings: any, remoteJid: string, text: string, isInstagram: boolean = false) {
         const cleanBaseUrl = settings.evolution_base_url.replace(/\/$/, '')
-        const instanceName = settings.evolution_instance_name
+        const instanceName = isInstagram ? settings.instagram_instance_name : settings.evolution_instance_name
 
         await fetch(`${cleanBaseUrl}/message/sendText/${instanceName}`, {
             method: 'POST',
@@ -429,7 +436,8 @@ class WhatsAppPollingService {
             body: JSON.stringify({
                 number: remoteJid,
                 text,
-                delay: 1200
+                delay: 1200,
+                linkPreview: !isInstagram // Instagram might not support linkPreview in the same way
             })
         })
     }
