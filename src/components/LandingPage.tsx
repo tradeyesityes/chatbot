@@ -4,10 +4,9 @@ import { BotAvatar } from './BotAvatar';
 interface LandingPageProps {
     onGetStarted: () => void;
     onLogin: () => void;
-    onDemo?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onDemo }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin }) => {
     return (
         <div className="min-h-screen bg-white text-salla-primary overflow-x-hidden">
             {/* Navigation */}
@@ -56,12 +55,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                             className="px-10 py-5 bg-salla-primary text-white rounded-2xl text-xl font-black shadow-2xl shadow-salla-primary/20 hover:scale-105 active:scale-95 transition-all"
                         >
                             انطلق الآن مجاناً
-                        </button>
-                        <button
-                            onClick={onDemo}
-                            className="px-10 py-5 bg-white border-2 border-slate-100 rounded-2xl text-xl font-black hover:border-salla-primary transition-all"
-                        >
-                            شاهد العرض التجريبي
                         </button>
                     </div>
 

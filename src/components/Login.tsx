@@ -5,10 +5,9 @@ import { BotAvatar } from './BotAvatar'
 interface LoginProps {
     onLogin: () => void;
     onBackToLanding?: () => void;
-    onDemo?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onDemo }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isSignUp, setIsSignUp] = useState(false)
@@ -43,21 +42,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onDemo }
             }
         } catch (e: any) {
             setError(e.message)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleDemoLogin = async () => {
-        if (onDemo) {
-            onDemo();
-            return;
-        }
-        setLoading(true)
-        try {
-            onLogin()
-        } catch (e: any) {
-            setError('فشل الدخول لنسخة الديمو')
         } finally {
             setLoading(false)
         }
@@ -227,13 +211,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onDemo }
                                         تسجيل الدخول بواسطة Google
                                     </button>
                                 </div>
-
-                                <button
-                                    onClick={handleDemoLogin}
-                                    className="w-full py-3 bg-slate-50 text-salla-primary border border-slate-100 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-2 underline underline-offset-4"
-                                >
-                                    ✨ تجربة نسخة ديمو (بدون حساب)
-                                </button>
                             </>
                         )}
 

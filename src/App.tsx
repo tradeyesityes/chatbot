@@ -96,17 +96,6 @@ export default function App() {
   useEffect(() => {
     if (!user) return
     const loadData = async () => {
-      if (user.id === '00000000-0000-0000-0000-000000000000') {
-        setFiles([])
-        setConversations([])
-        setUserSettings({
-          openai_api_key: null,
-          gemini_api_key: null,
-          use_openai: true
-        })
-        return
-      }
-
       try {
         const [userFiles, historyList, settings] = await Promise.all([
           StorageService.getFiles(user.id),
@@ -193,7 +182,7 @@ export default function App() {
     let convId = currentConversationId;
 
     // Create a new conversation if it's the first message
-    if (!convId && user && user.id !== '00000000-0000-0000-0000-000000000000') {
+    if (!convId && user) {
       try {
         const title = input.length > 30 ? input.substring(0, 30) + '...' : input;
         const newConv = await ChatService.createConversation(user.id, title);
@@ -209,7 +198,7 @@ export default function App() {
     setInput('')
 
     // Save user message to Supabase
-    if (user && user.id !== '00000000-0000-0000-0000-000000000000') {
+    if (user) {
       ChatService.saveMessage(user.id, userMessage, convId).catch(e => {
         console.error('Save User Message Error:', e);
         setError(`فشل حفظ الرسالة في قاعدة البيانات: ${e.message}`);
@@ -290,59 +279,26 @@ export default function App() {
       setMessages(prev => [...prev, assistantMessage])
 
       // Save assistant message to Supabase
-      if (user && user.id !== '00000000-0000-0000-0000-000000000000') {
+      if (user) {
         ChatService.saveMessage(user.id, assistantMessage, convId).catch(e => {
           console.error('Save Assistant Message Error:', e);
           setError(`فشل حفظ رد الذكاء الاصطناعي: ${e.message}`);
         });
       }
     } catch (e: any) {
-      // If we're in demo mode, show a pleasant mock response instead of an error
-      if (user?.id === '00000000-0000-0000-0000-000000000000') {
-        const mockResponse = `أهلاً بك في العرض التجريبي! 🤖 
-        
-هذا الرد تلقائي لأنك في "وضع الزائر". في النسخة الحقيقية، سأقوم بتحليل ملفاتك والإجابة بدقة بناءً عليها باستخدام ذكاء GPT-4 أو Gemini.
-
-**ما يمكنك فعله الآن:**
-1. استكشاف واجهة لوحة التحكم.
-2. تجربة رفع ملفات جديدة (سيتم حفظها مؤقتاً في هذه الجلسة).
-3. تصفح الإعدادات لرؤية خيارات الربط مع واتساب.
-
-لتجربة الذكاء الاصطناعي الفعلي على ملفاتك، يرجى تسجيل حساب مجاني وإضافة مفتاح الـ API الخاص بك.`;
-
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: mockResponse,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        setError('');
-      } else {
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: `⚠️ ${e.message}`,
-          timestamp: new Date()
-        }
-        setMessages(prev => [...prev, errorMessage])
-        setError(e.message)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `⚠️ ${e.message}`,
+        timestamp: new Date()
       }
+      setMessages(prev => [...prev, errorMessage])
+      setError(e.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDemoLogin = () => {
-    setUser({
-      id: '00000000-0000-0000-0000-000000000000', // Valid NIL UUID
-      username: 'ضيف (Demo)',
-      email: 'demo@example.com',
-      isLoggedIn: true,
-      plan: 'free'
-    })
-    setShowLanding(false)
-  }
 
   const handleNewChat = () => {
     setCurrentConversationId(null)
@@ -413,13 +369,12 @@ export default function App() {
       <LandingPage
         onGetStarted={() => setShowLanding(false)}
         onLogin={() => setShowLanding(false)}
-        onDemo={handleDemoLogin}
       />
     )
   }
 
   if (!user) {
-    return <Login onLogin={() => { }} onBackToLanding={() => setShowLanding(true)} onDemo={handleDemoLogin} />
+    return <Login onLogin={() => { }} onBackToLanding={() => setShowLanding(true)} />
   }
 
   return (
