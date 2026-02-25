@@ -41,7 +41,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
                 <div className="max-w-7xl mx-auto px-4 md:px-8 text-center animate-in">
                     <div className="hero-subtitle">
                         <span className="w-2 h-2 bg-salla-primary rounded-full animate-pulse"></span>
-                        ذكاء اصطناعي ثوري لخدمة عملائك
+                        ذكاء اصطناعي لخدمة عملائك
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black mb-8 leading-[1.2] tracking-tight text-salla-primary">
                         حول ملفاتك إلى <br /> <span className="text-salla-primary opacity-80">عميل ذكي</span> يجيب فوراً
