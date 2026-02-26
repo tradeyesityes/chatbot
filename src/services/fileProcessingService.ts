@@ -238,7 +238,6 @@ export class FileProcessingService {
     const cleaned = content
       .replace(/[ \t]+/g, ' ') // Only replace horizontal whitespace with a single space
       .replace(/(\r\n|\n|\r){3,}/g, '\n\n') // Limit consecutive newlines
-      .replace(/([.!?؟])\s*/g, '$1\n') // Handle Arabic question mark and ensure newline after sentence
       .trim();
 
     return normalizeArabic(cleaned);
@@ -251,7 +250,8 @@ export class FileProcessingService {
   }
 
   static extractKeywords(content: string, limit = 10): string[] {
-    const words = content.toLowerCase().split(/\W+/).filter(w => w.length > 4);
+    // Include Arabic character range in keywords extraction
+    const words = content.toLowerCase().split(/[^\w\u0600-\u06FF]+/).filter(w => w.length > 3);
     const freq: Record<string, number> = {};
     for (const w of words) freq[w] = (freq[w] || 0) + 1;
     return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([k]) => k);

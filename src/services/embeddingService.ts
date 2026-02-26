@@ -24,14 +24,34 @@ export class EmbeddingService {
             } else {
                 if (currentChunk) chunks.push(currentChunk);
 
-                // If a single paragraph is larger than maxChunkSize, split it by characters
+                // If a single paragraph is larger than maxChunkSize, split it by words to avoid breaking Arabic terms
                 if (trimmedPara.length > maxChunkSize) {
                     let start = 0;
                     while (start < trimmedPara.length) {
-                        const end = Math.min(start + maxChunkSize, trimmedPara.length);
-                        chunks.push(trimmedPara.slice(start, end));
-                        start += maxChunkSize - overlap;
-                        if (start >= trimmedPara.length) break;
+                        let end = Math.min(start + maxChunkSize, trimmedPara.length);
+
+                        // Find the last space before the limit to keep words whole
+                        if (end < trimmedPara.length) {
+                            const lastSpace = trimmedPara.lastIndexOf(' ', end);
+                            if (lastSpace > start) {
+                                end = lastSpace;
+                            }
+                        }
+
+                        const chunk = trimmedPara.slice(start, end).trim();
+                        if (chunk) chunks.push(chunk);
+
+                        start = end;
+                        // Back up slightly for overlap, ideally to a word boundary
+                        if (start < trimmedPara.length) {
+                            const desiredStart = Math.max(0, start - overlap);
+                            const spaceAfterDesired = trimmedPara.indexOf(' ', desiredStart);
+                            if (spaceAfterDesired !== -1 && spaceAfterDesired < start) {
+                                start = spaceAfterDesired;
+                            } else {
+                                start = desiredStart;
+                            }
+                        }
                     }
                     currentChunk = "";
                 } else {
@@ -136,7 +156,7 @@ export class EmbeddingService {
 
         const { data, error } = await supabase.rpc('match_file_segments', {
             query_embedding: embedding,
-            match_threshold: 0.35, // Lowered threshold for better Arabic recall
+            match_threshold: 0.20, // Lowered threshold significantly for better Arabic recall
             match_count: limit,
             p_user_id: userId
         });
