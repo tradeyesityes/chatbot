@@ -75,7 +75,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
                         <BotAvatar size="xl" className="mx-auto" />
                     </div>
                     <h1 className="text-4xl font-bold text-salla-primary mb-2">KB Chatbot</h1>
-                    <p className="text-salla-muted font-bold text-lg">منصة الإجابة الذكية Salla SaaS</p>
+                    <p className="text-salla-muted font-bold text-lg">منصة الإجابة الذكية</p>
                 </div>
 
                 <div className="bg-white rounded-salla border border-slate-100 p-8 shadow-2xl relative overflow-hidden">
