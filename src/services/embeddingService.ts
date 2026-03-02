@@ -1,5 +1,6 @@
 import { supabase } from './supabaseService';
 import { normalizeArabic } from '../utils/helpers';
+import { QdrantService } from './qdrantService';
 
 export class EmbeddingService {
     private static OPENAI_API_URL = 'https://api.openai.com/v1/embeddings';
@@ -90,10 +91,15 @@ export class EmbeddingService {
     }
 
     /**
-     * Processes a file context: chunks it, generates embeddings, and saves to database
+     * Processes a file context: chunks it, generates embeddings, and saves to database/Qdrant
      */
-    static async indexFile(userId: string, fileName: string, content: string, apiKey: string, onProgress?: (processed: number, total: number) => void): Promise<void> {
+    static async indexFile(userId: string, fileName: string, content: string, apiKey: string, qdrantSettings?: { use: boolean, url: string, key: string, collection: string }, onProgress?: (processed: number, total: number) => void): Promise<void> {
         console.log(`🚀 Indexing file: ${fileName} (${content.length} chars)`);
+
+        if (qdrantSettings?.use && qdrantSettings.url) {
+            await QdrantService.ensureCollection(qdrantSettings.url, qdrantSettings.key, qdrantSettings.collection);
+        }
+
         const chunks = this.chunkText(content);
         const totalChunks = chunks.length;
         console.log(`📄 Split into ${totalChunks} chunks.`);
@@ -132,12 +138,17 @@ export class EmbeddingService {
             const validResults = batchResults.filter(r => r !== null);
             dbRecords.push(...validResults);
 
-            // Periodically save to DB to avoid memory issues and provide faster feedback
+            // Periodically save to DB or Qdrant
             if (dbRecords.length >= 20 || i + BATCH_SIZE >= chunks.length) {
-                console.log(`💾 Saving ${dbRecords.length} segments to database...`);
-                const { error } = await supabase.from('file_segments').insert(dbRecords);
-                if (error) {
-                    console.error("❌ Supabase Insert Error:", error);
+                if (qdrantSettings?.use && qdrantSettings.url) {
+                    console.log(`💾 Saving ${dbRecords.length} segments to Qdrant...`);
+                    await QdrantService.upsertPoints(qdrantSettings.url, qdrantSettings.key, qdrantSettings.collection, dbRecords);
+                } else {
+                    console.log(`💾 Saving ${dbRecords.length} segments to database...`);
+                    const { error } = await supabase.from('file_segments').insert(dbRecords);
+                    if (error) {
+                        console.error("❌ Supabase Insert Error:", error);
+                    }
                 }
                 dbRecords.length = 0; // Clear the array
             }
@@ -149,10 +160,15 @@ export class EmbeddingService {
     /**
      * Performs semantic search to find relevant segments
      */
-    static async searchSegments(userId: string, query: string, apiKey: string, limit: number = 5): Promise<string[]> {
+    static async searchSegments(userId: string, query: string, apiKey: string, limit: number = 5, qdrantSettings?: { use: boolean, url: string, key: string, collection: string }): Promise<string[]> {
         const normalizedQuery = normalizeArabic(query);
         console.log(`🔍 Searching segments for query: "${query}" (normalized: "${normalizedQuery}")`);
         const embedding = await this.generateEmbedding(normalizedQuery, apiKey);
+
+        if (qdrantSettings?.use && qdrantSettings.url) {
+            console.log('📡 Using Qdrant for semantic search');
+            return await QdrantService.searchPoints(qdrantSettings.url, qdrantSettings.key, qdrantSettings.collection, embedding, userId, limit);
+        }
 
         const { data, error } = await supabase.rpc('match_file_segments', {
             query_embedding: embedding,

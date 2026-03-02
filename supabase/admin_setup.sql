@@ -15,7 +15,11 @@ ADD COLUMN IF NOT EXISTS use_local_model BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS local_model_name TEXT DEFAULT 'gemma3:4b',
 ADD COLUMN IF NOT EXISTS use_remote_ollama BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS ollama_api_key TEXT DEFAULT NULL,
-ADD COLUMN IF NOT EXISTS ollama_base_url TEXT DEFAULT 'http://localhost:11434';
+ADD COLUMN IF NOT EXISTS ollama_base_url TEXT DEFAULT 'http://localhost:11434',
+ADD COLUMN IF NOT EXISTS use_qdrant BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS qdrant_url TEXT DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS qdrant_api_key TEXT DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS qdrant_collection TEXT DEFAULT 'segments';
 
 -- 2. Update Comments
 COMMENT ON COLUMN user_settings.is_admin IS 'Flag to identify system administrators';
@@ -29,6 +33,10 @@ COMMENT ON COLUMN user_settings.local_model_name IS 'The specific Ollama/Local m
 COMMENT ON COLUMN user_settings.use_remote_ollama IS 'Flag to enable remote Ollama API';
 COMMENT ON COLUMN user_settings.ollama_api_key IS 'API key for remote Ollama service';
 COMMENT ON COLUMN user_settings.ollama_base_url IS 'Base URL for remote Ollama API';
+COMMENT ON COLUMN user_settings.use_qdrant IS 'Flag to enable Qdrant vector database for RAG';
+COMMENT ON COLUMN user_settings.qdrant_url IS 'URL for the Qdrant server';
+COMMENT ON COLUMN user_settings.qdrant_api_key IS 'API key for Qdrant (if required)';
+COMMENT ON COLUMN user_settings.qdrant_collection IS 'Collection name in Qdrant for segments';
 
 -- 3. Update RLS for user_settings
 -- This version uses a SECURITY DEFINER function to avoid infinite recursion

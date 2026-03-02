@@ -10,6 +10,7 @@ import { BotAvatar } from './components/BotAvatar'
 import { AuthService } from './services/authService'
 import { supabase } from './services/supabaseService'
 import { SettingsService, UserSettings } from './services/settingsService'
+import { EmbeddingService } from './services/embeddingService'
 
 const openai = new OpenAIService()
 const gemini = new GeminiService()
@@ -155,12 +156,25 @@ export default function App() {
     // Add to local state immediately
     setFiles(prev => [...prev, ...newFiles])
 
-    // Try to save to Supabase in background
+    // Try to save to Supabase/Qdrant in background
     if (user) {
       try {
+        const qSettings = {
+          use: userSettings?.use_qdrant || false,
+          url: userSettings?.qdrant_url || '',
+          key: userSettings?.qdrant_api_key || '',
+          collection: userSettings?.qdrant_collection || 'segments'
+        }
+        const openAiKey = userSettings?.openai_api_key || (import.meta.env as any).VITE_OPENAI_API_KEY;
+
+        // Index each file contents
+        for (const file of newFiles) {
+          await EmbeddingService.indexFile(user.id, file.name, file.content, openAiKey, qSettings)
+        }
+
         await StorageService.saveFiles(user.id, newFiles)
       } catch (e: any) {
-        console.error('Background Save Error:', e);
+        console.error('Background Indexing/Save Error:', e);
       }
     }
   }
@@ -244,7 +258,13 @@ export default function App() {
       } else if (useGemini && geminiKey) {
         // --- Gemini Selection ---
         try {
-          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey, userSettings?.gemini_model_name, user?.id)
+          const qSettings = {
+            use: userSettings?.use_qdrant || false,
+            url: userSettings?.qdrant_url || '',
+            key: userSettings?.qdrant_api_key || '',
+            collection: userSettings?.qdrant_collection || 'segments'
+          }
+          response = await gemini.generateResponse(input, messages, files, user?.plan, geminiKey, userSettings?.gemini_model_name, user?.id, qSettings)
         } catch (e: any) {
           if (e.message.includes('quota') || e.message.includes('limit') || e.message.includes('rate')) {
             throw new Error('انتهى رصيد الاستخدام المجاني لـ Gemini. يرجى المحاولة بعد دقيقة أو شحن الرصيد.');
@@ -255,7 +275,13 @@ export default function App() {
       } else if (useOpenAI && openAiKey) {
         // --- OpenAI Selection ---
         try {
-          response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey, undefined, user?.id)
+          const qSettings = {
+            use: userSettings?.use_qdrant || false,
+            url: userSettings?.qdrant_url || '',
+            key: userSettings?.qdrant_api_key || '',
+            collection: userSettings?.qdrant_collection || 'segments'
+          }
+          response = await openai.generateResponse(input, messages, files, user?.plan, openAiKey, undefined, user?.id, qSettings)
         } catch (e: any) {
           // If OpenAI fails and Gemini is available, fallback as a courtesy
           if (geminiKey && (e.message.includes('quota') || e.message.includes('key') || e.message.includes('رصيدك') || e.message.includes('limit'))) {

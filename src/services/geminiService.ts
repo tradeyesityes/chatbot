@@ -7,7 +7,7 @@ export class GeminiService {
         return 'gemini-1.5-flash';
     }
 
-    async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', overrideApiKey?: string, customModel?: string, userId?: string): Promise<string> {
+    async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', overrideApiKey?: string, customModel?: string, userId?: string, qSettings?: { use: boolean, url: string, key: string, collection: string }): Promise<string> {
         const apiKey = overrideApiKey || (import.meta.env as any).VITE_GEMINI_API_KEY || (import.meta.env as any).VITE_API_KEY;
         if (!apiKey) return '⚠️ خطأ: مفتاح Gemini API غير موجود. يرجى إضافته في الإعدادات.';
 
@@ -18,7 +18,8 @@ export class GeminiService {
         // -------------------------------------------------------------------------
         let context = '';
         try {
-            const segments = await (await import('./embeddingService')).EmbeddingService.searchSegments(userId || '', userMessage, apiKey, 8);
+            const { EmbeddingService } = await import('./embeddingService');
+            const segments = await EmbeddingService.searchSegments(userId || '', userMessage, apiKey, 8, qSettings);
             if (segments.length > 0) {
                 console.log(`Gemini RAG: Semantic search found ${segments.length} relevant segments.`);
                 context = segments.join('\n\n---\n\n');

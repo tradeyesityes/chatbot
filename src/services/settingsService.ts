@@ -22,6 +22,10 @@ export interface UserSettings {
     is_admin?: boolean
     is_enabled?: boolean
     is_deleted?: boolean
+    use_qdrant?: boolean
+    qdrant_url?: string | null
+    qdrant_api_key?: string | null
+    qdrant_collection?: string
 }
 
 export class SettingsService {
@@ -57,7 +61,11 @@ export class SettingsService {
             evolution_bot_enabled: data?.evolution_bot_enabled || false,
             is_admin: data?.is_admin || false,
             is_enabled: data?.is_enabled ?? true,
-            is_deleted: data?.is_deleted || false
+            is_deleted: data?.is_deleted || false,
+            use_qdrant: data?.use_qdrant || false,
+            qdrant_url: data?.qdrant_url || null,
+            qdrant_api_key: data?.qdrant_api_key || null,
+            qdrant_collection: data?.qdrant_collection || 'segments'
         }
     }
 

@@ -68,7 +68,7 @@ export class OpenAIService {
     return selectedParagraphs.join('\n\n---\n\n');
   }
 
-  async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', customApiKey?: string, systemPrompt?: string, userId?: string): Promise<string> {
+  async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], plan: UserPlan = 'free', customApiKey?: string, systemPrompt?: string, userId?: string, qSettings?: { use: boolean, url: string, key: string, collection: string }): Promise<string> {
     const apiKey = customApiKey || (import.meta.env as any).VITE_OPENAI_API_KEY;
     if (!apiKey) return '⚠️ خطأ: مفتاح OpenAI غير موجود.';
 
@@ -82,7 +82,7 @@ export class OpenAIService {
     // -------------------------------------------------------------------------
     let context = '';
     try {
-      const segments = await EmbeddingService.searchSegments(userId || '', userMessage, apiKey, 8);
+      const segments = await EmbeddingService.searchSegments(userId || '', userMessage, apiKey, 8, qSettings);
       if (segments.length > 0) {
         console.log(`Semantic search found ${segments.length} relevant segments.`);
         context = segments.join('\n\n---\n\n');
