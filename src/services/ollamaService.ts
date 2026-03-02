@@ -79,9 +79,31 @@ export class OllamaService {
         return selectedParagraphs.join('\n\n---\n\n');
     }
 
-    async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[]): Promise<string> {
+    async generateResponse(userMessage: string, history: Message[], contextFiles: FileContext[], userId?: string, qSettings?: { use: boolean, url: string, key: string, collection: string }): Promise<string> {
         const MAX_CONTEXT_TOKENS = 6000;
-        const context = this.buildContext(contextFiles, userMessage, MAX_CONTEXT_TOKENS);
+
+        // -------------------------------------------------------------------------
+        // RAG UPGRADE: Semantic Retrieval via EmbeddingService/Qdrant
+        // -------------------------------------------------------------------------
+        let context = '';
+        try {
+            const { EmbeddingService } = await import('./embeddingService');
+            // We use the OpenAI key for embeddings if available, or fallback to default
+            const openAiKey = (import.meta.env as any).VITE_OPENAI_API_KEY;
+
+            const segments = await EmbeddingService.searchSegments(userId || '', userMessage, openAiKey, 8, qSettings);
+
+            if (segments.length > 0) {
+                console.log(`[Ollama RAG] Found ${segments.length} relevant segments.`);
+                context = segments.join('\n\n---\n\n');
+            } else {
+                console.log('[Ollama RAG] No semantic results, falling back to keyword context.');
+                context = this.buildContext(contextFiles, userMessage, MAX_CONTEXT_TOKENS);
+            }
+        } catch (err) {
+            console.error('[Ollama RAG] Semantic search failed, falling back:', err);
+            context = this.buildContext(contextFiles, userMessage, MAX_CONTEXT_TOKENS);
+        }
 
         const systemPrompt = `أنت مساعد ذكي لخدمة العملاء في شركتنا، وترد على استفسارات العملاء بدقة واحترافية.
 **قاعدة صارمة جداً:** أجب فقط بناءً على المعلومات الموجودة في "سياق المعلومات" أدناه. لا تستخدم أي معرفة خارجية أو عامة أبداً.
