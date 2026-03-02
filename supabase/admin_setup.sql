@@ -5,6 +5,7 @@
 ALTER TABLE user_settings 
 ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN DEFAULT TRUE,
+ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS use_openai BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS openai_api_key TEXT DEFAULT NULL,
 ADD COLUMN IF NOT EXISTS use_gemini BOOLEAN DEFAULT FALSE,
@@ -19,6 +20,7 @@ ADD COLUMN IF NOT EXISTS ollama_base_url TEXT DEFAULT 'http://localhost:11434';
 -- 2. Update Comments
 COMMENT ON COLUMN user_settings.is_admin IS 'Flag to identify system administrators';
 COMMENT ON COLUMN user_settings.is_enabled IS 'Flag to enable or disable user access';
+COMMENT ON COLUMN user_settings.is_deleted IS 'Flag to mark user as deleted (soft delete)';
 COMMENT ON COLUMN user_settings.use_openai IS 'Flag to enable OpenAI GPT models';
 COMMENT ON COLUMN user_settings.use_gemini IS 'Flag to enable Google Gemini models';
 COMMENT ON COLUMN user_settings.gemini_model_name IS 'The specific Gemini model to use';
@@ -74,7 +76,9 @@ SELECT
 FROM 
     public.user_settings us
 JOIN 
-    auth.users u ON us.user_id = u.id;
+    auth.users u ON us.user_id = u.id
+WHERE 
+    us.is_deleted = false;
 
 -- Grant access to authenticated users to read the view
 -- RLS on the underlying user_settings table will still apply if we use simple select,

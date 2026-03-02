@@ -6,9 +6,10 @@ interface LoginProps {
     onLogin: () => void;
     onBackToLanding?: () => void;
     onOpenLegal?: (type: 'privacy' | 'terms') => void;
+    error?: string;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLegal }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLegal, error: externalError }) => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isSignUp, setIsSignUp] = useState(false)
@@ -16,7 +17,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
     const [showOtpInput, setShowOtpInput] = useState(false)
     const [otp, setOtp] = useState('')
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+    const [error, setError] = useState(externalError || '')
     const [successMessage, setSuccessMessage] = useState('')
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -109,7 +110,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
 
                         {error && (
                             <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-bold animate-in">
-                                ⚠️ {error.includes('invalid_credentials') ? 'بيانات الدخول غير صحيحة' : 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة لاحقاً'}
+                                ⚠️ {error === externalError ? error : (error.includes('invalid_credentials') ? 'بيانات الدخول غير صحيحة' : 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة لاحقاً')}
                             </div>
                         )}
 

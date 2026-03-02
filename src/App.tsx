@@ -46,6 +46,7 @@ export default function App() {
   const [showLanding, setShowLanding] = useState(true)
   const [legalView, setLegalView] = useState<'none' | 'privacy' | 'terms'>('none')
   const [currentView, setCurrentView] = useState<'chat' | 'admin'>('chat')
+  const [isAccountDisabled, setIsAccountDisabled] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Initialize user session
@@ -106,6 +107,14 @@ export default function App() {
           ChatService.getConversations(user.id),
           SettingsService.getSettings(user.id)
         ])
+
+        if (settings && settings.is_enabled === false) {
+          setIsAccountDisabled(true)
+          handleLogout()
+          return
+        }
+
+        setIsAccountDisabled(false)
         setFiles(userFiles)
         setConversations(historyList)
         setUserSettings(settings)
@@ -388,6 +397,7 @@ export default function App() {
         onLogin={() => { }}
         onBackToLanding={() => setShowLanding(true)}
         onOpenLegal={(type) => setLegalView(type)}
+        error={isAccountDisabled ? 'عذراً، هذا الحساب معطل. يرجى التواصل مع الإدارة.' : undefined}
       />
     )
   }

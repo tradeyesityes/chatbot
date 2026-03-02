@@ -20,7 +20,7 @@ export class AdminService {
 
     static async updateUserSettings(userId: string, settings: any): Promise<void> {
         // Clone and remove fields that are not in the database table
-        const { email, user_id, ...updateData } = settings
+        const { email, user_id, is_deleted, ...updateData } = settings
 
         const { error } = await supabase
             .from('user_settings')
@@ -35,13 +35,10 @@ export class AdminService {
     }
 
     static async deleteUser(userId: string): Promise<void> {
-        // This only deletes settings, not the auth user.
-        // Full user deletion usually requires admin-level access to auth.admin
-        const { error } = await supabase
-            .from('user_settings')
-            .delete()
-            .eq('user_id', userId)
-
-        if (error) throw error
+        // Soft delete: keep row but mark as deleted and disabled
+        await this.updateUserSettings(userId, {
+            is_enabled: false,
+            is_deleted: true
+        })
     }
 }
