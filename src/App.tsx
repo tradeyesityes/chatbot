@@ -253,7 +253,13 @@ export default function App() {
           ollama.setApiKey(userSettings.ollama_api_key || null)
         }
 
-        response = await ollama.generateResponse(input, messages, files)
+        const qSettings = {
+          use: userSettings?.use_qdrant || false,
+          url: userSettings?.qdrant_url || '',
+          key: userSettings?.qdrant_api_key || '',
+          collection: userSettings?.qdrant_collection || 'segments'
+        }
+        response = await ollama.generateResponse(input, messages, files, user?.id, qSettings)
 
       } else if (useGemini && geminiKey) {
         // --- Gemini Selection ---
