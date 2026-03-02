@@ -18,10 +18,13 @@ export class AdminService {
         return settings || []
     }
 
-    static async updateUserSettings(userId: string, settings: Partial<UserSettings>): Promise<void> {
+    static async updateUserSettings(userId: string, settings: any): Promise<void> {
+        // Clone and remove fields that are not in the database table
+        const { email, user_id, ...updateData } = settings
+
         const { error } = await supabase
             .from('user_settings')
-            .update(settings)
+            .update(updateData)
             .eq('user_id', userId)
 
         if (error) throw error
