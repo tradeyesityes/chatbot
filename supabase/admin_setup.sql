@@ -52,7 +52,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- Policy 1: Users can manage their own settings
+-- Policy 1: Users can manage their own settings (Idempotent)
+DROP POLICY IF EXISTS "Users manage own" ON user_settings;
 CREATE POLICY "Users manage own" ON user_settings
     FOR ALL
     USING (auth.uid() = user_id)
