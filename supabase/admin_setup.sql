@@ -59,7 +59,8 @@ CREATE POLICY "Users manage own" ON user_settings
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
 
--- Policy 2: Admins can manage EVERYTHING
+-- Policy 2: Admins can manage EVERYTHING (Idempotent)
+DROP POLICY IF EXISTS "Admins manage all" ON user_settings;
 CREATE POLICY "Admins manage all" ON user_settings
     FOR ALL
     USING (public.check_user_is_admin());
