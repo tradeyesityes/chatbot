@@ -5,7 +5,7 @@ import { GeminiService } from './services/geminiService'
 import { OllamaService } from './services/ollamaService'
 import { StorageService } from './services/storageService'
 import { ChatService } from './services/chatService'
-import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle, LandingPage, LegalPage } from './components'
+import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle, LandingPage, LegalPage, AdminDashboard } from './components'
 import { BotAvatar } from './components/BotAvatar'
 import { AuthService } from './services/authService'
 import { supabase } from './services/supabaseService'
@@ -45,6 +45,7 @@ export default function App() {
   const [error, setError] = useState<string>('')
   const [showLanding, setShowLanding] = useState(true)
   const [legalView, setLegalView] = useState<'none' | 'privacy' | 'terms'>('none')
+  const [currentView, setCurrentView] = useState<'chat' | 'admin'>('chat')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Initialize user session
@@ -391,6 +392,10 @@ export default function App() {
     )
   }
 
+  if (currentView === 'admin' && userSettings?.is_admin) {
+    return <AdminDashboard onBack={() => setCurrentView('chat')} />
+  }
+
   return (
     <div className="h-screen flex bg-dashboard relative overflow-hidden">
       {/* Mobile Sidebar Overlay */}
@@ -424,6 +429,7 @@ export default function App() {
             setUserSettings(newSettings)
           }
         }}
+        onAdminView={userSettings?.is_admin ? () => setCurrentView('admin') : undefined}
       />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-salla-bg-soft">

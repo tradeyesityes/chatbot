@@ -13,6 +13,7 @@ interface SidebarProps {
   onDeleteConversation?: (id: string) => void
   onRenameConversation?: (id: string, newTitle: string) => void
   onSettingsUpdated?: () => void
+  onAdminView?: () => void
   isOpen?: boolean
   onClose?: () => void
 }
@@ -27,6 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteConversation,
   onRenameConversation,
   onSettingsUpdated,
+  onAdminView,
   isOpen,
   onClose
 }) => {
@@ -179,12 +181,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="flex items-center justify-between">
               <p className="font-bold text-lg text-salla-primary">{user.username}</p>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${user.plan === 'pro'
-                ? 'bg-amber-50 border-amber-200 text-amber-600'
-                : 'bg-slate-50 border-slate-200 text-slate-500'
-                } `}>
-                {user.plan === 'pro' ? 'PRO' : 'FREE'}
-              </span>
+              <div className="flex gap-2 items-center">
+                {onAdminView && (
+                  <button
+                    onClick={onAdminView}
+                    className="p-1 px-2 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors"
+                  >
+                    Admin
+                  </button>
+                )}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${user.plan === 'pro'
+                  ? 'bg-amber-50 border-amber-200 text-amber-600'
+                  : 'bg-slate-50 border-slate-200 text-slate-500'
+                  } `}>
+                  {user.plan === 'pro' ? 'PRO' : 'FREE'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
