@@ -111,7 +111,6 @@ class WhatsAppPollingService {
 
             for (const channel of channels) {
                 const instanceName = channel.instance
-                const isInstagram = false
 
                 // Try standard and v2 endpoints
                 const endpoints = [
@@ -234,7 +233,7 @@ class WhatsAppPollingService {
                     if (!text) continue
 
                     // Generate and send response
-                    await this.handleMessage(userId, settings, msg.key.remoteJid, text, isInstagram)
+                    await this.handleMessage(userId, settings, msg.key.remoteJid, text)
                 }
             }
 
@@ -263,8 +262,7 @@ class WhatsAppPollingService {
         userId: string,
         settings: any,
         remoteJid: string,
-        incomingText: string,
-        isInstagram: boolean = false
+        incomingText: string
     ) {
         console.log('--- Handling Message ---')
         console.log('User:', userId)
@@ -285,8 +283,6 @@ class WhatsAppPollingService {
 
             // Generate AI response
             console.log('🤖 Generating AI response...')
-            // Generate AI response
-            console.log('🤖 Generating AI response...')
             const aiResponse = await this.generateAIResponse(settings, context, incomingText, files || [])
 
             if (!aiResponse) {
@@ -296,8 +292,8 @@ class WhatsAppPollingService {
             console.log('✨ AI Response ready')
 
             // Send response
-            console.log(`📤 Sending ${isInstagram ? 'Instagram' : 'WhatsApp'} response...`)
-            await this.sendMessage(settings, remoteJid, aiResponse, isInstagram)
+            console.log(`📤 Sending WhatsApp response...`)
+            await this.sendMessage(settings, remoteJid, aiResponse)
 
             console.log('✅ Sent auto-reply successfully')
 
@@ -339,7 +335,6 @@ class WhatsAppPollingService {
         let useGemini = settings.use_gemini
         let useOpenAI = settings.use_openai
 
-        // If no specific preference is saved, default to whatever key is available
         // If no specific preference is saved, default to whatever key is available
         if (!useGemini && !useOpenAI && !settings.use_remote_ollama && !settings.use_local_model) {
             if (geminiKey) useGemini = true
@@ -422,9 +417,9 @@ class WhatsAppPollingService {
         return ''
     }
 
-    private async sendMessage(settings: any, remoteJid: string, text: string, isInstagram: boolean = false) {
+    private async sendMessage(settings: any, remoteJid: string, text: string) {
         const cleanBaseUrl = settings.evolution_base_url.replace(/\/$/, '')
-        const instanceName = isInstagram ? settings.instagram_instance_name : settings.evolution_instance_name
+        const instanceName = settings.evolution_instance_name
 
         await fetch(`${cleanBaseUrl}/message/sendText/${instanceName}`, {
             method: 'POST',
@@ -436,7 +431,7 @@ class WhatsAppPollingService {
                 number: remoteJid,
                 text,
                 delay: 1200,
-                linkPreview: !isInstagram // Instagram might not support linkPreview in the same way
+                linkPreview: true
             })
         })
     }

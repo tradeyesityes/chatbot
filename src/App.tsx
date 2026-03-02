@@ -93,42 +93,7 @@ export default function App() {
     }
   }, [user])
 
-  // Handle Instagram OAuth Callback
-  useEffect(() => {
-    const code = params.get('code')
-    const state = params.get('state') // could be used for security
 
-    if (code && window.location.pathname.includes('/auth/instagram/callback')) {
-      const handleCallback = async () => {
-        if (!user) return
-        try {
-          setLoading(true)
-          setError('جاري ربط حساب إنستقرام...')
-
-          console.log('Instagram Auth Code received:', code)
-
-          const redirectUri = `${window.location.origin}/auth/instagram/callback`
-          const { InstagramService } = await import('./services/instagramService')
-          const result = await InstagramService.completeAuth(user.id, code, redirectUri)
-
-          console.log('Instagram Auth Completed:', result)
-
-          setError('')
-          // Success message
-          alert('تم ربط حساب إنستقرام بنجاح! سيتم تفعيل البوت الآن.')
-
-          setError('')
-          // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname)
-        } catch (e: any) {
-          setError(`فشل ربط إنستقرام: ${e.message}`)
-        } finally {
-          setLoading(false)
-        }
-      }
-      handleCallback()
-    }
-  }, [user])
 
   // Load user files from storage and chat history
   useEffect(() => {
