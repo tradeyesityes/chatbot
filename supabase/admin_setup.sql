@@ -69,6 +69,7 @@ CREATE POLICY "Admins manage all" ON user_settings
 
 -- 4. Create a view to safely expose emails to admins
 -- This allows us to join auth.users (restricted) with user_settings (public)
+DROP VIEW IF EXISTS public.admin_user_view CASCADE;
 CREATE OR REPLACE VIEW public.admin_user_view AS
 SELECT 
     us.*,
