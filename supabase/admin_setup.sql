@@ -1,14 +1,32 @@
 -- SQL Script to enable Admin Dashboard functionality
 -- Run this in your Supabase SQL Editor
 
--- 1. Add columns to user_settings
+-- 1. Add columns to user_settings (Core, OpenAI, Gemini, Ollama)
 ALTER TABLE user_settings 
 ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN DEFAULT TRUE;
+ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN DEFAULT TRUE,
+ADD COLUMN IF NOT EXISTS use_openai BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS openai_api_key TEXT DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS use_gemini BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS gemini_api_key TEXT DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS gemini_model_name TEXT DEFAULT 'gemini-1.5-flash-latest',
+ADD COLUMN IF NOT EXISTS use_local_model BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS local_model_name TEXT DEFAULT 'gemma3:4b',
+ADD COLUMN IF NOT EXISTS use_remote_ollama BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS ollama_api_key TEXT DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS ollama_base_url TEXT DEFAULT 'http://localhost:11434';
 
 -- 2. Update Comments
 COMMENT ON COLUMN user_settings.is_admin IS 'Flag to identify system administrators';
 COMMENT ON COLUMN user_settings.is_enabled IS 'Flag to enable or disable user access';
+COMMENT ON COLUMN user_settings.use_openai IS 'Flag to enable OpenAI GPT models';
+COMMENT ON COLUMN user_settings.use_gemini IS 'Flag to enable Google Gemini models';
+COMMENT ON COLUMN user_settings.gemini_model_name IS 'The specific Gemini model to use';
+COMMENT ON COLUMN user_settings.use_local_model IS 'Flag to enable local Ollama model';
+COMMENT ON COLUMN user_settings.local_model_name IS 'The specific Ollama/Local model to use';
+COMMENT ON COLUMN user_settings.use_remote_ollama IS 'Flag to enable remote Ollama API';
+COMMENT ON COLUMN user_settings.ollama_api_key IS 'API key for remote Ollama service';
+COMMENT ON COLUMN user_settings.ollama_base_url IS 'Base URL for remote Ollama API';
 
 -- 3. Update RLS for user_settings
 -- This version uses a SECURITY DEFINER function to avoid infinite recursion

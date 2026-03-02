@@ -203,39 +203,156 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                 </div>
 
                                 {/* AI Config */}
-                                <div className="space-y-4">
-                                    <h3 className="font-bold text-slate-700 dark:text-slate-300 text-right">إعدادات محركات الذكاء الاصطناعي</h3>
+                                <div className="space-y-6">
+                                    <h3 className="font-bold text-slate-700 dark:text-slate-300 text-right border-b border-slate-100 dark:border-slate-700 pb-2">إعدادات محركات الذكاء الاصطناعي</h3>
 
-                                    <div className="p-4 border border-slate-100 dark:border-slate-700 rounded-2xl space-y-4">
+                                    {/* OpenAI Section */}
+                                    <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
                                         <div className="flex items-center justify-between">
-                                            <input type="checkbox" checked={editingUser.use_openai} onChange={e => setEditingUser({ ...editingUser, use_openai: e.target.checked })} />
-                                            <span className="font-semibold text-right flex-1 mr-3">OpenAI GPT-4o</span>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={editingUser.use_openai}
+                                                    onChange={e => setEditingUser({ ...editingUser, use_openai: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            </label>
+                                            <span className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                                OpenAI API
+                                                <span className="text-[10px] bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-normal">GPT-4, GPT-3.5</span>
+                                            </span>
                                         </div>
                                         {editingUser.use_openai && (
-                                            <input
-                                                type="text"
-                                                placeholder="OpenAI API Key"
-                                                className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-sm"
-                                                value={editingUser.openai_api_key || ''}
-                                                onChange={e => setEditingUser({ ...editingUser, openai_api_key: e.target.value })}
-                                            />
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-semibold text-slate-500 block text-right">API Key</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="sk-..."
+                                                    className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                    value={editingUser.openai_api_key || ''}
+                                                    onChange={e => setEditingUser({ ...editingUser, openai_api_key: e.target.value })}
+                                                />
+                                                <p className="text-[10px] text-slate-400 text-right italic">احصل عليه من OpenAI Platform</p>
+                                            </div>
                                         )}
                                     </div>
 
-                                    <div className="p-4 border border-slate-100 dark:border-slate-700 rounded-2xl space-y-4">
+                                    {/* Gemini Section */}
+                                    <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
                                         <div className="flex items-center justify-between">
-                                            <input type="checkbox" checked={editingUser.use_gemini} onChange={e => setEditingUser({ ...editingUser, use_gemini: e.target.checked })} />
-                                            <span className="font-semibold text-right flex-1 mr-3">Google Gemini 1.5</span>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={editingUser.use_gemini}
+                                                    onChange={e => setEditingUser({ ...editingUser, use_gemini: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                            </label>
+                                            <span className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                                Gemini API
+                                                <span className="text-[10px] bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-normal">Pro, Flash</span>
+                                            </span>
                                         </div>
                                         {editingUser.use_gemini && (
-                                            <input
-                                                type="text"
-                                                placeholder="Gemini API Key"
-                                                className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-sm"
-                                                value={editingUser.gemini_api_key || ''}
-                                                onChange={e => setEditingUser({ ...editingUser, gemini_api_key: e.target.value })}
-                                            />
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-slate-500 block text-right">API Key</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="AIza..."
+                                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                        value={editingUser.gemini_api_key || ''}
+                                                        onChange={e => setEditingUser({ ...editingUser, gemini_api_key: e.target.value })}
+                                                    />
+                                                    <p className="text-[10px] text-slate-400 text-right italic">احصل عليه مجاناً من Google AI Studio</p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-slate-500 block text-right">اسم النموذج (Gemini Model)</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="gemini-1.5-flash-latest"
+                                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                        value={editingUser.gemini_model_name || ''}
+                                                        onChange={e => setEditingUser({ ...editingUser, gemini_model_name: e.target.value })}
+                                                    />
+                                                    <p className="text-[10px] text-slate-400 text-right italic">أمثلة: gemini-1.5-pro, gemini-2.0-flash</p>
+                                                </div>
+                                            </div>
                                         )}
+                                    </div>
+
+                                    {/* Ollama Section */}
+                                    <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Ollama & Local Models</h4>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <label className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 font-semibold text-xs cursor-pointer">
+                                                <input type="checkbox" checked={editingUser.use_local_model} onChange={e => setEditingUser({ ...editingUser, use_local_model: e.target.checked })} className="rounded text-blue-600" />
+                                                Ollama المحلي (Local)
+                                            </label>
+                                            <label className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 font-semibold text-xs cursor-pointer">
+                                                <input type="checkbox" checked={editingUser.use_remote_ollama} onChange={e => setEditingUser({ ...editingUser, use_remote_ollama: e.target.checked })} className="rounded text-blue-600" />
+                                                Ollama الخارجي (Remote)
+                                            </label>
+                                        </div>
+
+                                        {(editingUser.use_local_model || editingUser.use_remote_ollama) && (
+                                            <div className="space-y-4 pt-2">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-slate-500 block text-right">اسم النموذج (Model Name)</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="gemma3:4b"
+                                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                        value={editingUser.local_model_name || ''}
+                                                        onChange={e => setEditingUser({ ...editingUser, local_model_name: e.target.value })}
+                                                    />
+                                                </div>
+
+                                                {editingUser.use_remote_ollama && (
+                                                    <>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-semibold text-slate-500 block text-right">Base URL</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="https://..."
+                                                                className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                                value={editingUser.ollama_base_url || ''}
+                                                                onChange={e => setEditingUser({ ...editingUser, ollama_base_url: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-semibold text-slate-500 block text-right">API Key (Remote Only)</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Key..."
+                                                                className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                                value={editingUser.ollama_api_key || ''}
+                                                                onChange={e => setEditingUser({ ...editingUser, ollama_api_key: e.target.value })}
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* WhatsApp Settings */}
+                                    <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={editingUser.evolution_bot_enabled}
+                                                    onChange={e => setEditingUser({ ...editingUser, evolution_bot_enabled: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+                                            </label>
+                                            <span className="font-bold text-slate-800 dark:text-white flex items-center gap-2">WhatsApp Bot</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
