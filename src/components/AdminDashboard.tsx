@@ -339,6 +339,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                         )}
                                     </div>
 
+                                    {/* Qdrant Section */}
+                                    <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 text-right">
+                                        <div className="flex items-center justify-between">
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={editingUser.use_qdrant || false}
+                                                    onChange={e => setEditingUser({ ...editingUser, use_qdrant: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                            </label>
+                                            <span className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                                قاعدة بيانات Qdrant
+                                                <span className="text-[10px] bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-normal">Advanced RAG</span>
+                                            </span>
+                                        </div>
+                                        {editingUser.use_qdrant && (
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-slate-500 block">رابط السيرفر (Server URL)</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="https://your-qdrant-server.com"
+                                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                                        value={editingUser.qdrant_url || ''}
+                                                        onChange={e => setEditingUser({ ...editingUser, qdrant_url: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-semibold text-slate-500 block">API Key (اختياري)</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="ApiKey"
+                                                            className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                                            value={editingUser.qdrant_api_key || ''}
+                                                            onChange={e => setEditingUser({ ...editingUser, qdrant_api_key: e.target.value })}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-semibold text-slate-500 block">اسم المجموعة (Collection)</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="segments"
+                                                            className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                                            value={editingUser.qdrant_collection || ''}
+                                                            onChange={e => setEditingUser({ ...editingUser, qdrant_collection: e.target.value })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* WhatsApp Settings */}
                                     <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
                                         <div className="flex items-center justify-between">
