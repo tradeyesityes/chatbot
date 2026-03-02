@@ -114,7 +114,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                     <td className="px-6 py-4 rtl:text-right">
                                         <div className="flex items-center gap-3 justify-end">
                                             <div className="text-right">
-                                                <div className="font-semibold text-slate-800 dark:text-white">{u.user_id.substring(0, 8)}...</div>
+                                                <div className="font-semibold text-slate-800 dark:text-white truncate max-w-[200px]" title={u.email || u.user_id}>
+                                                    {u.email || u.user_id.substring(0, 8) + '...'}
+                                                </div>
                                                 <div className="text-xs text-slate-500">{u.is_admin ? 'مشرف' : 'عميل'}</div>
                                             </div>
                                             <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 font-bold">
@@ -171,7 +173,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-up border border-slate-200 dark:border-slate-700">
                         <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white">تعديل إعدادات المستخدم</h2>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+                                تعديل إعدادات {editingUser.email || editingUser.user_id.substring(0, 8)}
+                            </h2>
                             <button onClick={() => setEditingUser(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full">✕</button>
                         </div>
                         <form onSubmit={handleSaveSettings} className="p-6 overflow-y-auto max-h-[70vh]">

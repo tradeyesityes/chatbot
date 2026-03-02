@@ -8,9 +8,9 @@ export interface AdminUser extends UserSettings {
 
 export class AdminService {
     static async getUsers(): Promise<AdminUser[]> {
-        // Fetch settings for all users
+        // Fetch settings and emails from the view
         const { data: settings, error: settingsError } = await supabase
-            .from('user_settings')
+            .from('admin_user_view')
             .select('*')
 
         if (settingsError) throw settingsError
