@@ -11,7 +11,7 @@ export class StorageService {
       size: f.size
     }))
 
-    const { error } = await supabase.from('user_files').insert(fileRecords)
+    const { error } = await supabase.from('user_files').upsert(fileRecords, { onConflict: 'user_id,name' })
     if (error) throw error
   }
 

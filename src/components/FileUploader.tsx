@@ -43,12 +43,20 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
             console.log(`Triggering vector indexing for: ${fileArray[i].name}`);
 
             const indexStartTime = Date.now();
+            const qSettings = {
+              use: settings.use_qdrant || false,
+              url: settings.qdrant_url || '',
+              key: settings.qdrant_api_key || '',
+              collection: settings.qdrant_collection || 'segments'
+            };
+
             await EmbeddingService.indexFile(
               userId,
               fileArray[i].name,
               processed.content,
               apiKey,
-              (processedChunks, totalChunks) => {
+              qSettings,
+              (processedChunks: number, totalChunks: number) => {
                 // Calculate percentage based on current file progress + previous files
                 const fileProgress = (processedChunks / totalChunks) * (1 / fileArray.length);
                 const previousFilesProgress = i / fileArray.length;
@@ -85,7 +93,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ userId, onFilesAdded
     }
 
     if (uploadedFiles.length > 0) {
-      onFilesAdded(uploadedFiles)
+      await onFilesAdded(uploadedFiles)
       const totalChars = uploadedFiles.reduce((acc, f) => acc + f.content.length, 0)
       setSuccess(`تم بنجاح تحميل ${uploadedFiles.length} ملفات (إجمالي ${totalChars.toLocaleString()} حرف)`)
       setTimeout(() => setSuccess(''), 5000)

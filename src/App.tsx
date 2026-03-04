@@ -156,25 +156,13 @@ export default function App() {
     // Add to local state immediately
     setFiles(prev => [...prev, ...newFiles])
 
-    // Try to save to Supabase/Qdrant in background
+    // Try to save to Supabase in background
     if (user) {
       try {
-        const qSettings = {
-          use: userSettings?.use_qdrant || false,
-          url: userSettings?.qdrant_url || '',
-          key: userSettings?.qdrant_api_key || '',
-          collection: userSettings?.qdrant_collection || 'segments'
-        }
-        const openAiKey = userSettings?.openai_api_key || (import.meta.env as any).VITE_OPENAI_API_KEY;
-
-        // Index each file contents
-        for (const file of newFiles) {
-          await EmbeddingService.indexFile(user.id, file.name, file.content, openAiKey, qSettings)
-        }
-
         await StorageService.saveFiles(user.id, newFiles)
       } catch (e: any) {
-        console.error('Background Indexing/Save Error:', e);
+        console.error('Persistence Error:', e);
+        setError(`فشل حفظ الملفات في السحابة: ${e.message}`);
       }
     }
   }
