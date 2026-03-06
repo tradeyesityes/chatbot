@@ -41,4 +41,49 @@ export class AdminService {
             is_deleted: true
         })
     }
+
+    static async getUserFiles(userId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('user_files')
+            .select('name, type, size, created_at')
+            .eq('user_id', userId)
+
+        if (error) throw error
+        return data || []
+    }
+
+    static async getUserConversations(userId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('conversations')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return data || []
+    }
+
+    static async getConversationMessages(userId: string, conversationId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('chat_messages')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: true })
+
+        if (error) throw error
+        return data || []
+    }
+
+    static async getFileContent(userId: string, fileName: string): Promise<string> {
+        const { data, error } = await supabase
+            .from('user_files')
+            .select('content')
+            .eq('user_id', userId)
+            .eq('name', fileName)
+            .single()
+
+        if (error) throw error
+        return data?.content || ''
+    }
 }

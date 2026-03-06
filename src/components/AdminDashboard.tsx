@@ -11,6 +11,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     const [users, setUsers] = useState<AdminUser[]>([])
     const [loading, setLoading] = useState(true)
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
+    const [viewingFilesUser, setViewingFilesUser] = useState<AdminUser | null>(null)
+    const [userFiles, setUserFiles] = useState<any[]>([])
+    const [viewingFileContent, setViewingFileContent] = useState<{ name: string, content: string } | null>(null)
+    const [viewingChatsUser, setViewingChatsUser] = useState<AdminUser | null>(null)
+    const [userConversations, setUserConversations] = useState<any[]>([])
+    const [selectedConvId, setSelectedConvId] = useState<string | null>(null)
+    const [convMessages, setConvMessages] = useState<any[]>([])
+    const [loadingSubData, setLoadingSubData] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
     useEffect(() => {
@@ -26,6 +34,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             setMessage({ type: 'error', text: 'فشل تحميل المستخدمين: ' + e.message })
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleViewFiles = async (user: AdminUser) => {
+        setViewingFilesUser(user)
+        setLoadingSubData(true)
+        try {
+            const files = await AdminService.getUserFiles(user.user_id)
+            setUserFiles(files)
+        } catch (e: any) {
+            setMessage({ type: 'error', text: 'فشل تحميل الملفات: ' + e.message })
+        } finally {
+            setLoadingSubData(false)
+        }
+    }
+
+    const handleViewFileContent = async (fileName: string) => {
+        if (!viewingFilesUser) return
+        setLoadingSubData(true)
+        try {
+            const content = await AdminService.getFileContent(viewingFilesUser.user_id, fileName)
+            setViewingFileContent({ name: fileName, content })
+        } catch (e: any) {
+            setMessage({ type: 'error', text: 'فشل تحميل محتوى الملف: ' + e.message })
+        } finally {
+            setLoadingSubData(false)
+        }
+    }
+
+    const handleViewChats = async (user: AdminUser) => {
+        setViewingChatsUser(user)
+        setSelectedConvId(null)
+        setConvMessages([])
+        setLoadingSubData(true)
+        try {
+            const convs = await AdminService.getUserConversations(user.user_id)
+            setUserConversations(convs)
+        } catch (e: any) {
+            setMessage({ type: 'error', text: 'فشل تحميل المحادثات: ' + e.message })
+        } finally {
+            setLoadingSubData(false)
+        }
+    }
+
+    const handleSelectConversation = async (convId: string) => {
+        if (!viewingChatsUser) return
+        setSelectedConvId(convId)
+        setLoadingSubData(true)
+        try {
+            const msgs = await AdminService.getConversationMessages(viewingChatsUser.user_id, convId)
+            setConvMessages(msgs)
+        } catch (e: any) {
+            setMessage({ type: 'error', text: 'فشل تحميل الرسائل: ' + e.message })
+        } finally {
+            setLoadingSubData(false)
         }
     }
 
@@ -141,6 +204,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                     </td>
                                     <td className="px-6 py-4 rtl:text-right">
                                         <div className="flex gap-2 justify-end">
+                                            <button
+                                                onClick={() => handleViewFiles(u)}
+                                                className="px-3 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg hover:bg-amber-100 transition-colors"
+                                            >
+                                                الملفات
+                                            </button>
+                                            <button
+                                                onClick={() => handleViewChats(u)}
+                                                className="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 transition-colors"
+                                            >
+                                                الدردشات
+                                            </button>
+                                            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 self-center" />
                                             <button
                                                 onClick={() => setEditingUser(u)}
                                                 className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
@@ -417,6 +493,131 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                 <button type="button" onClick={() => setEditingUser(null)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-bold transition-all">إلغاء</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* Files Modal */}
+            {viewingFilesUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl animate-scale-up border border-slate-200 dark:border-slate-700">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+                                ملفات {viewingFilesUser.email || viewingFilesUser.user_id.substring(0, 8)}
+                            </h2>
+                            <button onClick={() => setViewingFilesUser(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full">✕</button>
+                        </div>
+                        <div className="p-6 overflow-y-auto max-h-[70vh]">
+                            {loadingSubData ? (
+                                <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+                            ) : userFiles.length === 0 ? (
+                                <div className="text-center py-20 text-slate-400">لا يوجد ملفات لهذا المستخدم</div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {userFiles.map((file, idx) => (
+                                        <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center gap-4">
+                                            <div className="h-12 w-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                                {file.type?.includes('pdf') ? '📕' : file.type?.includes('image') ? '🖼️' : '📄'}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-bold text-slate-800 dark:text-white truncate" title={file.name}>{file.name}</div>
+                                                <div className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB • {file.type}</div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleViewFileContent(file.name)}
+                                                className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors text-xs font-bold"
+                                            >
+                                                عرض المحتوى
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* File Content Viewer Overlay */}
+            {viewingFileContent && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-8 bg-slate-900/80 backdrop-blur-md animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col h-[80vh] border border-slate-200 dark:border-slate-700">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800">
+                            <h2 className="text-lg font-bold text-slate-800 dark:text-white truncate pr-4">محتوى ملف: {viewingFileContent.name}</h2>
+                            <button onClick={() => setViewingFileContent(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full">✕</button>
+                        </div>
+                        <div className="flex-1 p-8 overflow-y-auto font-mono text-sm bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                            {viewingFileContent.content}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Chats Modal */}
+            {viewingChatsUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-5xl overflow-hidden shadow-2xl animate-scale-up border border-slate-200 dark:border-slate-700 flex flex-col h-[85vh]">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 z-10">
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+                                سجل دردشات {viewingChatsUser.email || viewingChatsUser.user_id.substring(0, 8)}
+                            </h2>
+                            <button onClick={() => setViewingChatsUser(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full">✕</button>
+                        </div>
+                        <div className="flex-1 flex overflow-hidden">
+                            {/* Conversations List */}
+                            <div className="w-1/3 border-l border-slate-100 dark:border-slate-700 overflow-y-auto p-4 space-y-2 bg-slate-50/50 dark:bg-slate-900/20">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">المحادثات</h3>
+                                {loadingSubData && userConversations.length === 0 ? (
+                                    <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></div>
+                                ) : userConversations.length === 0 ? (
+                                    <div className="text-center py-10 text-xs text-slate-400">لا يوجد محادثات</div>
+                                ) : (
+                                    userConversations.map(conv => (
+                                        <button
+                                            key={conv.id}
+                                            onClick={() => handleSelectConversation(conv.id)}
+                                            className={`w-full p-4 rounded-2xl text-right transition-all border ${selectedConvId === conv.id
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20'
+                                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'
+                                                }`}
+                                        >
+                                            <div className="font-bold truncate text-sm">{conv.title || 'محادثة جديدة'}</div>
+                                            <div className={`text-[10px] mt-1 ${selectedConvId === conv.id ? 'text-blue-100' : 'text-slate-400'}`}>
+                                                {new Date(conv.created_at).toLocaleDateString('ar-EG')}
+                                            </div>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Messages Area */}
+                            <div className="flex-1 flex flex-col bg-white dark:bg-slate-800 overflow-hidden">
+                                {selectedConvId ? (
+                                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                                        {loadingSubData ? (
+                                            <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+                                        ) : convMessages.length === 0 ? (
+                                            <div className="text-center py-20 text-slate-400">محادثة فارغة</div>
+                                        ) : (
+                                            convMessages.map((msg, idx) => (
+                                                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                    <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${msg.role === 'user'
+                                                        ? 'bg-blue-600 text-white rounded-br-none'
+                                                        : 'bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white rounded-bl-none'
+                                                        }`}>
+                                                        {msg.content}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex-1 flex flex-center flex-col items-center justify-center text-slate-400 p-10 text-center">
+                                        <div className="text-4xl mb-4">💬</div>
+                                        <div>اختر محادثة من القائمة لعرض الرسائل</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
