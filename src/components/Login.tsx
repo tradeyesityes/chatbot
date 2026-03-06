@@ -43,6 +43,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
                 onLogin()
             }
         } catch (e: any) {
+            console.error('Login/SignUp Error:', e)
             setError(e.message)
         } finally {
             setLoading(false)
@@ -245,7 +246,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
                 </div>
 
                 <p className="text-center mt-8 text-salla-muted text-sm font-bold opacity-60">
-                    جميع الحقوق محفوظة © {new Date().getFullYear()} KB Chatbot SaaS Platform
+                    جميع الحقوق محفوظة © {new Date().getFullYear()} KB Chatbot SaaS Platform (Build v1.1-debug)
                 </p>
             </div>
         </div>
