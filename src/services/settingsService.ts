@@ -30,7 +30,7 @@ export interface UserSettings {
 
 export class SettingsService {
     static async getSettings(userId: string): Promise<UserSettings> {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('user_settings')
             .select('*')
             .eq('user_id', userId)
@@ -40,7 +40,7 @@ export class SettingsService {
             throw error
         }
 
-        return {
+        const defaults: UserSettings = {
             use_openai: data?.use_openai ?? false,
             openai_api_key: data?.openai_api_key || null,
             use_gemini: data?.use_gemini ?? false,
@@ -67,6 +67,14 @@ export class SettingsService {
             qdrant_api_key: data?.qdrant_api_key || null,
             qdrant_collection: data?.qdrant_collection || 'segments'
         }
+
+        // If no row exists, create it now so the user appears in admin dashboard (JOIN)
+        if (!data) {
+            console.log(`🆕 Initializing default settings for user: ${userId}`)
+            await this.updateSettings(userId, defaults)
+        }
+
+        return defaults
     }
 
     static async updateSettings(userId: string, settings: UserSettings): Promise<void> {
