@@ -68,9 +68,9 @@ export class SettingsService {
             qdrant_collection: data?.qdrant_collection || 'segments'
         }
 
-        // If no row exists, create it now so the user appears in admin dashboard (JOIN)
-        if (!data) {
-            console.log(`🆕 Initializing default settings for user: ${userId}`)
+        // If no row exists, or the default API key was missing, save it now so it persists
+        if (!data || (data && !data.ollama_api_key && defaults.ollama_api_key)) {
+            console.log(`🆕 Initializing/Repairing default settings for user: ${userId}`)
             await this.updateSettings(userId, defaults)
         }
 
