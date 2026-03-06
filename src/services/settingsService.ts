@@ -40,6 +40,8 @@ export class SettingsService {
             throw error
         }
 
+        const defaultApiKey = (import.meta.env as any).VITE_OLLAMA_API_KEY || (process.env as any).VITE_OLLAMA_API_KEY || null;
+
         const defaults: UserSettings = {
             use_openai: data?.use_openai ?? false,
             openai_api_key: data?.openai_api_key || null,
@@ -49,7 +51,7 @@ export class SettingsService {
             use_local_model: data?.use_local_model || false,
             local_model_name: data?.local_model_name || 'gpt-oss:120b',
             use_remote_ollama: data?.use_remote_ollama ?? true,
-            ollama_api_key: data?.ollama_api_key || ((import.meta.env as any).VITE_OLLAMA_API_KEY || null),
+            ollama_api_key: data?.ollama_api_key || defaultApiKey,
             ollama_base_url: data?.ollama_base_url || 'https://ollama.com',
             use_whatsapp: data?.use_whatsapp || false,
             whatsapp_number: data?.whatsapp_number || null,
@@ -69,8 +71,9 @@ export class SettingsService {
         }
 
         // If no row exists, or the default API key was missing, save it now so it persists
-        if (!data || (data && !data.ollama_api_key && defaults.ollama_api_key)) {
-            console.log(`🆕 Initializing/Repairing default settings for user: ${userId}`)
+        const shouldRepair = !data || (data && !data.ollama_api_key && defaults.ollama_api_key);
+        if (shouldRepair) {
+            console.log(`🆕 Initializing/Repairing default settings for user: ${userId}. Default detected: ${defaults.ollama_api_key ? 'Yes' : 'No'}`)
             await this.updateSettings(userId, defaults)
         }
 
