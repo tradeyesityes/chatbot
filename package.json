@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "KB Chatbot v2",
   "dependencies": {
+    "@hcaptcha/react-hcaptcha": "^2.0.2",
     "@supabase/supabase-js": "^2.48.1",
     "@tailwindcss/typography": "^0.5.19",
     "@vitejs/plugin-react": "^4.3.4",

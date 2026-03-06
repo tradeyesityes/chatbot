@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { AuthService } from '../services/authService'
 import { BotAvatar } from './BotAvatar'
+import HCaptcha from '@hcaptcha/react-hcaptcha'
 
 interface LoginProps {
     onLogin: () => void;
@@ -19,6 +20,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(externalError || '')
     const [successMessage, setSuccessMessage] = useState('')
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+    const captchaRef = React.useRef<HCaptcha>(null)
+
+    const siteKey = (import.meta.env as any).VITE_HCAPTCHA_SITE_KEY || '10000000-ffff-ffff-ffff-000000000001'; // Default test key
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -35,16 +40,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
                 await AuthService.verifyOtp(email, otp)
                 onLogin()
             } else if (isSignUp) {
-                await AuthService.signUp(email, password)
+                await AuthService.signUp(email, password, captchaToken || undefined)
                 setShowOtpInput(true)
                 alert('الرجاء التحقق من بريدك الإلكتروني وإدخال الكود المرسل')
             } else {
-                await AuthService.login(email, password)
+                await AuthService.login(email, password, captchaToken || undefined)
                 onLogin()
             }
         } catch (e: any) {
             console.error('Login/SignUp Error:', e)
             setError(e.message)
+            // Reset captcha on error
+            captchaRef.current?.resetCaptcha()
+            setCaptchaToken(null)
         } finally {
             setLoading(false)
         }
@@ -175,9 +183,21 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
                                 </div>
                             )}
 
+                            {!showOtpInput && !isForgotPassword && (
+                                <div className="flex justify-center py-2">
+                                    <HCaptcha
+                                        sitekey={siteKey}
+                                        onVerify={(token) => setCaptchaToken(token)}
+                                        ref={captchaRef}
+                                        theme="light"
+                                        onExpire={() => setCaptchaToken(null)}
+                                    />
+                                </div>
+                            )}
+
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || (!captchaToken && !showOtpInput && !isForgotPassword)}
                                 className="w-full py-4 bg-salla-primary text-white rounded-salla font-bold text-lg shadow-xl shadow-salla-primary/20 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                             >
                                 {loading ? (

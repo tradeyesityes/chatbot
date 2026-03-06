@@ -2,10 +2,13 @@ import { User } from '../types'
 import { supabase } from './supabaseService'
 
 export class AuthService {
-  static async login(email: string, password: string): Promise<User> {
+  static async login(email: string, password: string, captchaToken?: string): Promise<User> {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: {
+        captchaToken
+      }
     })
 
     if (error) throw error
@@ -40,10 +43,14 @@ export class AuthService {
     if (error) throw error
   }
 
-  static async signUp(email: string, password: string): Promise<User> {
+  static async signUp(email: string, password: string, captchaToken?: string): Promise<User> {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        captchaToken,
+        emailRedirectTo: window.location.origin
+      }
     })
 
     if (error) throw error
