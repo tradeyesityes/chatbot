@@ -49,7 +49,7 @@ export class SettingsService {
             use_local_model: data?.use_local_model || false,
             local_model_name: data?.local_model_name || 'gpt-oss:120b',
             use_remote_ollama: data?.use_remote_ollama ?? true,
-            ollama_api_key: data?.ollama_api_key || (import.meta.env.VITE_OLLAMA_API_KEY || null),
+            ollama_api_key: data?.ollama_api_key || ((import.meta.env as any).VITE_OLLAMA_API_KEY || null),
             ollama_base_url: data?.ollama_base_url || 'https://ollama.com',
             use_whatsapp: data?.use_whatsapp || false,
             whatsapp_number: data?.whatsapp_number || null,
