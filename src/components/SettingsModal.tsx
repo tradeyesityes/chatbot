@@ -199,7 +199,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
             <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                 <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 flex-shrink-0">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <span>⚙️</span> الإعدادات
+                        <span>⚙️</span> الإعدادات (v2.1)
                     </h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                         <span className="text-2xl">×</span>
