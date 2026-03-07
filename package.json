@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "host": "vite --host 0.0.0.0 --port 8089"
+    "bridge": "node ollama-bridge.js",
+    "host": "concurrently \"vite --host 0.0.0.0 --port 8089\" \"npm run bridge\"",
+    "start": "npm run host"
   },
   "keywords": [],
   "author": "",
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1"
+    "@types/react-dom": "^18.3.1",
+    "concurrently": "^8.2.2"
   }
 }

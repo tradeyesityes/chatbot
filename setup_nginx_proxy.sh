@@ -13,6 +13,10 @@ echo "📦 Updating packages and installing Nginx/Certbot..."
 sudo apt update
 sudo apt install -y nginx certbot python3-certbot-nginx
 
+# 1.1 Install Node dependencies for Bridge
+echo "📦 Installing Node dependencies..."
+npm install
+
 # 2. Create Nginx Configuration
 echo "⚙️ Creating Nginx configuration for $DOMAIN..."
 NGINX_CONF="/etc/nginx/sites-available/chatbot"

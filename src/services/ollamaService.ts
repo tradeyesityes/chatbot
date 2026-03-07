@@ -144,20 +144,22 @@ Do not use outside knowledge.
 
             // Determine the correct endpoint
             let endpoint: string;
-            if (this.baseUrl.includes('ollama.com')) {
+            const lowerBaseUrl = this.baseUrl.toLowerCase();
+
+            if (lowerBaseUrl.includes('ollama.com')) {
                 // Use proxy for Ollama Cloud to avoid CORS
                 endpoint = '/api/ollama-cloud/api/chat';
             } else if (
-                this.baseUrl.includes('localhost') ||
-                this.baseUrl.includes('127.0.0.1') ||
-                this.baseUrl.includes('host.docker.internal') ||
-                this.baseUrl.includes('172.17.0.1')
+                lowerBaseUrl.includes('localhost') ||
+                lowerBaseUrl.includes('127.0.0.1') ||
+                lowerBaseUrl.includes('host.docker.internal') ||
+                lowerBaseUrl.includes('172.17.0.1')
             ) {
-                // Use local proxy for local/docker hosts to avoid CORS and mixed content
+                // Route all local/internal Docker addresses through our server-side bridge
+                // chain: Browser -> Nginx (/api/ollama/) -> Bridge (port 3001) -> Ollama (port 11434)
                 endpoint = '/api/ollama/api/chat';
             } else {
-                // For custom remote servers, we try to use the direct URL.
-                // Note: This may require OLLAMA_ORIGINS="*" on the server side.
+                // For custom remote servers
                 endpoint = `${this.baseUrl}/api/chat`;
             }
 
