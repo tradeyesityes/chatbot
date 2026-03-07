@@ -39,13 +39,13 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # API Proxy for Local Ollama
+    # API Proxy for Local Ollama via Bridge
     location /api/ollama/ {
-        proxy_pass http://localhost:11434/;
+        proxy_pass http://127.0.0.1:3001/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
-        proxy_set_header Host localhost;
+        proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
