@@ -232,14 +232,11 @@ export default function App() {
 
       if (useOllama) {
         // --- Ollama Selection ---
-        ollama.setBaseUrl('http://localhost:11434')
-        ollama.setApiKey(null)
+        const defaultBaseUrl = 'http://localhost:11434'
+        ollama.setBaseUrl(userSettings?.ollama_base_url || defaultBaseUrl)
+        ollama.setApiKey(userSettings?.ollama_api_key || null)
         ollama.setModel(userSettings?.local_model_name || 'gemma3:4b')
 
-        if (userSettings?.use_remote_ollama) {
-          if (userSettings.ollama_base_url) ollama.setBaseUrl(userSettings.ollama_base_url)
-          ollama.setApiKey(userSettings.ollama_api_key || null)
-        }
 
         const qSettings = {
           use: userSettings?.use_qdrant || false,

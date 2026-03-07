@@ -338,20 +338,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                 </div>
 
                                 {settings.use_local_model && (
-                                    <div className="animate-in slide-in-from-top-2 duration-200">
-                                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                            اسم النموذج (Model Name)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={settings.local_model_name || ''}
-                                            onChange={e => setSettings({ ...settings, local_model_name: e.target.value })}
-                                            placeholder="e.g. gemma3:4b"
-                                            className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all text-sm mb-1 text-slate-900 dark:text-white"
-                                        />
-                                        <p className="text-[10px] text-slate-500">
-                                            يستخدم localhost:11434 تلقائياً
-                                        </p>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                                اسم النموذج (Model Name)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.local_model_name || ''}
+                                                onChange={e => setSettings({ ...settings, local_model_name: e.target.value })}
+                                                placeholder="e.g. gemma3:4b"
+                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                                رابط السيرفر (Base URL)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.ollama_base_url || ''}
+                                                onChange={e => setSettings({ ...settings, ollama_base_url: e.target.value })}
+                                                placeholder="http://localhost:11434"
+                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                            <p className="text-[10px] text-slate-500 mt-1">
+                                                استخدم http://localhost:11434 للتشغيل العادي، أو http://host.docker.internal:11434 إذا كنت تستخدم Coolify/Docker.
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </div>
