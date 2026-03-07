@@ -18,6 +18,11 @@ echo "⚙️ Creating Nginx configuration for $DOMAIN..."
 NGINX_CONF="/etc/nginx/sites-available/chatbot"
 
 sudo tee $NGINX_CONF > /dev/null <<'EOF'
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
 server {
     listen 80;
     server_name qgk48ccwskgc444ow04o4088.babclick.eu.org;
@@ -36,8 +41,12 @@ server {
 
     # API Proxy for Local Ollama
     location /api/ollama/ {
-        proxy_pass http://127.0.0.1:11434/;
-        proxy_set_header Host $host;
+        proxy_pass http://localhost:11434/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host localhost;
+        proxy_cache_bypass $http_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;

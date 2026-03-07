@@ -150,7 +150,8 @@ Do not use outside knowledge.
             } else if (
                 this.baseUrl.includes('localhost') ||
                 this.baseUrl.includes('127.0.0.1') ||
-                this.baseUrl.includes('host.docker.internal')
+                this.baseUrl.includes('host.docker.internal') ||
+                this.baseUrl.includes('172.17.0.1')
             ) {
                 // Use local proxy for local/docker hosts to avoid CORS and mixed content
                 endpoint = '/api/ollama/api/chat';
