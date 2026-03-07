@@ -387,29 +387,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                                     />
                                                 </div>
 
+                                                {(editingUser.use_local_model || editingUser.use_remote_ollama) && (
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-semibold text-slate-500 block text-right">Base URL</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="http://localhost:11434"
+                                                            className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                            value={editingUser.ollama_base_url || ''}
+                                                            onChange={e => setEditingUser({ ...editingUser, ollama_base_url: e.target.value })}
+                                                        />
+                                                        <p className="text-[10px] text-slate-400 text-right italic">
+                                                            استخدم http://host.docker.internal:11434 لـ Coolify
+                                                        </p>
+                                                    </div>
+                                                )}
+
                                                 {editingUser.use_remote_ollama && (
-                                                    <>
-                                                        <div className="space-y-2">
-                                                            <label className="text-xs font-semibold text-slate-500 block text-right">Base URL</label>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="https://..."
-                                                                className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                                                value={editingUser.ollama_base_url || ''}
-                                                                onChange={e => setEditingUser({ ...editingUser, ollama_base_url: e.target.value })}
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <label className="text-xs font-semibold text-slate-500 block text-right">API Key (Remote Only)</label>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Key..."
-                                                                className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                                                value={editingUser.ollama_api_key || ''}
-                                                                onChange={e => setEditingUser({ ...editingUser, ollama_api_key: e.target.value })}
-                                                            />
-                                                        </div>
-                                                    </>
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-semibold text-slate-500 block text-right">API Key (Remote Only)</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Key..."
+                                                            className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                            value={editingUser.ollama_api_key || ''}
+                                                            onChange={e => setEditingUser({ ...editingUser, ollama_api_key: e.target.value })}
+                                                        />
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
