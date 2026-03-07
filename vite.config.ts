@@ -27,7 +27,7 @@ Object.assign(process.env, envLocal);
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: 8089,
     host: '0.0.0.0',
     middlewareMode: false,
     proxy: {
