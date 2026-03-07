@@ -3,7 +3,7 @@
 # KB Chatbot v2 - Nginx & SSL Setup Script
 # This script automates Nginx reverse proxy setup and SSL certification.
 
-DOMAIN="chatbot-1001.babclick.eu.org"
+DOMAIN="qgk48ccwskgc444ow04o4088.babclick.eu.org"
 APP_PORT=8089
 
 echo "🚀 Starting Nginx Proxy Setup for $DOMAIN..."
@@ -20,7 +20,7 @@ NGINX_CONF="/etc/nginx/sites-available/chatbot"
 sudo tee $NGINX_CONF > /dev/null <<'EOF'
 server {
     listen 80;
-    server_name chatbot-1001.babclick.eu.org;
+    server_name qgk48ccwskgc444ow04o4088.babclick.eu.org;
 
     location / {
         proxy_pass http://127.0.0.1:8089;
@@ -29,6 +29,15 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # API Proxy for Local Ollama
+    location /api/ollama/ {
+        proxy_pass http://127.0.0.1:11434/;
+        proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
