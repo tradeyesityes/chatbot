@@ -89,9 +89,10 @@ export class GeminiService {
         }
 
         const model = this.getModel(plan, customModel);
-        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
         try {
+            console.log(`[Gemini] Requesting model "${model}" via v1beta...`);
             const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -100,15 +101,26 @@ export class GeminiService {
 
             if (!res.ok) {
                 const err = await res.json().catch(() => null);
-                console.error('Gemini Error:', err);
-                throw new Error(err?.error?.message || `Gemini API Error: ${res.status}`);
+                console.error('Gemini API Error Detail:', err);
+                // If it's a quota error, throw a specific message that App.tsx can catch
+                const errorMessage = err?.error?.message || `API Error: ${res.status}`;
+                const errorStatus = err?.error?.status || 'UNKNOWN';
+
+                if (res.status === 429 || errorStatus === 'RESOURCE_EXHAUSTED') {
+                    throw new Error('quota_exceeded: انتهى رصيد الاستخدام المجاني (أو مؤقت لـ 60 ثانية).');
+                }
+                if (res.status === 400 && errorMessage.includes('API key')) {
+                    throw new Error('كود الـ API غير صالح أو غير مفعل بعد.');
+                }
+
+                throw new Error(errorMessage);
             }
 
             const data = await res.json();
             return data.candidates?.[0]?.content?.parts?.[0]?.text || 'لم أتمكن من توليد إجابة من Gemini.';
         } catch (error: any) {
-            console.error('Gemini Service Error:', error);
-            throw new Error(`تعذر الاتصال بـ Gemini: ${error.message}`);
+            console.error('Gemini Service Fatal Error:', error);
+            throw error;
         }
     }
 }

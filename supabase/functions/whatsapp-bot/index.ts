@@ -179,7 +179,7 @@ ${context}`
         if (settings.use_gemini && settings.gemini_api_key) {
             await logDebug('AI', 'Using Gemini for response...', { model: settings.gemini_model_name, userId, instanceName })
             const model = settings.gemini_model_name || 'gemini-1.5-flash-latest'
-            const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${settings.gemini_api_key}`
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.gemini_api_key}`
 
             const response = await fetch(geminiUrl, {
                 method: 'POST',
