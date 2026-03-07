@@ -53,7 +53,7 @@ export default defineConfig({
         },
       },
       '/api/ollama': {
-        target: 'http://host.docker.internal:11434',
+        target: 'http://172.17.0.1:11434',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ollama/, ''),
       },
