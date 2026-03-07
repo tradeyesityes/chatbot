@@ -147,8 +147,12 @@ Do not use outside knowledge.
             if (this.baseUrl.includes('ollama.com')) {
                 // Use proxy for Ollama Cloud to avoid CORS
                 endpoint = '/api/ollama-cloud/api/chat';
-            } else if (this.baseUrl.includes('localhost') || this.baseUrl.includes('127.0.0.1')) {
-                // Use local proxy for localhost
+            } else if (
+                this.baseUrl.includes('localhost') ||
+                this.baseUrl.includes('127.0.0.1') ||
+                this.baseUrl.includes('host.docker.internal')
+            ) {
+                // Use local proxy for local/docker hosts to avoid CORS and mixed content
                 endpoint = '/api/ollama/api/chat';
             } else {
                 // For custom remote servers, we try to use the direct URL.
