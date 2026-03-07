@@ -56,6 +56,12 @@ export class AuthService {
     if (error) throw error
     if (!data.user) throw new Error('No user data returned')
 
+    // If identities is an empty array, it means the user already exists
+    // (Supabase returns 200/success for existing emails for security, but identities will be empty)
+    if (data.user.identities && data.user.identities.length === 0) {
+      throw new Error('هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من ذلك.')
+    }
+
     return {
       id: data.user.id,
       username: email.split('@')[0],
