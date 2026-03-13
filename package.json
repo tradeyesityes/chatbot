@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "bridge": "node ollama-bridge.js",
     "host": "concurrently \"vite --host 0.0.0.0 --port 8089\" \"npm run bridge\"",
-    "start": "npm run host"
+    "start": "npm run host",
+    "deploy": "npm run build && wrangler deploy"
   },
   "keywords": [],
   "author": "",
@@ -18,11 +19,11 @@
     "@hcaptcha/react-hcaptcha": "^2.0.2",
     "@supabase/supabase-js": "^2.48.1",
     "@tailwindcss/typography": "^0.5.19",
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "mammoth": "^1.8.0",
     "pdfjs-dist": "^4.4.168",
     "postcss": "^8.4.49",
@@ -37,8 +38,10 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.28.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "wrangler": "^4.73.0"
   }
 }
