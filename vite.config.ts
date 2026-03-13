@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 function loadEnvLocal() {
   const envPath = path.resolve(__dirname, '.env.local');
   if (!fs.existsSync(envPath)) return {};
@@ -25,7 +27,7 @@ const envLocal = loadEnvLocal();
 Object.assign(process.env, envLocal);
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), cloudflare()],
   server: {
     port: 8089,
     host: '0.0.0.0',
