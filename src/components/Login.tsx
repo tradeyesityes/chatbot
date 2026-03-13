@@ -24,6 +24,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
     const captchaRef = React.useRef<HCaptcha>(null)
 
     const siteKey = (import.meta.env as any).VITE_HCAPTCHA_SITE_KEY;
+    
+    if (!siteKey) {
+        console.warn('⚠️ HCaptcha Site Key is missing. Check your environment variables.');
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
