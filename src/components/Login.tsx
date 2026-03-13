@@ -25,8 +25,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
 
     const siteKey = (import.meta.env as any).VITE_HCAPTCHA_SITE_KEY;
     
+    // Debug logging for production deployment
     if (!siteKey) {
-        console.warn('⚠️ HCaptcha Site Key is missing. Check your environment variables.');
+        console.error('❌ HCaptcha Site Key is MISSING (undefined). Initialization will fail.');
+    } else if (siteKey === 'TO_BE_SET_VIA_SCRIPT') {
+        console.error('❌ HCaptcha Site Key is still the placeholder "TO_BE_SET_VIA_SCRIPT". Build variables are not configured correctly.');
+    } else {
+        console.log('🛡️ HCaptcha siteKey loaded:', siteKey.substring(0, 5) + '...');
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
