@@ -23,7 +23,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
     const [captchaToken, setCaptchaToken] = useState<string | null>(null)
     const captchaRef = React.useRef<HCaptcha>(null)
 
-    const siteKey = (import.meta.env as any).VITE_HCAPTCHA_SITE_KEY || '10000000-ffff-ffff-ffff-000000000001'; // Default test key
+    const siteKey = (import.meta.env as any).VITE_HCAPTCHA_SITE_KEY;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
