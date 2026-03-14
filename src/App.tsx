@@ -79,26 +79,8 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Start WhatsApp Polling Service
-  useEffect(() => {
-    import('./services/whatsappPollingService').then(({ whatsappPollingService }) => {
-      if (user) {
-        whatsappPollingService.startPolling(user.id)
-      } else {
-        whatsappPollingService.stopPolling()
-      }
-    })
-
-    return () => {
-      import('./services/whatsappPollingService').then(({ whatsappPollingService }) => {
-        whatsappPollingService.stopPolling()
-      })
-    }
-  }, [user])
-
-
-
-  // Load user files from storage and chat history
+  // WhatsApp Polling Service has been migrated to a backend worker (whatsapp-worker.js)
+  // to ensure it runs 24/7 even when the user is logged out.  // Load user files from storage and chat history
   useEffect(() => {
     if (!user) return
     const loadData = async () => {
@@ -350,6 +332,7 @@ export default function App() {
       setConversations([])
       setInput('')
       setError('')
+      setShowLanding(true)
     }
   }
 

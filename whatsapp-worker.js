@@ -1,0 +1,280 @@
+import { createClient } from '@supabase/supabase-js';
+import axios from 'axios';
+import * as dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables based on environment
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = process.env.VITE_SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+	console.error('❌ Missing Supabase credentials in .env or .env.local');
+	process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const POLLING_INTERVAL = 5000;
+let isPolling = false;
+
+// Global set to avoid processing same message
+const processedMessages = new Set();
+let baseCheckTime = Math.floor(Date.now() / 1000);
+
+async function startWorker() {
+	console.log('🚀 Starting WhatsApp Backend Worker...');
+	
+	// Start polling loop
+	setInterval(async () => {
+		if (isPolling) return;
+		isPolling = true;
+		
+		try {
+			await pollAllUsers();
+		} catch (error) {
+			console.error('Worker polling error:', error.message);
+		} finally {
+			isPolling = false;
+		}
+	}, POLLING_INTERVAL);
+}
+
+async function pollAllUsers() {
+	// 1. Fetch all users who have evolution bot enabled
+	const { data: activeUsers, error } = await supabase
+		.from('user_settings')
+		.select('*')
+		.eq('evolution_bot_enabled', true);
+		
+	if (error) {
+		console.error('❌ Error fetching active users:', error.message);
+		return;
+	}
+	
+	if (!activeUsers || activeUsers.length === 0) return;
+	
+	// Fetch global settings if needed
+    const { data: globalSettingsRows, error: globalErr } = await supabase
+        .from('global_settings')
+        .select('*');
+        
+    const globalSettings = {};
+    if (!globalErr && globalSettingsRows) {
+        globalSettingsRows.forEach(row => {
+            globalSettings[row.setting_key] = row.setting_value;
+        });
+    }
+	
+	// 2. Poll for each user
+	for (const settings of activeUsers) {
+		if (!settings.evolution_instance_name) continue;
+		
+		const baseUrl = settings.evolution_base_url || globalSettings['evolution_base_url'] || process.env.VITE_EVOLUTION_BASE_URL;
+		const globalKey = settings.evolution_global_api_key || globalSettings['evolution_global_api_key'] || process.env.VITE_EVOLUTION_GLOBAL_API_KEY;
+		
+		if (!baseUrl) continue;
+		
+		const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+		const apiKey = globalKey || settings.evolution_api_key;
+		const instanceName = settings.evolution_instance_name;
+		
+		await pollInstance(settings, cleanBaseUrl, apiKey, instanceName);
+	}
+	
+	// Clear memory
+	if (processedMessages.size > 500) {
+		const arr = Array.from(processedMessages);
+		processedMessages.clear();
+		arr.slice(-100).forEach(id => processedMessages.add(id));
+	}
+}
+
+async function pollInstance(settings, cleanBaseUrl, apiKey, instanceName) {
+	const endpoints = [
+		`${cleanBaseUrl}/chat/findMessages/${instanceName}`,
+		`${cleanBaseUrl}/v2/chat/findMessages/${instanceName}`
+	];
+	
+	let messages = [];
+	let requestSuccess = false;
+	
+	for (const url of endpoints) {
+		try {
+			const resp = await axios.post(url, { where: {}, limit: 5 }, {
+				headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
+				timeout: 8000
+			});
+			
+			if (resp.status >= 200 && resp.status < 300) {
+				const responseData = resp.data;
+				if (Array.isArray(responseData)) {
+					messages = responseData;
+				} else if (responseData.messages && Array.isArray(responseData.messages.records)) {
+					messages = responseData.messages.records;
+				} else if (responseData.data && Array.isArray(responseData.data)) {
+					messages = responseData.data;
+				}
+				requestSuccess = true;
+				break;
+			}
+		} catch (e) {
+            // suppress expected failures
+		}
+	}
+	
+	if (!requestSuccess || messages.length === 0) return;
+	
+	for (const msg of messages) {
+		const messageId = msg.key.id;
+		
+		if (msg.key.fromMe) continue;
+		if (processedMessages.has(messageId)) continue;
+		if (msg.messageTimestamp <= baseCheckTime) {
+			processedMessages.add(messageId);
+			continue;
+		}
+		
+		// DB Lock to prevent duplicated reading
+		try {
+			const { error: insertError } = await supabase
+				.from('processed_whatsapp_messages')
+				.insert({ msg_id: messageId });
+				
+			if (insertError) {
+				if (insertError.code === '23505') { // Unique violation
+					processedMessages.add(messageId);
+					continue;
+				}
+			}
+		} catch (e) {
+			// Ignore other DB errors and proceed
+		}
+		
+		console.log(`🆕 [Worker] Processing message: ${messageId} for user ${settings.user_id}`);
+		processedMessages.add(messageId);
+		
+		const text = extractText(msg.message);
+		if (!text) continue;
+		
+		await handleMessage(settings, msg.key.remoteJid, text, cleanBaseUrl, apiKey);
+	}
+}
+
+function extractText(message) {
+	return message?.conversation ||
+		   message?.extendedTextMessage?.text ||
+		   message?.imageMessage?.caption ||
+		   message?.videoMessage?.caption ||
+		   message?.documentMessage?.caption || '';
+}
+
+async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, apiKey) {
+	try {
+		// Send composing state
+		await axios.post(`${cleanBaseUrl}/message/sendPresence/${settings.evolution_instance_name}`, {
+			number: remoteJid,
+			presence: 'composing',
+			delay: 1200
+		}, { headers: { 'apikey': apiKey } }).catch(() => {});
+		
+		// Fetch user files for RAG context
+		let context = '';
+		if (settings.user_id) {
+			const { data: files } = await supabase
+				.from('user_files')
+				.select('name, content')
+				.eq('user_id', settings.user_id);
+				
+			context = files?.map(f => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || '';
+		}
+		
+		// Generate AI Response
+		const aiResponse = await generateAIResponse(settings, context, incomingText);
+		
+		if (!aiResponse) {
+			console.log(`⚠️ [Worker] Empty AI response generated.`);
+			return;
+		}
+		
+		// Send WhatsApp Response
+		await axios.post(`${cleanBaseUrl}/message/sendText/${settings.evolution_instance_name}`, {
+			number: remoteJid,
+			text: aiResponse,
+			delay: 1200,
+			linkPreview: true
+		}, { headers: { 'apikey': apiKey } });
+		
+		console.log(`✅ [Worker] Sent reply successfully.`);
+	} catch (error) {
+		console.error(`❌ [Worker] Error handling message:`, error.message);
+	}
+}
+
+async function generateAIResponse(settings, context, question) {
+	const systemPrompt = `أنت مساعد ذكي لخدمة العملاء. أجب فقط بناءً على المعلومات التالية:\n\n${context}`;
+	
+	const geminiKey = settings.gemini_api_key || process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY;
+	const openaiKey = settings.openai_api_key || process.env.VITE_OPENAI_API_KEY;
+	
+	let useGemini = settings.use_gemini;
+	let useOpenAI = settings.use_openai;
+	const useOllama = settings.use_remote_ollama || settings.use_local_model;
+	
+	if (!useGemini && !useOpenAI && !useOllama) {
+		if (geminiKey) useGemini = true;
+		else if (openaiKey) useOpenAI = true;
+	}
+	
+	try {
+        // Ollama
+        if (useOllama) {
+            const baseUrl = settings.use_remote_ollama ? settings.ollama_base_url : 'http://localhost:11434';
+            const model = settings.use_remote_ollama ? settings.local_model_name : (settings.local_model_name || 'llama3');
+            
+            const reqBody = {
+               model: model,
+               messages: [
+                   { role: 'system', content: systemPrompt },
+                   { role: 'user', content: question }
+               ],
+               stream: false 
+            };
+            
+            const resp = await axios.post(`${baseUrl}/api/chat`, reqBody, {
+                headers: settings.ollama_api_key ? { 'Authorization': `Bearer ${settings.ollama_api_key}` } : {}
+            });
+            return resp.data?.message?.content || '';
+        }
+		
+		// Gemini
+		if (useGemini && geminiKey) {
+			const model = settings.gemini_model_name || 'gemini-1.5-flash';
+			const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+			const resp = await axios.post(url, {
+				contents: [{ parts: [{ text: `${systemPrompt}\n\nالسؤال: ${question}` }] }]
+			});
+			return resp.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+		}
+		
+		// OpenAI
+		if (useOpenAI && openaiKey) {
+			const resp = await axios.post('https://api.openai.com/v1/chat/completions', {
+				model: 'gpt-4o-mini',
+				messages: [
+					{ role: 'system', content: systemPrompt },
+					{ role: 'user', content: question }
+				]
+			}, { headers: { 'Authorization': `Bearer ${openaiKey}` } });
+			return resp.data?.choices?.[0]?.message?.content || '';
+		}
+	} catch (e) {
+		console.error(`[Worker] AI Generation Error:`, e?.response?.data || e.message);
+	}
+	
+	return '';
+}
+
+startWorker();

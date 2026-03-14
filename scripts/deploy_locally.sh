@@ -4,6 +4,7 @@
 # This ensures all VITE_ variables are baked into the build
 
 PROJECT_NAME=$1
+ENV_FILE=".env.local"
 
 if [ -z "$PROJECT_NAME" ]; then
     echo "❌ Error: Project name is required."
@@ -19,7 +20,16 @@ if command -v nvm &> /dev/null; then
     export PATH="$(nvm which 20 | xargs dirname):$PATH"
 fi
 
-# 2. Install dependencies (just in case)
+# 2. Load .env.local variables into environment for Vite build
+if [ -f "$ENV_FILE" ]; then
+    echo "🔑 Loading environment variables from $ENV_FILE..."
+    # Export variables (filtering out comments and empty lines)
+    export $(grep -v '^#' "$ENV_FILE" | xargs)
+else
+    echo "⚠️ Warning: $ENV_FILE not found. Build might lack necessary keys."
+fi
+
+# 3. Install dependencies (just in case)
 echo "📦 Installing dependencies..."
 npm install
 
