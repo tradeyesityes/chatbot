@@ -22,7 +22,6 @@ let isPolling = false;
 
 // Global set to avoid processing same message
 const processedMessages = new Set();
-let baseCheckTime = Math.floor(Date.now() / 1000);
 
 async function startWorker() {
 	console.log('🚀 Starting WhatsApp Backend Worker...');
@@ -64,13 +63,15 @@ async function pollAllUsers() {
     const globalSettings = {};
     if (!globalErr && globalSettingsRows) {
         globalSettingsRows.forEach(row => {
-            globalSettings[row.setting_key] = row.setting_value;
+            globalSettings[row.key] = row.value;
         });
     }
 	
 	// 2. Poll for each user
 	for (const settings of activeUsers) {
-		if (!settings.evolution_instance_name) continue;
+		
+		const instanceName = settings.evolution_instance_name || (settings.user_id ? `user_${settings.user_id.substring(0, 8)}` : null);
+		if (!instanceName) continue;
 		
 		const baseUrl = settings.evolution_base_url || globalSettings['evolution_base_url'] || process.env.VITE_EVOLUTION_BASE_URL;
 		const globalKey = settings.evolution_global_api_key || globalSettings['evolution_global_api_key'] || process.env.VITE_EVOLUTION_GLOBAL_API_KEY;
@@ -79,8 +80,8 @@ async function pollAllUsers() {
 		
 		const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 		const apiKey = globalKey || settings.evolution_api_key;
-		const instanceName = settings.evolution_instance_name;
 		
+        console.log(`[Worker Debug] Trying to poll ${instanceName} - URL: ${cleanBaseUrl} - APIKey: ${apiKey ? 'Y' : 'N'}`);
 		await pollInstance(settings, cleanBaseUrl, apiKey, instanceName);
 	}
 	
@@ -110,32 +111,38 @@ async function pollInstance(settings, cleanBaseUrl, apiKey, instanceName) {
 			
 			if (resp.status >= 200 && resp.status < 300) {
 				const responseData = resp.data;
+                // console.log(`[Worker Debug] Raw response keys for ${instanceName}:`, Object.keys(responseData || {}));
 				if (Array.isArray(responseData)) {
 					messages = responseData;
 				} else if (responseData.messages && Array.isArray(responseData.messages.records)) {
 					messages = responseData.messages.records;
-				} else if (responseData.data && Array.isArray(responseData.data)) {
+				} else if (responseData.messages && Array.isArray(responseData.messages)) {
+                    // Added check for responseData.messages being the array directly
+                    messages = responseData.messages;
+                } else if (responseData.data && Array.isArray(responseData.data)) {
 					messages = responseData.data;
-				}
+				} else if (responseData.records && Array.isArray(responseData.records)) {
+                    messages = responseData.records;
+                } else {
+                    console.log(`[Worker Debug] UNKNOWN RESPONSE FORMAT for ${instanceName}:`, JSON.stringify(responseData).substring(0, 200));
+                }
 				requestSuccess = true;
 				break;
 			}
 		} catch (e) {
-            // suppress expected failures
+			console.log(`[Worker Debug] Polling ${url} failed for ${instanceName}: ${e.message}`);
 		}
 	}
 	
 	if (!requestSuccess || messages.length === 0) return;
+	
+    console.log(`[Worker Debug] Found ${messages.length} messages for ${instanceName}`);
 	
 	for (const msg of messages) {
 		const messageId = msg.key.id;
 		
 		if (msg.key.fromMe) continue;
 		if (processedMessages.has(messageId)) continue;
-		if (msg.messageTimestamp <= baseCheckTime) {
-			processedMessages.add(messageId);
-			continue;
-		}
 		
 		// DB Lock to prevent duplicated reading
 		try {
