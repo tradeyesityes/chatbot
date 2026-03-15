@@ -42,6 +42,26 @@ serve(async (req) => {
         }
 
         const remoteJid = payload.data?.key?.remoteJid
+        const messageId = payload.data?.key?.id
+
+        if (messageId) {
+            try {
+                const { error: insertError } = await supabase
+                    .from('processed_whatsapp_messages')
+                    .insert({ msg_id: messageId })
+
+                if (insertError) {
+                    // 23505 = unique_violation (already processed by another instance)
+                    if (insertError.code === '23505') {
+                        await logDebug('Ignored', 'Message already processed (duplicate)', { messageId, instanceName })
+                        return new Response(JSON.stringify({ status: 'ignored', reason: 'duplicate' }), { status: 200 })
+                    }
+                    // Ignore other errors (like missing table) and proceed
+                }
+            } catch (e) {
+                // Fail silently and proceed
+            }
+        }
 
         // Comprehensive text extraction
         const message = payload.data?.message

@@ -233,7 +233,9 @@ class WhatsAppPollingService {
                     if (!text) continue
 
                     // Generate and send response
-                    await this.handleMessage(userId, settings, msg.key.remoteJid, text)
+                    // DISABLED: Backend webhook (whatsapp-bot) now handles this automatically 24/7
+                    // await this.handleMessage(userId, settings, msg.key.remoteJid, text)
+                    console.log('🤖 Auto-reply handled by background webhook.')
                 }
             }
 

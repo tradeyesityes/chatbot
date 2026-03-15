@@ -88,6 +88,35 @@ serve(async (req) => {
         const createData = await createResponse.json().catch(() => ({}))
         const instanceApiKey = createData.hash?.apikey || evolutionGlobalApiKey
 
+        // Step 1.5: Set Webhook for the instance
+        console.log(`Setting webhook for: ${instanceName}`)
+        try {
+            const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-bot`
+            const webhookResponse = await fetch(`${cleanBaseUrl}/webhook/set/${instanceName}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': evolutionGlobalApiKey
+                },
+                body: JSON.stringify({
+                    url: webhookUrl,
+                    webhookByEvents: false,
+                    webhookBase64: false,
+                    events: [
+                        "MESSAGES_UPSERT"
+                    ]
+                })
+            })
+            
+            if (!webhookResponse.ok) {
+                console.error('Failed to set webhook:', await webhookResponse.text())
+            } else {
+                console.log('Webhook set successfully')
+            }
+        } catch (webhookErr) {
+            console.error('Webhook configuration error:', webhookErr)
+        }
+
         // Step 2: Fetch QR Code (with retry logic)
         // The QR code is automatically generated after instance creation
         console.log(`Fetching QR code for: ${instanceName}`)
