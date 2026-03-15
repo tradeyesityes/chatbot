@@ -29,102 +29,26 @@ export function WhatsAppQRModal({ isOpen, onClose, evolutionBaseUrl, instanceNam
                     return
                 }
 
-                // Get user settings to fetch Evolution API credentials
-                const { data: settings } = await supabase
-                    .from('user_settings')
-                    .select('evolution_global_api_key')
-                    .eq('user_id', session.user.id)
-                    .single()
-
-                if (!settings?.evolution_global_api_key) {
-                    throw new Error('Evolution API key not configured')
-                }
-
-                const sanitize = (str: string) => str.trim().replace(/[^\x00-\x7F]/g, "")
-                const globalApiKey = sanitize(settings.evolution_global_api_key)
-                const cleanBaseUrl = evolutionBaseUrl.replace(/\/$/, '')
-
-                // Potential endpoints to try (Evolution API v1 vs v2 common differences)
-                const endpoints = [
-                    `${cleanBaseUrl}/instance/create`,
-                    `${cleanBaseUrl}/instance/create/`,
-                    `${cleanBaseUrl}/v2/instance/create`,
-                    `${cleanBaseUrl}/v2/instance/create/`
-                ]
-
-                let createResponse = null
-                let lastTriedUrl = ''
-                const errorLog: string[] = []
-
-                for (const url of endpoints) {
-                    lastTriedUrl = url
-                    try {
-                        const resp = await fetch(url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'apikey': globalApiKey
-                            },
-                            body: JSON.stringify({
-                                instanceName: instanceName,
-                                qrcode: true,
-                                integration: 'WHATSAPP-BAILEYS'
-                            })
-                        })
-
-                        // If success (200, 201) or already exists (403/409 is often "already exists")
-                        if (resp.ok || resp.status === 403 || resp.status === 409) {
-                            createResponse = resp
-                            break
-                        } else {
-                            errorLog.push(`${url.replace(cleanBaseUrl, '')} (${resp.status})`)
-                        }
-                    } catch (e: any) {
-                        errorLog.push(`${url.replace(cleanBaseUrl, '')} (Error: ${e.message})`)
+                // Step 1: Call Supabase Edge Function to create instance and set webhook
+                console.log('Calling create-whatsapp-instance edge function...')
+                const { data, error } = await supabase.functions.invoke('create-whatsapp-instance', {
+                    body: {
+                        evolutionBaseUrl: evolutionBaseUrl,
+                        instanceName: instanceName
                     }
+                })
+
+                if (error) {
+                    console.error('Edge function error:', error)
+                    throw new Error(error.message || 'Failed to create instance via backend')
                 }
 
-                if (!createResponse) {
-                    throw new Error(`فشل الاتصال: ${errorLog.join(' , ')}`)
+                if (!data.success || !data.qrCode) {
+                    throw new Error(data.error || 'Failed to fetch QR code from backend')
                 }
 
-                if (!createResponse.ok && createResponse.status !== 403 && createResponse.status !== 409) {
-                    const errorText = await createResponse.text()
-                    throw new Error(`خطأ في الإنشاء على المسار (${lastTriedUrl}): ${errorText}`)
-                }
-
-                // Step 2: Fetch QR Code with retry logic
-                console.log(`Fetching QR code for: ${instanceName}`)
-                let qrCode = null
-                let retries = 10
-
-                while (retries > 0 && !qrCode) {
-                    await new Promise(resolve => setTimeout(resolve, 1500))
-
-                    const qrResponse = await fetch(`${cleanBaseUrl}/instance/connect/${instanceName}`, {
-                        method: 'GET',
-                        headers: {
-                            'apikey': globalApiKey
-                        }
-                    })
-
-                    if (qrResponse.ok) {
-                        const qrData = await qrResponse.json()
-                        if (qrData.base64) {
-                            qrCode = qrData.base64
-                            break
-                        }
-                    }
-
-                    retries--
-                    console.log(`QR code not ready, retries left: ${retries}`)
-                }
-
-                if (!qrCode) {
-                    throw new Error('Failed to fetch QR code after multiple attempts')
-                }
-
-                setQrCode(qrCode)
+                console.log('Instance created and webhook configured via backend.')
+                setQrCode(data.qrCode)
                 setStatus('waiting')
 
                 // Start polling for connection status
