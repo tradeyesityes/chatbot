@@ -630,8 +630,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                                         }
                                                     }
 
-                                                    // 2. Update Settings
-                                                    const updatedSettings = { ...settings, evolution_bot_enabled: false }
+                                                    // 2. Update Settings - clear whatsapp_number on unlink
+                                                    const updatedSettings = { 
+                                                        ...settings, 
+                                                        evolution_bot_enabled: false,
+                                                        whatsapp_number: '',
+                                                        evolution_instance_name: '',
+                                                        evolution_api_key: ''
+                                                    }
                                                     setSettings(updatedSettings)
 
                                                     // 3. Save to database
@@ -641,7 +647,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                                 } catch (error: any) {
                                                     console.error('Logout Error:', error)
                                                     // Even if API fails, we disable locally to reflect user intent
-                                                    setSettings({ ...settings, evolution_bot_enabled: false })
+                                                    setSettings({ 
+                                                        ...settings, 
+                                                        evolution_bot_enabled: false,
+                                                        whatsapp_number: '',
+                                                        evolution_instance_name: '',
+                                                        evolution_api_key: ''
+                                                    })
                                                     setMessage({ type: 'error', text: 'حدث خطأ أثناء الحذف من السيرفر، لكن تم التعطيل محلياً' })
                                                 }
                                             }
