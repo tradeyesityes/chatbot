@@ -128,13 +128,14 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
             }
 
             if (convId) {
-                supabase.rpc('save_public_message', {
+                const { error: rpcError } = await supabase.rpc('save_public_message', {
                     p_owner_id: ownerId,
                     p_conversation_id: convId,
                     p_role: 'user',
                     p_content: input,
                     p_visitor_name: visitor.name
-                }).catch((e: Error) => console.warn('save_public_message (user):', e.message))
+                })
+                if (rpcError) console.warn('save_public_message (user):', rpcError.message)
             }
 
             let response = ''
@@ -208,13 +209,14 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
             setMessages(prev => [...prev, assistantMsg])
 
             if (convId) {
-                supabase.rpc('save_public_message', {
+                const { error: rpcError } = await supabase.rpc('save_public_message', {
                     p_owner_id: ownerId,
                     p_conversation_id: convId,
                     p_role: 'assistant',
                     p_content: response,
                     p_visitor_name: visitor.name
-                }).catch((e: Error) => console.warn('save_public_message (assistant):', e.message))
+                })
+                if (rpcError) console.warn('save_public_message (assistant):', rpcError.message)
             }
 
         } catch (e: any) {
