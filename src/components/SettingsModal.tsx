@@ -621,13 +621,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                             <div className="flex gap-2">
                                                 <input
                                                     readOnly
-                                                    value={`${window.location.origin}/api/wa-webhook`}
+                                                    value={`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-cloud-bot`}
                                                     className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs font-mono text-slate-500 outline-none"
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        navigator.clipboard.writeText(`${window.location.origin}/api/wa-webhook`);
+                                                        navigator.clipboard.writeText(`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-cloud-bot`);
                                                         setMessage({ type: 'success', text: 'تم نسخ رابط الـ Webhook' });
                                                     }}
                                                     className="px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
