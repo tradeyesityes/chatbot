@@ -226,14 +226,13 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 		
 		// Save incoming user message to DB via RPC
 		if (settings.user_id && conversationId) {
-			await supabase.rpc('save_whatsapp_message', {
+			const { error } = await supabase.rpc('save_whatsapp_message', {
 				p_user_id: settings.user_id,
 				p_conversation_id: conversationId,
 				p_role: 'user',
 				p_content: incomingText
-			}).then(({ error }) => {
-				if (error) console.error('[Worker] Save user msg RPC error:', error.message);
 			});
+			if (error) console.error('[Worker] Save user msg RPC error:', error.message);
 		}
 		
 		// Fetch user files for RAG context
@@ -265,14 +264,13 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 		
 		// Save AI response to DB via RPC
 		if (settings.user_id && conversationId) {
-			await supabase.rpc('save_whatsapp_message', {
+			const { error } = await supabase.rpc('save_whatsapp_message', {
 				p_user_id: settings.user_id,
 				p_conversation_id: conversationId,
 				p_role: 'assistant',
 				p_content: aiResponse
-			}).then(({ error }) => {
-				if (error) console.error('[Worker] Save assistant msg RPC error:', error.message);
 			});
+			if (error) console.error('[Worker] Save assistant msg RPC error:', error.message);
 		}
 		
 		console.log(`✅ [Worker] Sent reply successfully.`);
