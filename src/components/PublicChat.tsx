@@ -127,14 +127,15 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
                 }
             }
 
-            await supabase.from('chat_messages').insert({
-                user_id: ownerId,
-                role: 'user',
-                content: input,
-                visitor_id: visitor.id,
-                conversation_id: convId || null,
-                source: 'public'
-            })
+            if (convId) {
+                supabase.rpc('save_public_message', {
+                    p_owner_id: ownerId,
+                    p_conversation_id: convId,
+                    p_role: 'user',
+                    p_content: input,
+                    p_visitor_name: visitor.name
+                }).catch((e: Error) => console.warn('save_public_message (user):', e.message))
+            }
 
             let response = ''
             const openAiKey = settings?.openai_api_key || (import.meta.env as any).VITE_OPENAI_API_KEY;
@@ -206,14 +207,15 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
 
             setMessages(prev => [...prev, assistantMsg])
 
-            await supabase.from('chat_messages').insert({
-                user_id: ownerId,
-                role: 'assistant',
-                content: response,
-                visitor_id: visitor.id,
-                conversation_id: convId || null,
-                source: 'public'
-            })
+            if (convId) {
+                supabase.rpc('save_public_message', {
+                    p_owner_id: ownerId,
+                    p_conversation_id: convId,
+                    p_role: 'assistant',
+                    p_content: response,
+                    p_visitor_name: visitor.name
+                }).catch((e: Error) => console.warn('save_public_message (assistant):', e.message))
+            }
 
         } catch (e: any) {
             setMessages(prev => [...prev, {

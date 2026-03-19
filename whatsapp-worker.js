@@ -191,53 +191,24 @@ async function getOrCreateWhatsAppConversation(userId, remoteJid, senderName) {
 	if (!userId || !remoteJid) return null;
 	
 	try {
-		// Try to find existing conversation
-		const { data: existing } = await supabase
-			.from('conversations')
-			.select('id')
-			.eq('user_id', userId)
-			.eq('phone_number', remoteJid)
-			.eq('source', 'whatsapp')
-			.maybeSingle();
-		
-		if (existing) return existing.id;
-		
-		// Create new conversation for this contact
 		const shortPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
 		const title = senderName && senderName !== shortPhone
 			? `${senderName} (${shortPhone})`
 			: `واتساب: ${shortPhone}`;
-		
-		const { data: newConv, error } = await supabase
-			.from('conversations')
-			.insert({
-				user_id: userId,
-				title,
-				source: 'whatsapp',
-				phone_number: remoteJid,
-				visitor_name: senderName || shortPhone
-			})
-			.select('id')
-			.single();
+			
+		const { data: convId, error } = await supabase.rpc('get_or_create_whatsapp_conversation', {
+			p_user_id: userId,
+			p_phone: remoteJid,
+			p_title: title,
+			p_visitor_name: senderName || shortPhone
+		});
 		
 		if (error) {
-			// If unique violation, fetch the existing one
-			if (error.code === '23505') {
-				const { data: retry } = await supabase
-					.from('conversations')
-					.select('id')
-					.eq('user_id', userId)
-					.eq('phone_number', remoteJid)
-					.eq('source', 'whatsapp')
-					.maybeSingle();
-				return retry?.id || null;
-			}
-			console.error('[Worker] Error creating WA conversation:', error.message);
+			console.error('[Worker] Error calling RPC get_or_create_whatsapp_conversation:', error.message);
 			return null;
 		}
 		
-		console.log(`[Worker] Created new WhatsApp conversation: ${newConv.id} for ${remoteJid}`);
-		return newConv.id;
+		return convId;
 	} catch (e) {
 		console.error('[Worker] getOrCreateWhatsAppConversation error:', e.message);
 		return null;
@@ -253,16 +224,15 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 			delay: 1200
 		}, { headers: { 'apikey': apiKey } }).catch(() => {});
 		
-		// Save incoming user message to DB
+		// Save incoming user message to DB via RPC
 		if (settings.user_id && conversationId) {
-			await supabase.from('chat_messages').insert({
-				user_id: settings.user_id,
-				role: 'user',
-				content: incomingText,
-				conversation_id: conversationId,
-				source: 'whatsapp'
+			await supabase.rpc('save_whatsapp_message', {
+				p_user_id: settings.user_id,
+				p_conversation_id: conversationId,
+				p_role: 'user',
+				p_content: incomingText
 			}).then(({ error }) => {
-				if (error) console.error('[Worker] Save user msg error:', error.message);
+				if (error) console.error('[Worker] Save user msg RPC error:', error.message);
 			});
 		}
 		
@@ -293,16 +263,15 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 			linkPreview: true
 		}, { headers: { 'apikey': apiKey } });
 		
-		// Save AI response to DB
+		// Save AI response to DB via RPC
 		if (settings.user_id && conversationId) {
-			await supabase.from('chat_messages').insert({
-				user_id: settings.user_id,
-				role: 'assistant',
-				content: aiResponse,
-				conversation_id: conversationId,
-				source: 'whatsapp'
+			await supabase.rpc('save_whatsapp_message', {
+				p_user_id: settings.user_id,
+				p_conversation_id: conversationId,
+				p_role: 'assistant',
+				p_content: aiResponse
 			}).then(({ error }) => {
-				if (error) console.error('[Worker] Save assistant msg error:', error.message);
+				if (error) console.error('[Worker] Save assistant msg RPC error:', error.message);
 			});
 		}
 		

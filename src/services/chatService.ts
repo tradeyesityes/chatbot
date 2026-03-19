@@ -56,37 +56,33 @@ export class ChatService {
     }
 
     /**
-     * Creates a public (embed widget) conversation and links it to a visitor.
-     * The conversation is tagged with source='public' and stores visitor info.
+     * Creates a public (embed widget) conversation under the owner's account.
+     * Uses a SECURITY DEFINER RPC function to bypass RLS for anonymous visitors.
      */
     static async createPublicConversation(
         ownerId: string,
         title: string,
-        visitorId: string,
+        _visitorId: string,
         visitorName: string
     ): Promise<Conversation> {
-        const { data, error } = await supabase
-            .from('conversations')
-            .insert({
-                user_id: ownerId,
-                title,
-                source: 'public',
-                visitor_id: visitorId,
-                visitor_name: visitorName
-            })
-            .select()
-            .single()
+        // Use RPC function - runs as SECURITY DEFINER so anon widget users
+        // can insert under the owner's account without RLS violations
+        const { data: newId, error } = await supabase.rpc('create_public_conversation', {
+            p_owner_id: ownerId,
+            p_title: title,
+            p_visitor_name: visitorName
+        })
 
         if (error) throw error
 
         return {
-            id: data.id,
-            user_id: data.user_id,
-            title: data.title,
-            created_at: new Date(data.created_at),
+            id: newId as string,
+            user_id: ownerId,
+            title,
+            created_at: new Date(),
             source: 'public',
             phone_number: null,
-            visitor_name: data.visitor_name || visitorName
+            visitor_name: visitorName
         }
     }
 
