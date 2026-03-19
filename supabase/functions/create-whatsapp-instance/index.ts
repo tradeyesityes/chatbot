@@ -176,8 +176,13 @@ serve(async (req) => {
         })
 
     } catch (error: any) {
-        console.error('Error:', error)
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error('CRITICAL ERROR in Edge Function:', error)
+        console.error('Error Stack:', error.stack)
+        return new Response(JSON.stringify({ 
+            error: error.message,
+            stack: error.stack,
+            at: new Date().toISOString()
+        }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })

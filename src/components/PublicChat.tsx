@@ -9,6 +9,7 @@ import { ChatInput } from './ChatInput'
 import { supabase } from '../services/supabaseService'
 import { StorageService } from '../services/storageService'
 import { SettingsService } from '../services/settingsService'
+import { ChatService } from '../services/chatService'
 
 const gemini = new GeminiService()
 const openai = new OpenAIService()
@@ -28,6 +29,7 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
     const [formData, setFormData] = useState({ name: '', email: '' })
     const [isStarted, setIsStarted] = useState(false)
     const [isWidgetOpen, setIsWidgetOpen] = useState(false)
+    const [conversationId, setConversationId] = useState<string | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -107,11 +109,31 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
         setLoading(true)
 
         try {
+            // Create a conversation record on the first message
+            let convId = conversationId
+            if (!convId) {
+                try {
+                    const title = `${visitor.name} — ${input.length > 25 ? input.substring(0, 25) + '...' : input}`
+                    const newConv = await ChatService.createPublicConversation(
+                        ownerId,
+                        title,
+                        visitor.id,
+                        visitor.name
+                    )
+                    convId = newConv.id
+                    setConversationId(convId)
+                } catch (e) {
+                    console.warn('Could not create public conversation record:', e)
+                }
+            }
+
             await supabase.from('chat_messages').insert({
                 user_id: ownerId,
                 role: 'user',
                 content: input,
-                visitor_id: visitor.id
+                visitor_id: visitor.id,
+                conversation_id: convId || null,
+                source: 'public'
             })
 
             let response = ''
@@ -188,7 +210,9 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
                 user_id: ownerId,
                 role: 'assistant',
                 content: response,
-                visitor_id: visitor.id
+                visitor_id: visitor.id,
+                conversation_id: convId || null,
+                source: 'public'
             })
 
         } catch (e: any) {

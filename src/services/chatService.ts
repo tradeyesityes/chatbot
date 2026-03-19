@@ -1,4 +1,4 @@
-import { Message, Conversation } from '../types'
+import { Message, Conversation, ConversationSource } from '../types'
 import { supabase } from './supabaseService'
 
 export class ChatService {
@@ -21,17 +21,24 @@ export class ChatService {
             id: row.id,
             user_id: row.user_id,
             title: row.title,
-            created_at: new Date(row.created_at)
+            created_at: new Date(row.created_at),
+            source: (row.source as ConversationSource) || 'webchat',
+            phone_number: row.phone_number || null,
+            visitor_name: row.visitor_name || null
         }))
     }
 
     /**
-     * Creates a new conversation
+     * Creates a new conversation (default: webchat source)
      */
-    static async createConversation(userId: string, title: string): Promise<Conversation> {
+    static async createConversation(
+        userId: string,
+        title: string,
+        source: ConversationSource = 'webchat'
+    ): Promise<Conversation> {
         const { data, error } = await supabase
             .from('conversations')
-            .insert({ user_id: userId, title })
+            .insert({ user_id: userId, title, source })
             .select()
             .single()
 
@@ -41,7 +48,45 @@ export class ChatService {
             id: data.id,
             user_id: data.user_id,
             title: data.title,
-            created_at: new Date(data.created_at)
+            created_at: new Date(data.created_at),
+            source: (data.source as ConversationSource) || source,
+            phone_number: data.phone_number || null,
+            visitor_name: data.visitor_name || null
+        }
+    }
+
+    /**
+     * Creates a public (embed widget) conversation and links it to a visitor.
+     * The conversation is tagged with source='public' and stores visitor info.
+     */
+    static async createPublicConversation(
+        ownerId: string,
+        title: string,
+        visitorId: string,
+        visitorName: string
+    ): Promise<Conversation> {
+        const { data, error } = await supabase
+            .from('conversations')
+            .insert({
+                user_id: ownerId,
+                title,
+                source: 'public',
+                visitor_id: visitorId,
+                visitor_name: visitorName
+            })
+            .select()
+            .single()
+
+        if (error) throw error
+
+        return {
+            id: data.id,
+            user_id: data.user_id,
+            title: data.title,
+            created_at: new Date(data.created_at),
+            source: 'public',
+            phone_number: null,
+            visitor_name: data.visitor_name || visitorName
         }
     }
 
@@ -101,7 +146,7 @@ export class ChatService {
             })
         } catch (error: any) {
             console.error('Error fetching messages:', error)
-            return [] // Return empty instead of crashing the app
+            return []
         }
     }
 

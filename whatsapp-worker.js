@@ -166,7 +166,12 @@ async function pollInstance(settings, cleanBaseUrl, apiKey, instanceName) {
 		const text = extractText(msg.message);
 		if (!text) continue;
 		
-		await handleMessage(settings, msg.key.remoteJid, text, cleanBaseUrl, apiKey);
+		// Get or create a conversation record for this phone number
+		const remoteJid = msg.key.remoteJid;
+		const senderName = msg.pushName || msg.key.remoteJid.replace('@s.whatsapp.net', '');
+		const convId = await getOrCreateWhatsAppConversation(settings.user_id, remoteJid, senderName);
+		
+		await handleMessage(settings, remoteJid, text, cleanBaseUrl, apiKey, convId);
 	}
 }
 
@@ -178,7 +183,68 @@ function extractText(message) {
 		   message?.documentMessage?.caption || '';
 }
 
-async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, apiKey) {
+/**
+ * Gets the existing conversation for this WhatsApp phone number or creates a new one.
+ * Uses an upsert pattern via unique index on (user_id, phone_number).
+ */
+async function getOrCreateWhatsAppConversation(userId, remoteJid, senderName) {
+	if (!userId || !remoteJid) return null;
+	
+	try {
+		// Try to find existing conversation
+		const { data: existing } = await supabase
+			.from('conversations')
+			.select('id')
+			.eq('user_id', userId)
+			.eq('phone_number', remoteJid)
+			.eq('source', 'whatsapp')
+			.maybeSingle();
+		
+		if (existing) return existing.id;
+		
+		// Create new conversation for this contact
+		const shortPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+		const title = senderName && senderName !== shortPhone
+			? `${senderName} (${shortPhone})`
+			: `واتساب: ${shortPhone}`;
+		
+		const { data: newConv, error } = await supabase
+			.from('conversations')
+			.insert({
+				user_id: userId,
+				title,
+				source: 'whatsapp',
+				phone_number: remoteJid,
+				visitor_name: senderName || shortPhone
+			})
+			.select('id')
+			.single();
+		
+		if (error) {
+			// If unique violation, fetch the existing one
+			if (error.code === '23505') {
+				const { data: retry } = await supabase
+					.from('conversations')
+					.select('id')
+					.eq('user_id', userId)
+					.eq('phone_number', remoteJid)
+					.eq('source', 'whatsapp')
+					.maybeSingle();
+				return retry?.id || null;
+			}
+			console.error('[Worker] Error creating WA conversation:', error.message);
+			return null;
+		}
+		
+		console.log(`[Worker] Created new WhatsApp conversation: ${newConv.id} for ${remoteJid}`);
+		return newConv.id;
+	} catch (e) {
+		console.error('[Worker] getOrCreateWhatsAppConversation error:', e.message);
+		return null;
+	}
+}
+
+async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, apiKey, conversationId) {
 	try {
 		// Send composing state
 		await axios.post(`${cleanBaseUrl}/message/sendPresence/${settings.evolution_instance_name}`, {
@@ -186,6 +252,19 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 			presence: 'composing',
 			delay: 1200
 		}, { headers: { 'apikey': apiKey } }).catch(() => {});
+		
+		// Save incoming user message to DB
+		if (settings.user_id && conversationId) {
+			await supabase.from('chat_messages').insert({
+				user_id: settings.user_id,
+				role: 'user',
+				content: incomingText,
+				conversation_id: conversationId,
+				source: 'whatsapp'
+			}).then(({ error }) => {
+				if (error) console.error('[Worker] Save user msg error:', error.message);
+			});
+		}
 		
 		// Fetch user files for RAG context
 		let context = '';
@@ -213,6 +292,19 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 			delay: 1200,
 			linkPreview: true
 		}, { headers: { 'apikey': apiKey } });
+		
+		// Save AI response to DB
+		if (settings.user_id && conversationId) {
+			await supabase.from('chat_messages').insert({
+				user_id: settings.user_id,
+				role: 'assistant',
+				content: aiResponse,
+				conversation_id: conversationId,
+				source: 'whatsapp'
+			}).then(({ error }) => {
+				if (error) console.error('[Worker] Save assistant msg error:', error.message);
+			});
+		}
 		
 		console.log(`✅ [Worker] Sent reply successfully.`);
 	} catch (error) {

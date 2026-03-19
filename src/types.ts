@@ -23,9 +23,14 @@ export interface User {
   plan: UserPlan;
 }
 
+export type ConversationSource = 'webchat' | 'whatsapp' | 'public';
+
 export interface Conversation {
   id: string;
   user_id: string;
   title: string;
   created_at: Date;
+  source?: ConversationSource;
+  phone_number?: string | null;
+  visitor_name?: string | null;
 }

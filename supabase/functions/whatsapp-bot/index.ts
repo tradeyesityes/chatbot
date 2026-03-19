@@ -115,7 +115,7 @@ serve(async (req) => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'apikey': settings.evolution_api_key
+                    'apikey': settings.evolution_api_key || settings.evolution_global_api_key
                 },
                 body: JSON.stringify({
                     number: remoteJid,
@@ -195,6 +195,16 @@ serve(async (req) => {
 
 سياق المعلومات:
 ${context}`
+
+        await logDebug('AIPredict', 'Selecting provider', { 
+            useGemini: settings.use_gemini, 
+            hasGeminiKey: !!settings.gemini_api_key,
+            useOpenAI: settings.use_openai,
+            hasOpenAIKey: !!settings.openai_api_key,
+            useOllama: settings.use_remote_ollama,
+            hasOllamaUrl: !!settings.ollama_base_url,
+            instanceName 
+        })
 
         if (settings.use_gemini && settings.gemini_api_key) {
             await logDebug('AI', 'Using Gemini for response...', { model: settings.gemini_model_name, userId, instanceName })
@@ -292,7 +302,7 @@ ${context}`
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'apikey': settings.evolution_api_key
+                'apikey': settings.evolution_api_key || settings.evolution_global_api_key
             },
             body: JSON.stringify({
                 number: remoteJid,

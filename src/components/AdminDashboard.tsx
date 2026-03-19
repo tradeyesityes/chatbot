@@ -575,21 +575,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                 ) : userConversations.length === 0 ? (
                                     <div className="text-center py-10 text-xs text-slate-400">لا يوجد محادثات</div>
                                 ) : (
-                                    userConversations.map(conv => (
-                                        <button
-                                            key={conv.id}
-                                            onClick={() => handleSelectConversation(conv.id)}
-                                            className={`w-full p-4 rounded-2xl text-right transition-all border ${selectedConvId === conv.id
-                                                ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20'
-                                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'
-                                                }`}
-                                        >
-                                            <div className="font-bold truncate text-sm">{conv.title || 'محادثة جديدة'}</div>
-                                            <div className={`text-[10px] mt-1 ${selectedConvId === conv.id ? 'text-blue-100' : 'text-slate-400'}`}>
-                                                {new Date(conv.created_at).toLocaleDateString('ar-EG')}
-                                            </div>
-                                        </button>
-                                    ))
+                                    userConversations.map(conv => {
+                                        const source = conv.source || 'webchat'
+                                        const sourceBadge = source === 'whatsapp'
+                                            ? { icon: '📱', label: conv.visitor_name || conv.phone_number?.replace('@s.whatsapp.net','').replace('@g.us','') || 'واتساب', color: 'text-green-600 bg-green-50 border-green-100' }
+                                            : source === 'public'
+                                            ? { icon: '👤', label: conv.visitor_name || 'زائر', color: 'text-purple-600 bg-purple-50 border-purple-100' }
+                                            : { icon: '💬', label: 'ويب', color: 'text-blue-600 bg-blue-50 border-blue-100' }
+                                        return (
+                                            <button
+                                                key={conv.id}
+                                                onClick={() => handleSelectConversation(conv.id)}
+                                                className={`w-full p-4 rounded-2xl text-right transition-all border ${selectedConvId === conv.id
+                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20'
+                                                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[9px] font-bold ${selectedConvId === conv.id ? 'bg-white/20 text-white border-white/30' : sourceBadge.color}`}>
+                                                        {sourceBadge.icon} {sourceBadge.label.slice(0, 12)}
+                                                    </span>
+                                                </div>
+                                                <div className="font-bold truncate text-sm">{conv.title || 'محادثة جديدة'}</div>
+                                                <div className={`text-[10px] mt-1 ${selectedConvId === conv.id ? 'text-blue-100' : 'text-slate-400'}`}>
+                                                    {new Date(conv.created_at).toLocaleDateString('ar-EG')}
+                                                </div>
+                                            </button>
+                                        )
+                                    })
                                 )}
                             </div>
 
