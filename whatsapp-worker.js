@@ -221,7 +221,7 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 		await axios.post(`${cleanBaseUrl}/message/sendPresence/${settings.evolution_instance_name}`, {
 			number: remoteJid,
 			presence: 'composing',
-			delay: 2500
+			delay: 1200
 		}, { headers: { 'apikey': apiKey } }).catch(() => {});
 		
 		// Save incoming user message to DB via RPC
@@ -258,7 +258,7 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 		await axios.post(`${cleanBaseUrl}/message/sendText/${settings.evolution_instance_name}`, {
 			number: remoteJid,
 			text: aiResponse,
-			delay: 4500,
+			delay: 1200,
 			linkPreview: true
 		}, { headers: { 'apikey': apiKey } });
 		

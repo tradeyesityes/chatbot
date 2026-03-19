@@ -151,7 +151,7 @@ serve(async (req) => {
                 body: JSON.stringify({
                     number: remoteJid,
                     presence: 'composing',
-                    delay: 2500 // Start typing for ~2.5 seconds
+                    delay: 1200
                 })
             })
             await logDebug('Presence', 'Sent composing presence', { instanceName })
@@ -338,7 +338,7 @@ ${context}`
             body: JSON.stringify({
                 number: remoteJid,
                 text: aiResponse, // Corrected: moved text to root
-                delay: 4500,
+                delay: 1200,
                 linkPreview: false
             })
         })
