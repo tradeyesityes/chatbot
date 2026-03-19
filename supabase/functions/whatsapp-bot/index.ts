@@ -107,6 +107,37 @@ serve(async (req) => {
         const userId = settings.user_id
         await logDebug('SettingsFound', `Found enabled bot for user: ${userId}`, { userId, botEnabled: settings.evolution_bot_enabled, instanceName })
 
+        // 2.3 Get or Create Conversation and Save User Message
+        let conversationId = null;
+        try {
+            const senderName = payload.data?.pushName || remoteJid?.replace('@s.whatsapp.net', '').replace('@g.us', '');
+            const title = senderName ? `${senderName} (${remoteJid?.split('@')[0]})` : `واتساب: ${remoteJid?.split('@')[0]}`;
+            
+            const { data: convId, error: convErr } = await supabase.rpc('get_or_create_whatsapp_conversation', {
+                p_user_id: userId,
+                p_phone: remoteJid,
+                p_title: title,
+                p_visitor_name: senderName
+            });
+            
+            if (convErr) {
+                await logDebug('DBError', 'Error creating WA conversation', { error: convErr, instanceName })
+            } else {
+                conversationId = convId;
+                
+                // Save incoming user message
+                const { error: msgErr } = await supabase.rpc('save_whatsapp_message', {
+                    p_user_id: userId,
+                    p_conversation_id: conversationId,
+                    p_role: 'user',
+                    p_content: incomingText
+                });
+                if (msgErr) await logDebug('DBError', 'Error saving user message', { error: msgErr, instanceName })
+            }
+        } catch (dbErr) {
+            console.error('Conv DB Error:', dbErr);
+        }
+
         // 2.5 Send "Composing" Presence
         try {
             const cleanBaseUrl = settings.evolution_base_url.replace(/\/$/, '')
@@ -314,6 +345,17 @@ ${context}`
 
         const sendResult = await sendResponse.json()
         await logDebug('EvolutionResponse', 'Evolution API Response', { result: sendResult, userId, instanceName })
+
+        // 6. Save Assistant Response
+        if (conversationId && aiResponse) {
+            const { error: astErr } = await supabase.rpc('save_whatsapp_message', {
+                p_user_id: userId,
+                p_conversation_id: conversationId,
+                p_role: 'assistant',
+                p_content: aiResponse
+            });
+            if (astErr) await logDebug('DBError', 'Error saving assistant message', { error: astErr, instanceName })
+        }
 
         return new Response(JSON.stringify({ status: 'success', evolution_response: sendResult }), { status: 200 })
     } catch (err: any) {
