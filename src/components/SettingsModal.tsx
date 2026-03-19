@@ -476,6 +476,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                             <div className="animate-in slide-in-from-top-2 duration-200 space-y-3">
                                 <div>
                                     <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        مزود خدمة الواتساب
+                                    </label>
+                                    <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg mb-4">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false })}
+                                            className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${!settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                        >
+                                            Evolution API (غير رسمي)
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: true })}
+                                            className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                        >
+                                            WhatsApp Cloud API (الرسمي)
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                                         رقم الواتساب
                                     </label>
                                     <div className="flex gap-2">
@@ -487,7 +509,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                             dir="ltr"
                                             className="flex-1 px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
                                         />
-                                        {settings.evolution_bot_enabled && (
+                                        {!settings.wa_cloud_enabled && settings.evolution_bot_enabled && (
                                             <button
                                                 type="button"
                                                 onClick={handleSmartLink}
@@ -540,132 +562,210 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white resize-none"
                                     />
                                 </div>
+
+                                {/* Cloud API Specific Settings */}
+                                {settings.wa_cloud_enabled && (
+                                    <div className="mt-4 p-4 border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-xl">✅</span>
+                                            <div>
+                                                <h4 className="font-bold text-emerald-800 dark:text-emerald-400 text-sm">إعدادات Cloud API</h4>
+                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-500">هذه الطريقة أسرع، وأكثر أماناً ولا تعرضك للحظر.</p>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Phone Number ID (معرف رقم الهاتف)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.wa_cloud_phone_number_id || ''}
+                                                onChange={e => setSettings({ ...settings, wa_cloud_phone_number_id: e.target.value })}
+                                                placeholder="مثال: 10593847382019"
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Permanent Access Token (رمز الوصول)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.wa_cloud_access_token || ''}
+                                                onChange={e => setSettings({ ...settings, wa_cloud_access_token: e.target.value })}
+                                                placeholder="EAAM..."
+                                                style={{ WebkitTextSecurity: 'disc' } as any}
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Verify Token (لإعداد الـ Webhook)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.wa_cloud_verify_token || ''}
+                                                onChange={e => setSettings({ ...settings, wa_cloud_verify_token: e.target.value })}
+                                                placeholder="رمز للتحقق (اختياري، يمكنك إنشاء أي كلمة)"
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div className="pt-2">
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Webhook URL لربطه في Facebook:
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    readOnly
+                                                    value={`${window.location.origin}/api/wa-webhook`}
+                                                    className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs font-mono text-slate-500 outline-none"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`${window.location.origin}/api/wa-webhook`);
+                                                        setMessage({ type: 'success', text: 'تم نسخ رابط الـ Webhook' });
+                                                    }}
+                                                    className="px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
+                                                >
+                                                    نسخ
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
 
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                                    <BotAvatar size="sm" /> ربط الواتساب
-                                </h3>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={settings.evolution_bot_enabled || false}
-                                    onChange={async (e) => {
-                                        const isEnabled = e.target.checked
-                                        const instanceName = settings.evolution_instance_name || `user_${userId.substring(0, 8)}`
+                    {!settings.wa_cloud_enabled && (
+                        <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                                        <BotAvatar size="sm" /> ربط الواتساب (Evolution)
+                                    </h3>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.evolution_bot_enabled || false}
+                                        onChange={async (e) => {
+                                            const isEnabled = e.target.checked
+                                            const instanceName = settings.evolution_instance_name || `user_${userId.substring(0, 8)}`
 
-                                        const sanitize = (str: string) => str.trim().replace(/[^\x00-\x7F]/g, "")
-                                        let finalBaseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || ''
-                                        let finalGlobalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
+                                            const sanitize = (str: string) => str.trim().replace(/[^\x00-\x7F]/g, "")
+                                            let finalBaseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || ''
+                                            let finalGlobalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
 
-                                        // Try fetching from global_settings if missing
-                                        if (!finalBaseUrl || !finalGlobalKey) {
-                                            try {
-                                                const globals = await SettingsService.getGlobalSettings()
-                                                finalBaseUrl = finalBaseUrl || globals['evolution_base_url'] || ''
-                                                finalGlobalKey = finalGlobalKey || globals['evolution_global_api_key'] || ''
-                                            } catch (e) {
-                                                console.warn('Failed to fetch global settings', e)
-                                            }
-                                        }
-
-                                        finalBaseUrl = sanitize(finalBaseUrl)
-                                        finalGlobalKey = sanitize(finalGlobalKey)
-
-                                        if (isEnabled) {
-                                            // Diagnostic section (Hidden by default, shown when testing)
-                                            if (testResults.length > 0) {
-                                                testEvolutionConnection() // Refresh if already showing? Or just show results
-                                            }
-
-                                            // ----------------- ENABLING -----------------
-
-                                            if (finalBaseUrl && finalGlobalKey) {
+                                            // Try fetching from global_settings if missing
+                                            if (!finalBaseUrl || !finalGlobalKey) {
                                                 try {
-                                                    const updatedSettings = {
-                                                        ...settings,
-                                                        evolution_bot_enabled: true,
-                                                        evolution_base_url: finalBaseUrl,
-                                                        evolution_global_api_key: finalGlobalKey,
-                                                        evolution_instance_name: instanceName
+                                                    const globals = await SettingsService.getGlobalSettings()
+                                                    finalBaseUrl = finalBaseUrl || globals['evolution_base_url'] || ''
+                                                    finalGlobalKey = finalGlobalKey || globals['evolution_global_api_key'] || ''
+                                                } catch (e) {
+                                                    console.warn('Failed to fetch global settings', e)
+                                                }
+                                            }
+
+                                            finalBaseUrl = sanitize(finalBaseUrl)
+                                            finalGlobalKey = sanitize(finalGlobalKey)
+
+                                            if (isEnabled) {
+                                                // Diagnostic section (Hidden by default, shown when testing)
+                                                if (testResults.length > 0) {
+                                                    testEvolutionConnection() // Refresh if already showing? Or just show results
+                                                }
+
+                                                // ----------------- ENABLING -----------------
+
+                                                if (finalBaseUrl && finalGlobalKey) {
+                                                    try {
+                                                        const updatedSettings = {
+                                                            ...settings,
+                                                            evolution_bot_enabled: true,
+                                                            evolution_base_url: finalBaseUrl,
+                                                            evolution_global_api_key: finalGlobalKey,
+                                                            evolution_instance_name: instanceName
+                                                        }
+                                                        setSettings(updatedSettings)
+                                                        await SettingsService.updateSettings(userId, updatedSettings)
+                                                        setShowQRModal(true)
+                                                    } catch (error: any) {
+                                                        setMessage({ type: 'error', text: `خطأ في الحفظ: ${error.message}` })
                                                     }
-                                                    setSettings(updatedSettings)
-                                                    await SettingsService.updateSettings(userId, updatedSettings)
-                                                    setShowQRModal(true)
-                                                } catch (error: any) {
-                                                    setMessage({ type: 'error', text: `خطأ في الحفظ: ${error.message}` })
+                                                } else {
+                                                    setMessage({ type: 'error', text: 'فشل التفعيل: إعدادات Evolution API غير مكتملة في السيرفر (قاعدة البيانات والبيئة).' })
                                                 }
                                             } else {
-                                                setMessage({ type: 'error', text: 'فشل التفعيل: إعدادات Evolution API غير مكتملة في السيرفر (قاعدة البيانات والبيئة).' })
-                                            }
-                                        } else {
-                                            // ----------------- DISABLING -----------------
-                                            if (window.confirm('هل أنت متأكد؟ سيتم حذف رقم الواتس، وسوف تحتاج إلى إعادة تفعيله عبر QR code.')) {
-                                                try {
-                                                    setMessage({ type: 'success', text: 'جاري حذف الربط...' })
+                                                // ----------------- DISABLING -----------------
+                                                if (window.confirm('هل أنت متأكد؟ سيتم حذف رقم الواتس، وسوف تحتاج إلى إعادة تفعيله عبر QR code.')) {
+                                                    try {
+                                                        setMessage({ type: 'success', text: 'جاري حذف الربط...' })
 
-                                                    // 1. Delete Instance from Evolution API
-                                                    const cleanBaseUrl = finalBaseUrl.replace(/\/$/, '')
-                                                    const endpoints = [
-                                                        `${cleanBaseUrl}/instance/delete/${instanceName}`,
-                                                        `${cleanBaseUrl}/v2/instance/delete/${instanceName}`
-                                                    ]
+                                                        // 1. Delete Instance from Evolution API
+                                                        const cleanBaseUrl = finalBaseUrl.replace(/\/$/, '')
+                                                        const endpoints = [
+                                                            `${cleanBaseUrl}/instance/delete/${instanceName}`,
+                                                            `${cleanBaseUrl}/v2/instance/delete/${instanceName}`
+                                                        ]
 
-                                                    for (const url of endpoints) {
-                                                        try {
-                                                            const resp = await fetch(url, {
-                                                                method: 'DELETE',
-                                                                headers: {
-                                                                    'apikey': finalGlobalKey
-                                                                }
-                                                            })
-                                                            if (resp.ok || resp.status === 404) break
-                                                        } catch (e) {
-                                                            console.warn(`Delete failed at ${url}, trying next...`)
+                                                        for (const url of endpoints) {
+                                                            try {
+                                                                const resp = await fetch(url, {
+                                                                    method: 'DELETE',
+                                                                    headers: {
+                                                                        'apikey': finalGlobalKey
+                                                                    }
+                                                                })
+                                                                if (resp.ok || resp.status === 404) break
+                                                            } catch (e) {
+                                                                console.warn(`Delete failed at ${url}, trying next...`)
+                                                            }
                                                         }
+
+                                                        // 2. Update Settings - clear whatsapp_number on unlink
+                                                        const updatedSettings = { 
+                                                            ...settings, 
+                                                            evolution_bot_enabled: false,
+                                                            whatsapp_number: '',
+                                                            evolution_instance_name: '',
+                                                            evolution_api_key: ''
+                                                        }
+                                                        setSettings(updatedSettings)
+
+                                                        // 3. Save to database
+                                                        await SettingsService.updateSettings(userId, updatedSettings)
+
+                                                        setMessage({ type: 'success', text: 'تم إلغاء الربط وحذف الرقم بنجاح' })
+                                                    } catch (error: any) {
+                                                        console.error('Logout Error:', error)
+                                                        // Even if API fails, we disable locally to reflect user intent
+                                                        setSettings({ 
+                                                            ...settings, 
+                                                            evolution_bot_enabled: false,
+                                                            whatsapp_number: '',
+                                                            evolution_instance_name: '',
+                                                            evolution_api_key: ''
+                                                        })
+                                                        setMessage({ type: 'error', text: 'حدث خطأ أثناء الحذف من السيرفر، لكن تم التعطيل محلياً' })
                                                     }
-
-                                                    // 2. Update Settings - clear whatsapp_number on unlink
-                                                    const updatedSettings = { 
-                                                        ...settings, 
-                                                        evolution_bot_enabled: false,
-                                                        whatsapp_number: '',
-                                                        evolution_instance_name: '',
-                                                        evolution_api_key: ''
-                                                    }
-                                                    setSettings(updatedSettings)
-
-                                                    // 3. Save to database
-                                                    await SettingsService.updateSettings(userId, updatedSettings)
-
-                                                    setMessage({ type: 'success', text: 'تم إلغاء الربط وحذف الرقم بنجاح' })
-                                                } catch (error: any) {
-                                                    console.error('Logout Error:', error)
-                                                    // Even if API fails, we disable locally to reflect user intent
-                                                    setSettings({ 
-                                                        ...settings, 
-                                                        evolution_bot_enabled: false,
-                                                        whatsapp_number: '',
-                                                        evolution_instance_name: '',
-                                                        evolution_api_key: ''
-                                                    })
-                                                    setMessage({ type: 'error', text: 'حدث خطأ أثناء الحذف من السيرفر، لكن تم التعطيل محلياً' })
                                                 }
+                                                // If cancelled, do nothing (checkbox stays checked)
                                             }
-                                            // If cancelled, do nothing (checkbox stays checked)
-                                        }
-                                    }}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                            </label>
+                                        }}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Instagram Integration Removed */}
 

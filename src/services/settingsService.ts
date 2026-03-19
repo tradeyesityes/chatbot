@@ -26,6 +26,10 @@ export interface UserSettings {
     qdrant_url?: string | null
     qdrant_api_key?: string | null
     qdrant_collection?: string
+    wa_cloud_enabled?: boolean
+    wa_cloud_phone_number_id?: string | null
+    wa_cloud_access_token?: string | null
+    wa_cloud_verify_token?: string | null
 }
 
 export class SettingsService {
@@ -67,7 +71,11 @@ export class SettingsService {
             use_qdrant: data?.use_qdrant || false,
             qdrant_url: data?.qdrant_url || null,
             qdrant_api_key: data?.qdrant_api_key || null,
-            qdrant_collection: data?.qdrant_collection || 'segments'
+            qdrant_collection: data?.qdrant_collection || 'segments',
+            wa_cloud_enabled: data?.wa_cloud_enabled || false,
+            wa_cloud_phone_number_id: data?.wa_cloud_phone_number_id || null,
+            wa_cloud_access_token: data?.wa_cloud_access_token || null,
+            wa_cloud_verify_token: data?.wa_cloud_verify_token || null
         }
 
         // If no row exists, or the default API key was missing, save it now so it persists
