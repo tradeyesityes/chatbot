@@ -30,6 +30,10 @@ export interface UserSettings {
     wa_cloud_phone_number_id?: string | null
     wa_cloud_access_token?: string | null
     wa_cloud_verify_token?: string | null
+    wa_twilio_enabled?: boolean
+    wa_twilio_account_sid?: string | null
+    wa_twilio_auth_token?: string | null
+    wa_twilio_phone_number?: string | null
 }
 
 export class SettingsService {
@@ -75,7 +79,11 @@ export class SettingsService {
             wa_cloud_enabled: data?.wa_cloud_enabled || false,
             wa_cloud_phone_number_id: data?.wa_cloud_phone_number_id || null,
             wa_cloud_access_token: data?.wa_cloud_access_token || null,
-            wa_cloud_verify_token: data?.wa_cloud_verify_token || null
+            wa_cloud_verify_token: data?.wa_cloud_verify_token || null,
+            wa_twilio_enabled: data?.wa_twilio_enabled || false,
+            wa_twilio_account_sid: data?.wa_twilio_account_sid || null,
+            wa_twilio_auth_token: data?.wa_twilio_auth_token || null,
+            wa_twilio_phone_number: data?.wa_twilio_phone_number || null
         }
 
         // If no row exists, or the default API key was missing, save it now so it persists

@@ -478,20 +478,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                     <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                                         مزود خدمة الواتساب
                                     </label>
-                                    <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg mb-4">
+                                    <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4">
                                         <button 
                                             type="button"
-                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false })}
-                                            className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${!settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: false })}
+                                            className={`flex-1 py-2 text-[9px] font-bold rounded-lg transition-all ${(!settings.wa_cloud_enabled && !settings.wa_twilio_enabled) ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                         >
-                                            Evolution API (غير رسمي)
+                                            Evolution
                                         </button>
                                         <button 
                                             type="button"
-                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: true })}
-                                            className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: true, wa_twilio_enabled: false })}
+                                            className={`flex-1 py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                         >
-                                            WhatsApp Cloud API (الرسمي)
+                                            Cloud API
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: true })}
+                                            className={`flex-1 py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_twilio_enabled ? 'bg-white dark:bg-slate-700 shadow text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                        >
+                                            Twilio
                                         </button>
                                     </div>
                                 </div>
@@ -638,11 +645,87 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Twilio API Specific Settings */}
+                                {settings.wa_twilio_enabled && (
+                                    <div className="mt-4 p-4 border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-xl">🔴</span>
+                                            <div>
+                                                <h4 className="font-bold text-red-800 dark:text-red-400 text-sm">إعدادات Twilio API</h4>
+                                                <p className="text-[10px] text-red-600 dark:text-red-500">مزود خدمة معتمد وموثوق جداً للشركات.</p>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Account SID
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.wa_twilio_account_sid || ''}
+                                                onChange={e => setSettings({ ...settings, wa_twilio_account_sid: e.target.value })}
+                                                placeholder="AC..."
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Auth Token
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.wa_twilio_auth_token || ''}
+                                                onChange={e => setSettings({ ...settings, wa_twilio_auth_token: e.target.value })}
+                                                placeholder="Auth Token..."
+                                                style={{ WebkitTextSecurity: 'disc' } as any}
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Twilio WhatsApp Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.wa_twilio_phone_number || ''}
+                                                onChange={e => setSettings({ ...settings, wa_twilio_phone_number: e.target.value })}
+                                                placeholder="whatsapp:+1..."
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div className="pt-2">
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Webhook URL لربطه في Twilio:
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    readOnly
+                                                    value={`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-twilio-bot`}
+                                                    className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs font-mono text-slate-500 outline-none"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-twilio-bot`);
+                                                        setMessage({ type: 'success', text: 'تم نسخ رابط الـ Webhook' });
+                                                    }}
+                                                    className="px-3 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
+                                                >
+                                                    نسخ
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
 
-                    {!settings.wa_cloud_enabled && (
+                    {!settings.wa_cloud_enabled && !settings.wa_twilio_enabled && (
                         <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
                             <div className="flex items-center justify-between mb-4">
                                 <div>

@@ -501,6 +501,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             </label>
                                             <span className="font-bold text-slate-800 dark:text-white flex items-center gap-2">WhatsApp Cloud API</span>
                                         </div>
+
+                                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={editingUser.wa_twilio_enabled || false}
+                                                    onChange={e => setEditingUser({ ...editingUser, wa_twilio_enabled: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+                                            </label>
+                                            <span className="font-bold text-slate-800 dark:text-white flex items-center gap-2">WhatsApp Twilio API</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
