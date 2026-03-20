@@ -502,34 +502,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                     <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                                         مزود خدمة الواتساب
                                     </label>
-                                    <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4">
+                                    <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4">
                                         <button 
                                             type="button"
                                             onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: false, wa_whatchimp_enabled: false })}
-                                            className={`py-2 text-[9px] font-bold rounded-lg transition-all ${(!settings.wa_cloud_enabled && !settings.wa_twilio_enabled && !settings.wa_whatchimp_enabled) ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                            className={`py-3 text-[10px] font-bold rounded-xl transition-all ${(!settings.wa_cloud_enabled && !settings.wa_twilio_enabled && !settings.wa_whatchimp_enabled) ? 'bg-white dark:bg-slate-700 shadow-md text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                         >
                                             Evolution
                                         </button>
                                         <button 
                                             type="button"
                                             onClick={() => setSettings({ ...settings, wa_cloud_enabled: true, wa_twilio_enabled: false, wa_whatchimp_enabled: false })}
-                                            className={`py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                            className={`py-3 text-[10px] font-bold rounded-xl transition-all ${settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow-md text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                         >
                                             Cloud API
                                         </button>
                                         <button 
                                             type="button"
                                             onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: true, wa_whatchimp_enabled: false })}
-                                            className={`py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_twilio_enabled ? 'bg-white dark:bg-slate-700 shadow text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                            className={`py-3 text-[10px] font-bold rounded-xl transition-all ${settings.wa_twilio_enabled ? 'bg-white dark:bg-slate-700 shadow-md text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                         >
                                             Twilio
                                         </button>
                                         <button 
                                             type="button"
                                             onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: false, wa_whatchimp_enabled: true })}
-                                            className={`py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_whatchimp_enabled ? 'bg-white dark:bg-slate-700 shadow text-orange-600 dark:text-orange-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                            className={`py-3 text-[10px] font-bold rounded-xl transition-all ${settings.wa_whatchimp_enabled ? 'bg-white dark:bg-slate-700 shadow-md text-orange-600 dark:text-orange-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                         >
-                                            WhatChimp
+                                            WhatChimp 🐒
                                         </button>
                                     </div>
                                 </div>
@@ -819,7 +819,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                         )}
                     </div>
 
-                    {!settings.wa_cloud_enabled && !settings.wa_twilio_enabled && (
+                    {!settings.wa_cloud_enabled && !settings.wa_twilio_enabled && !settings.wa_whatchimp_enabled && (
                         <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
