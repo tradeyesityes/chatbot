@@ -34,6 +34,9 @@ export interface UserSettings {
     wa_twilio_account_sid?: string | null
     wa_twilio_auth_token?: string | null
     wa_twilio_phone_number?: string | null
+    wa_whatchimp_enabled?: boolean
+    wa_whatchimp_api_key?: string | null
+    wa_whatchimp_phone_number?: string | null
 }
 
 export class SettingsService {
@@ -83,7 +86,10 @@ export class SettingsService {
             wa_twilio_enabled: data?.wa_twilio_enabled || false,
             wa_twilio_account_sid: data?.wa_twilio_account_sid || null,
             wa_twilio_auth_token: data?.wa_twilio_auth_token || null,
-            wa_twilio_phone_number: data?.wa_twilio_phone_number || null
+            wa_twilio_phone_number: data?.wa_twilio_phone_number || null,
+            wa_whatchimp_enabled: data?.wa_whatchimp_enabled || false,
+            wa_whatchimp_api_key: data?.wa_whatchimp_api_key || null,
+            wa_whatchimp_phone_number: data?.wa_whatchimp_phone_number || null
         }
 
         // If no row exists, or the default API key was missing, save it now so it persists
@@ -97,15 +103,21 @@ export class SettingsService {
     }
 
     static async updateSettings(userId: string, settings: UserSettings): Promise<void> {
+        console.log("Supabase Upsert Payload:", settings);
         const { error } = await supabase
             .from('user_settings')
             .upsert({
                 user_id: userId,
                 ...settings,
                 updated_at: new Date().toISOString()
+            }, { 
+                onConflict: 'user_id' 
             })
 
-        if (error) throw error
+        if (error) {
+            console.error("Supabase Upsert Error:", error);
+            throw error;
+        }
     }
 
     static async getGlobalSettings(): Promise<Record<string, string>> {

@@ -30,7 +30,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         evolution_global_api_key: import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || '',
         evolution_instance_name: '',
         evolution_bot_enabled: false,
-        is_admin: false
+        is_admin: false,
+        wa_cloud_enabled: false,
+        wa_cloud_phone_number_id: '',
+        wa_cloud_access_token: '',
+        wa_cloud_verify_token: '',
+        wa_twilio_enabled: false,
+        wa_twilio_account_sid: '',
+        wa_twilio_auth_token: '',
+        wa_twilio_phone_number: '',
+        wa_whatchimp_enabled: false,
+        wa_whatchimp_api_key: '',
+        wa_whatchimp_phone_number: ''
     })
 
     const [discoveryLoading, setDiscoveryLoading] = useState(false)
@@ -118,10 +129,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                 evolution_global_api_key: data.evolution_global_api_key || envEvolutionGlobalKey,
                 evolution_instance_name: data.evolution_instance_name || '',
                 evolution_bot_enabled: data.evolution_bot_enabled || false,
-                is_admin: data.is_admin || false
+                is_admin: data.is_admin || false,
+                wa_cloud_enabled: data.wa_cloud_enabled || false,
+                wa_cloud_phone_number_id: data.wa_cloud_phone_number_id || '',
+                wa_cloud_access_token: data.wa_cloud_access_token || '',
+                wa_cloud_verify_token: data.wa_cloud_verify_token || '',
+                wa_twilio_enabled: data.wa_twilio_enabled || false,
+                wa_twilio_account_sid: data.wa_twilio_account_sid || '',
+                wa_twilio_auth_token: data.wa_twilio_auth_token || '',
+                wa_twilio_phone_number: data.wa_twilio_phone_number || '',
+                wa_whatchimp_enabled: data.wa_whatchimp_enabled || false,
+                wa_whatchimp_api_key: data.wa_whatchimp_api_key || '',
+                wa_whatchimp_phone_number: data.wa_whatchimp_phone_number || ''
             })
+            console.log("✅ Settings loaded from DB:", data);
         } catch (e: any) {
-            console.error(e)
+            console.error("❌ Error loading settings:", e);
+            setMessage({ type: 'error', text: `خطأ في جلب الإعدادات: ${e.message}` })
         } finally {
             setLoading(false)
         }
@@ -173,9 +197,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
-        setSaving(true)
-        setMessage(null)
         try {
+            console.log("💾 Saving settings:", settings);
             await SettingsService.updateSettings(userId, settings)
             setMessage({ type: 'success', text: 'تم حفظ الإعدادات بنجاح' })
 
@@ -186,6 +209,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
 
             setTimeout(() => onClose(), 1500)
         } catch (e: any) {
+            console.error("❌ Save error:", e);
             setMessage({ type: 'error', text: `خطأ في الحفظ: ${e.message}` })
         } finally {
             setSaving(false)
@@ -478,27 +502,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                     <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                                         مزود خدمة الواتساب
                                     </label>
-                                    <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4">
+                                    <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4">
                                         <button 
                                             type="button"
-                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: false })}
-                                            className={`flex-1 py-2 text-[9px] font-bold rounded-lg transition-all ${(!settings.wa_cloud_enabled && !settings.wa_twilio_enabled) ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: false, wa_whatchimp_enabled: false })}
+                                            className={`py-2 text-[9px] font-bold rounded-lg transition-all ${(!settings.wa_cloud_enabled && !settings.wa_twilio_enabled && !settings.wa_whatchimp_enabled) ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                         >
                                             Evolution
                                         </button>
                                         <button 
                                             type="button"
-                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: true, wa_twilio_enabled: false })}
-                                            className={`flex-1 py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: true, wa_twilio_enabled: false, wa_whatchimp_enabled: false })}
+                                            className={`py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                         >
                                             Cloud API
                                         </button>
                                         <button 
                                             type="button"
-                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: true })}
-                                            className={`flex-1 py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_twilio_enabled ? 'bg-white dark:bg-slate-700 shadow text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: true, wa_whatchimp_enabled: false })}
+                                            className={`py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_twilio_enabled ? 'bg-white dark:bg-slate-700 shadow text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
                                         >
                                             Twilio
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: false, wa_whatchimp_enabled: true })}
+                                            className={`py-2 text-[9px] font-bold rounded-lg transition-all ${settings.wa_whatchimp_enabled ? 'bg-white dark:bg-slate-700 shadow text-orange-600 dark:text-orange-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                        >
+                                            WhatChimp
                                         </button>
                                     </div>
                                 </div>
@@ -714,6 +745,69 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                                         setMessage({ type: 'success', text: 'تم نسخ رابط الـ Webhook' });
                                                     }}
                                                     className="px-3 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
+                                                >
+                                                    نسخ
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Whatchimp API Specific Settings */}
+                                {settings.wa_whatchimp_enabled && (
+                                    <div className="mt-4 p-4 border border-orange-200 dark:border-orange-900/50 bg-orange-50/50 dark:bg-orange-900/10 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-xl">🐒</span>
+                                            <div>
+                                                <h4 className="font-bold text-orange-800 dark:text-orange-400 text-sm">إعدادات WhatChimp API</h4>
+                                                <p className="text-[10px] text-orange-600 dark:text-orange-500">حل متكامل ورسمي للأعمال والتمتة.</p>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                API Key (Token)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.wa_whatchimp_api_key || ''}
+                                                onChange={e => setSettings({ ...settings, wa_whatchimp_api_key: e.target.value })}
+                                                placeholder="أدخل الـ Token من لوحة تحكم Whatchimp"
+                                                style={{ WebkitTextSecurity: 'disc' } as any}
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                WhatsApp Number (الرقم المربوط)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={settings.wa_whatchimp_phone_number || ''}
+                                                onChange={e => setSettings({ ...settings, wa_whatchimp_phone_number: e.target.value })}
+                                                placeholder="966500000000"
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div className="pt-2">
+                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Webhook URL لربطه في Whatchimp:
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    readOnly
+                                                    value={`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-whatchimp-bot`}
+                                                    className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs font-mono text-slate-500 outline-none"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-whatchimp-bot`);
+                                                        setMessage({ type: 'success', text: 'تم نسخ رابط الـ Webhook' });
+                                                    }}
+                                                    className="px-3 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700"
                                                 >
                                                     نسخ
                                                 </button>
