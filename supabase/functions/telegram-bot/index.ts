@@ -21,8 +21,6 @@ const logDebug = async (step: string, message: string, details: any = {}) => {
 
 serve(async (req) => {
     try {
-        // Telegram passes the webhook as POST with JSON body
-        // URL could be .../v1/telegram-bot?token=BOT_TOKEN
         const url = new URL(req.url)
         const tokenFromUrl = url.searchParams.get('token')
 
@@ -31,7 +29,7 @@ serve(async (req) => {
         }
 
         const body = await req.json()
-        await logDebug('Start', 'Received Telegram Webhook', { token: tokenFromUrl, body })
+        await logDebug('WebhookReceived', 'Data from Telegram', { body })
 
         if (!body.message) return new Response('OK', { status: 200 })
 
@@ -50,20 +48,25 @@ serve(async (req) => {
             .maybeSingle()
 
         if (settingsError || !settings) {
-            await logDebug('Error', 'Telegram settings not found or disabled', { token: tokenFromUrl })
+            await logDebug('Error', 'User settings not found', { token: tokenFromUrl, error: settingsError })
             return new Response('Not configured', { status: 200 })
         }
 
         const userId = settings.user_id
+        await logDebug('UserFound', `Processing for user: ${userId}`, { userId })
 
         // --- Save Message & Create Conversation ---
         const telegramKey = `telegram_${chatId}`
-        const { data: convId } = await supabase.rpc('get_or_create_whatsapp_conversation', {
+        const { data: convId, error: rpcErr } = await supabase.rpc('get_or_create_whatsapp_conversation', {
             p_user_id: userId,
             p_phone: telegramKey,
             p_title: `Telegram: ${senderName}`,
             p_visitor_name: senderName
         })
+
+        if (rpcErr) {
+            await logDebug('RPCError', 'Failed to get/create conversation', rpcErr)
+        }
 
         if (convId) {
              await supabase.rpc('save_whatsapp_message', {
@@ -73,6 +76,8 @@ serve(async (req) => {
                 p_content: text
             });
         }
+
+        await logDebug('AIStart', 'Starting AI generation', { useGemini: settings.use_gemini })
 
         // --- AI Processing ---
         const { data: files } = await supabase
@@ -84,26 +89,36 @@ serve(async (req) => {
         let aiResponse = ''
         const systemPrompt = `أنت مساعد ذكي لخدمة العملاء على تيليقرام. أجب بناءً على المعلومات التالية فقط:\n\n${context}`
 
-        if (settings.use_gemini && settings.gemini_api_key) {
-             const model = settings.gemini_model_name || 'gemini-1.5-flash-latest'
-             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.gemini_api_key}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\n\nالسؤال: ${text}` }] }] })
-             })
-             const result = await response.json()
-             aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        } else if (settings.openai_api_key) {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.openai_api_key}` },
-                body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }] })
-            })
-            const result = await response.json()
-            aiResponse = result.choices?.[0]?.message?.content || ''
+        try {
+            if (settings.use_gemini && settings.gemini_api_key) {
+                const model = settings.gemini_model_name || 'gemini-1.5-flash-latest'
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.gemini_api_key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\n\nالسؤال: ${text}` }] }] })
+                })
+                const result = await response.json()
+                aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+                if (!aiResponse) await logDebug('AILog', 'Gemini returned empty response', { result })
+            } else if (settings.openai_api_key) {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.openai_api_key}` },
+                    body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }] })
+                })
+                const result = await response.json()
+                aiResponse = result.choices?.[0]?.message?.content || ''
+                if (!aiResponse) await logDebug('AILog', 'OpenAI returned empty response', { result })
+            } else {
+                await logDebug('AIWarning', 'No AI provider configured (No Gemini or OpenAI key)')
+            }
+        } catch (aiErr: any) {
+            await logDebug('AIError', 'AI fetch failed', { message: aiErr.message })
         }
 
         if (aiResponse) {
+             await logDebug('SendingReply', 'Sending message back to Telegram', { chatId })
+             
              // Send reply to Telegram
              const tgResponse = await fetch(`https://api.telegram.org/bot${tokenFromUrl}/sendMessage`, {
                 method: 'POST',
@@ -117,6 +132,8 @@ serve(async (req) => {
              const tgResult = await tgResponse.json()
              if (!tgResult.ok) {
                  await logDebug('ReplyError', 'Failed to send TG message', tgResult)
+             } else {
+                 await logDebug('Success', 'Response sent successfully')
              }
 
              // Save Assistant Msg
@@ -128,12 +145,14 @@ serve(async (req) => {
                     p_content: aiResponse
                 });
              }
+        } else {
+            await logDebug('End', 'Processing finished but aiResponse was empty')
         }
 
         return new Response('OK', { status: 200 })
 
     } catch (err: any) {
-        await logDebug('FatalError', 'Telegram Bot Error', { message: err.message })
+        await logDebug('FatalError', 'Unhandled function error', { message: err.message, stack: err.stack })
         return new Response(err.message, { status: 500 })
     }
 })
