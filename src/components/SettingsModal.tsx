@@ -41,7 +41,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         wa_twilio_phone_number: '',
         wa_whatchimp_enabled: false,
         wa_whatchimp_api_key: '',
-        wa_whatchimp_phone_number: ''
+        wa_whatchimp_phone_number: '',
+        tg_enabled: false,
+        tg_token: '',
+        tg_bot_username: ''
     })
 
     const [discoveryLoading, setDiscoveryLoading] = useState(false)
@@ -140,7 +143,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                 wa_twilio_phone_number: data.wa_twilio_phone_number || '',
                 wa_whatchimp_enabled: data.wa_whatchimp_enabled || false,
                 wa_whatchimp_api_key: data.wa_whatchimp_api_key || '',
-                wa_whatchimp_phone_number: data.wa_whatchimp_phone_number || ''
+                wa_whatchimp_phone_number: data.wa_whatchimp_phone_number || '',
+                tg_enabled: data.tg_enabled || false,
+                tg_token: data.tg_token || '',
+                tg_bot_username: data.tg_bot_username || ''
             })
             console.log("✅ Settings loaded from DB:", data);
         } catch (e: any) {
@@ -148,6 +154,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
             setMessage({ type: 'error', text: `خطأ في جلب الإعدادات: ${e.message}` })
         } finally {
             setLoading(false)
+        }
+    }
+
+    const [updatingWebhook, setUpdatingWebhook] = useState(false)
+
+    const handleUpdateTelegramWebhook = async () => {
+        if (!settings.tg_token) {
+            setMessage({ type: 'error', text: 'يرجى إدخال التوكن أولاً' })
+            return
+        }
+
+        setUpdatingWebhook(true)
+        setMessage(null)
+        try {
+            const webhookUrl = `https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/telegram-bot?token=${settings.tg_token}`
+            const response = await fetch(`https://api.telegram.org/bot${settings.tg_token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`)
+            const data = await response.json()
+            
+            if (data.ok) {
+                setMessage({ type: 'success', text: 'تم ربط البوت بنجاح! جربه الآن في تيليقرام.' })
+            } else {
+                setMessage({ type: 'error', text: `خطأ من تيليقرام: ${data.description}` })
+            }
+        } catch (e: any) {
+            console.error("Telegram setWebhook error:", e)
+            setMessage({ type: 'error', text: `فشل الربط: ${e.message}` })
+        } finally {
+            setUpdatingWebhook(false)
         }
     }
 
@@ -815,6 +849,73 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Telegram Bot Integration Section */}
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <span className="text-lg">✈️</span> إعدادات تيليقرام (Telegram)
+                                </h3>
+                                <p className="text-[10px] text-slate-500">اربط بوت تيليقرام الخاص بك للرد التلقائي.</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.tg_enabled || false}
+                                    onChange={e => setSettings({ ...settings, tg_enabled: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+
+                        {settings.tg_enabled && (
+                            <div className="animate-in slide-in-from-top-2 duration-200 space-y-4">
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        Bot Token (من BotFather)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settings.tg_token || ''}
+                                        onChange={e => setSettings({ ...settings, tg_token: e.target.value })}
+                                        placeholder="1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ"
+                                        style={{ WebkitTextSecurity: 'disc' } as any}
+                                        className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        Bot Username (بدون @)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settings.tg_bot_username || ''}
+                                        onChange={e => setSettings({ ...settings, tg_bot_username: e.target.value })}
+                                        placeholder="MySmartBot"
+                                        className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                    />
+                                </div>
+
+                                <div className="p-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl">
+                                    <h4 className="text-[10px] font-bold text-blue-800 dark:text-blue-400 mb-1">💡 نصيحة للربط:</h4>
+                                    <p className="text-[10px] text-blue-700 dark:text-blue-500 leading-relaxed mb-3">
+                                        بعد حفظ التوكن، اضغط على الزر أدناه لربط البوت بسيرفرنا الخاص لبدء استقبال الرسائل.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={handleUpdateTelegramWebhook}
+                                        disabled={updatingWebhook || !settings.tg_token}
+                                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
+                                    >
+                                        {updatingWebhook ? '⏳ يتم الربط...' : '🔗 ربط Webhook الآن'}
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

@@ -37,6 +37,9 @@ export interface UserSettings {
     wa_whatchimp_enabled?: boolean
     wa_whatchimp_api_key?: string | null
     wa_whatchimp_phone_number?: string | null
+    tg_enabled?: boolean
+    tg_token?: string | null
+    tg_bot_username?: string | null
 }
 
 export class SettingsService {
@@ -89,7 +92,10 @@ export class SettingsService {
             wa_twilio_phone_number: data?.wa_twilio_phone_number || null,
             wa_whatchimp_enabled: data?.wa_whatchimp_enabled || false,
             wa_whatchimp_api_key: data?.wa_whatchimp_api_key || null,
-            wa_whatchimp_phone_number: data?.wa_whatchimp_phone_number || null
+            wa_whatchimp_phone_number: data?.wa_whatchimp_phone_number || null,
+            tg_enabled: data?.tg_enabled || false,
+            tg_token: data?.tg_token || null,
+            tg_bot_username: data?.tg_bot_username || null
         }
 
         // If no row exists, or the default API key was missing, save it now so it persists
