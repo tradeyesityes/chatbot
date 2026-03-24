@@ -481,25 +481,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
     return (
         <div className="h-full flex flex-col bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-500">
             {/* Header */}
-            <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
+            <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10" dir="rtl">
                 <div className="flex items-center gap-4">
-                    <button 
-                        onClick={onBack}
-                        className="w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
-                    >
-                        <span className="text-xl">←</span>
-                    </button>
                     <div>
                         <h2 className="text-xl font-black text-slate-800 dark:text-white">الإعدادات التفاعلية</h2>
                         <p className="text-xs text-slate-400 font-medium tracking-wide">تخصيص كامل لمحرك الذكاء الاصطناعي والقنوات</p>
                     </div>
                 </div>
                 
-                {message && (
-                    <div className={`px-4 py-2 rounded-xl text-xs font-bold animate-in slide-in-from-top-2 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
-                        {message.text}
-                    </div>
-                )}
+                <div className="flex items-center gap-4">
+                    {message && (
+                        <div className={`px-4 py-2 rounded-xl text-xs font-bold animate-in slide-in-from-top-2 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                            {message.text}
+                        </div>
+                    )}
+
+                    <button 
+                        onClick={onBack}
+                        className="w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all font-bold text-2xl"
+                        title="إغلاق"
+                    >
+                        <span>×</span>
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 flex overflow-hidden" dir="rtl">
