@@ -217,11 +217,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <button
         onClick={onNewChat}
-        className="w-full group px-6 py-3.5 bg-salla-primary hover:bg-salla-primary/90 text-white rounded-salla font-bold shadow-lg shadow-salla-primary/20 transition-all transform active:scale-[0.98] mb-5"
+        className="w-full group px-6 py-3.5 bg-salla-primary hover:bg-salla-primary/90 text-white rounded-salla font-bold shadow-lg shadow-salla-primary/20 transition-all transform active:scale-[0.98] mb-3"
       >
         <span className="flex items-center justify-center gap-2">
           <span>✨</span>
           <span>محادثة جديدة</span>
+        </span>
+      </button>
+
+      <button
+        onClick={() => setIsSettingsOpen(true)}
+        className="w-full group px-6 py-3.5 bg-white border border-salla-primary/20 hover:bg-slate-50 text-salla-primary rounded-salla font-bold shadow-md hover:shadow-lg transition-all transform active:scale-[0.98] mb-5"
+      >
+        <span className="flex items-center justify-center gap-2">
+          <span>⚙️</span>
+          <span>الإعدادات التفاعلية</span>
         </span>
       </button>
 
@@ -301,14 +311,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="p-4 bg-salla-bg-soft rounded-salla border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-salla-muted font-medium">المستخدم الحالي</p>
-              <button
-                onClick={() => setIsSettingsOpen(true)}
-                className="flex items-center gap-1.5 p-1.5 hover:bg-salla-accent-light rounded-lg transition-colors text-salla-primary"
-                title="الإعدادات"
-              >
-                <span>⚙️</span>
-                <span className="text-[11px] font-bold">الإعدادات</span>
-              </button>
             </div>
             <div className="flex items-center justify-between">
               <p className="font-bold text-lg text-salla-primary">{user.username}</p>
