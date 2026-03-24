@@ -5,7 +5,7 @@ import { GeminiService } from './services/geminiService'
 import { OllamaService } from './services/ollamaService'
 import { StorageService } from './services/storageService'
 import { ChatService } from './services/chatService'
-import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle, LandingPage, LegalPage, AdminDashboard } from './components'
+import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle, LandingPage, LegalPage, AdminDashboard, SettingsView } from './components'
 import { BotAvatar } from './components/BotAvatar'
 import { AuthService } from './services/authService'
 import { supabase } from './services/supabaseService'
@@ -46,7 +46,7 @@ export default function App() {
   const [error, setError] = useState<string>('')
   const [showLanding, setShowLanding] = useState(true)
   const [legalView, setLegalView] = useState<'none' | 'privacy' | 'terms'>('none')
-  const [currentView, setCurrentView] = useState<'chat' | 'admin'>('chat')
+  const [currentView, setCurrentView] = useState<'chat' | 'admin' | 'settings'>('chat')
   const [isAccountDisabled, setIsAccountDisabled] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -440,6 +440,7 @@ export default function App() {
           }
         }}
         onAdminView={userSettings?.is_admin ? () => setCurrentView('admin') : undefined}
+        onSettingsView={() => setCurrentView('settings')}
       />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-salla-bg-soft">
@@ -489,7 +490,16 @@ export default function App() {
           )}
 
           <div className="flex-1 bg-white rounded-salla border border-slate-100 p-4 md:p-6 mb-6 overflow-y-auto flex flex-col shadow-sm">
-            {messages.length === 0 ? (
+            {currentView === 'settings' ? (
+              <SettingsView 
+                userId={user.id} 
+                onBack={() => setCurrentView('chat')}
+                onSettingsUpdated={async () => {
+                  const newSettings = await SettingsService.getSettings(user.id)
+                  setUserSettings(newSettings)
+                }}
+              />
+            ) : messages.length === 0 ? (
               <div className="flex items-center justify-center h-full text-salla-muted text-center p-6">
                 <div className="max-w-xs transition-all animate-in">
                   <p className="text-5xl mb-6">💬</p>
@@ -518,15 +528,17 @@ export default function App() {
             )}
           </div>
 
-          <div className="max-w-4xl mx-auto w-full">
-            <ChatInput
-              value={input}
-              onChange={setInput}
-              onSubmit={handleSend}
-              isLoading={loading}
-              placeholder={files.length > 0 ? 'اكتب سؤالك هنا...' : 'حمّل ملف أولاً...'}
-            />
-          </div>
+          {currentView === 'chat' && (
+            <div className="max-w-4xl mx-auto w-full">
+              <ChatInput
+                value={input}
+                onChange={setInput}
+                onSubmit={handleSend}
+                isLoading={loading}
+                placeholder={files.length > 0 ? 'اكتب سؤالك هنا...' : 'حمّل ملف أولاً...'}
+              />
+            </div>
+          )}
         </div>
       </main>
     </div>

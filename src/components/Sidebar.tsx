@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { User, Conversation, ConversationSource } from '../types'
-import { SettingsModal } from './SettingsModal'
 import { BotAvatar } from './BotAvatar'
 
 interface SidebarProps {
@@ -14,6 +13,7 @@ interface SidebarProps {
   onRenameConversation?: (id: string, newTitle: string) => void
   onSettingsUpdated?: () => void
   onAdminView?: () => void
+  onSettingsView?: () => void
   isOpen?: boolean
   onClose?: () => void
 }
@@ -88,10 +88,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onRenameConversation,
   onSettingsUpdated,
   onAdminView,
+  onSettingsView,
   isOpen,
   onClose
 }) => {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [activeFilter, setActiveFilter] = useState<'all' | ConversationSource>('all')
@@ -226,7 +226,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </button>
 
       <button
-        onClick={() => setIsSettingsOpen(true)}
+        onClick={() => {
+          onSettingsView?.()
+          onClose?.()
+        }}
         className="w-full group px-6 py-3.5 bg-white border border-salla-primary/20 hover:bg-slate-50 text-salla-primary rounded-salla font-bold shadow-md hover:shadow-lg transition-all transform active:scale-[0.98] mb-5"
       >
         <span className="flex items-center justify-center gap-2">
@@ -351,14 +354,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {user && (
-        <SettingsModal
-          userId={user.id}
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          onSettingsUpdated={onSettingsUpdated}
-        />
-      )}
     </aside>
   )
 }
