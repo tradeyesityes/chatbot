@@ -49,6 +49,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
 
     const [discoveryLoading, setDiscoveryLoading] = useState(false)
     const [testResults, setTestResults] = useState<{ url: string; status: string; ok: boolean }[]>([])
+    const [activeTab, setActiveTab] = useState<'ai' | 'whatsapp' | 'telegram' | 'embed'>('ai')
 
     const testEvolutionConnection = async () => {
         setDiscoveryLoading(true)
@@ -231,12 +232,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
+        setSaving(true)
         try {
             console.log("💾 Saving settings:", settings);
             await SettingsService.updateSettings(userId, settings)
             setMessage({ type: 'success', text: 'تم حفظ الإعدادات بنجاح' })
 
-            // Notify parent to refresh settings
             if (onSettingsUpdated) {
                 onSettingsUpdated()
             }
@@ -250,11 +251,301 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
         }
     }
 
+    const renderAISettings = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            {settings.is_admin && (
+                <>
+                    <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white">OpenAI API</h3>
+                                <p className="text-xs text-slate-500">GPT-4o mini, GPT-4o</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.use_openai || false}
+                                    onChange={e => setSettings({ ...settings, use_openai: e.target.checked, use_gemini: false, use_local_model: false, use_remote_ollama: false })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+
+                        {settings.use_openai && (
+                            <div className="animate-in slide-in-from-top-2 duration-200">
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                    API Key
+                                </label>
+                                <input
+                                    type="password"
+                                    value={settings.openai_api_key || ''}
+                                    onChange={e => setSettings({ ...settings, openai_api_key: e.target.value })}
+                                    placeholder="sk-..."
+                                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Gemini API</h3>
+                                <p className="text-xs text-slate-500">Google Gemini 1.5 Flash/Pro</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.use_gemini || false}
+                                    onChange={e => setSettings({ ...settings, use_gemini: e.target.checked, use_openai: false, use_local_model: false, use_remote_ollama: false })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+
+                        {settings.use_gemini && (
+                            <div className="animate-in slide-in-from-top-2 duration-200 space-y-3">
+                                <input
+                                    type="password"
+                                    value={settings.gemini_api_key || ''}
+                                    onChange={e => setSettings({ ...settings, gemini_api_key: e.target.value })}
+                                    placeholder="Gemini API Key"
+                                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
+                                />
+                                <input
+                                    type="text"
+                                    value={settings.gemini_model_name || ''}
+                                    onChange={e => setSettings({ ...settings, gemini_model_name: e.target.value })}
+                                    placeholder="Model Name (e.g. gemini-1.5-flash)"
+                                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Ollama Connect</h3>
+                                <p className="text-xs text-slate-500">Local or Remote LLMs</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setSettings({ ...settings, use_local_model: !settings.use_local_model, use_remote_ollama: false, use_openai: false, use_gemini: false })}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${settings.use_local_model ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}
+                                >
+                                    محلي (Local)
+                                </button>
+                                <button
+                                    onClick={() => setSettings({ ...settings, use_remote_ollama: !settings.use_remote_ollama, use_local_model: false, use_openai: false, use_gemini: false })}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${settings.use_remote_ollama ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}
+                                >
+                                    بعيد (Remote)
+                                </button>
+                            </div>
+                        </div>
+
+                        {(settings.use_local_model || settings.use_remote_ollama) && (
+                            <div className="animate-in slide-in-from-top-2 duration-200 space-y-3">
+                                <input
+                                    type="text"
+                                    value={settings.local_model_name || ''}
+                                    onChange={e => setSettings({ ...settings, local_model_name: e.target.value })}
+                                    placeholder="Model Name (e.g. gemma2:2b)"
+                                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl"
+                                />
+                                {settings.use_remote_ollama && (
+                                    <>
+                                        <input
+                                            type="text"
+                                            value={settings.ollama_base_url || ''}
+                                            onChange={e => setSettings({ ...settings, ollama_base_url: e.target.value })}
+                                            placeholder="Ollama URL (e.g. https://server.com:11434)"
+                                            className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl"
+                                        />
+                                        <input
+                                            type="password"
+                                            value={settings.ollama_api_key || ''}
+                                            onChange={e => setSettings({ ...settings, ollama_api_key: e.target.value })}
+                                            placeholder="Remote API Key (optional)"
+                                            className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl"
+                                        />
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+        </div>
+    )
+
+    const renderWhatsAppSettings = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center justify-between p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl mb-4">
+                <button
+                    onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: false, wa_whatchimp_enabled: false })}
+                    className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${(!settings.wa_cloud_enabled && !settings.wa_twilio_enabled && !settings.wa_whatchimp_enabled) ? 'bg-white dark:bg-slate-800 shadow-sm text-blue-600' : 'text-slate-400'}`}
+                >
+                    Evolution
+                </button>
+                <button
+                    onClick={() => setSettings({ ...settings, wa_cloud_enabled: true, wa_twilio_enabled: false, wa_whatchimp_enabled: false })}
+                    className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-800 shadow-sm text-emerald-600' : 'text-slate-400'}`}
+                >
+                    Cloud API
+                </button>
+                <button
+                    onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: true, wa_whatchimp_enabled: false })}
+                    className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${settings.wa_twilio_enabled ? 'bg-white dark:bg-slate-800 shadow-sm text-red-600' : 'text-slate-400'}`}
+                >
+                    Twilio
+                </button>
+            </div>
+
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">رقم الواتساب</label>
+                    <input
+                        type="text"
+                        value={settings.whatsapp_number || ''}
+                        onChange={e => setSettings({ ...settings, whatsapp_number: e.target.value })}
+                        placeholder="966500000000"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm"
+                    />
+                </div>
+
+                {settings.wa_cloud_enabled ? (
+                    <div className="space-y-4 animate-in slide-in-from-top-2">
+                        <input
+                            type="text"
+                            value={settings.wa_cloud_phone_number_id || ''}
+                            onChange={e => setSettings({ ...settings, wa_cloud_phone_number_id: e.target.value })}
+                            placeholder="Phone Number ID"
+                            className="w-full px-4 py-2.5 dark:bg-slate-900 border dark:border-slate-600 rounded-xl text-sm"
+                        />
+                        <input
+                            type="password"
+                            value={settings.wa_cloud_access_token || ''}
+                            onChange={e => setSettings({ ...settings, wa_cloud_access_token: e.target.value })}
+                            placeholder="Access Token"
+                            className="w-full px-4 py-2.5 dark:bg-slate-900 border dark:border-slate-600 rounded-xl text-sm"
+                        />
+                    </div>
+                ) : !settings.wa_twilio_enabled && !settings.wa_whatchimp_enabled && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <BotAvatar size="sm" />
+                            <div>
+                                <h4 className="font-bold text-xs text-slate-800 dark:text-white">ربط Evolution API</h4>
+                                <p className="text-[10px] text-slate-500">امسح الـ QR Code للاتصال</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (settings.evolution_bot_enabled) {
+                                    if (window.confirm('هل تريد إلغاء الربط؟')) {
+                                        setSettings({...settings, evolution_bot_enabled: false});
+                                    }
+                                } else {
+                                    setShowQRModal(true);
+                                }
+                            }}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold ${settings.evolution_bot_enabled ? 'bg-red-50 text-red-600' : 'bg-blue-600 text-white'}`}
+                        >
+                            {settings.evolution_bot_enabled ? 'إلغاء الربط' : 'بدء الربط'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+
+    const renderTelegramSettings = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center justify-between mb-4">
+                <div>
+                    <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                        <span className="text-lg">✈️</span> إعدادات تيليقرام
+                    </h3>
+                    <p className="text-[10px] text-slate-500">اربط بوت تيليقرام الخاص بك للرد التلقائي.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={settings.tg_enabled || false}
+                        onChange={e => setSettings({ ...settings, tg_enabled: e.target.checked })}
+                        className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+
+            {settings.tg_enabled && (
+                <div className="space-y-4">
+                    <input
+                        type="password"
+                        value={settings.tg_token || ''}
+                        onChange={e => setSettings({ ...settings, tg_token: e.target.value })}
+                        placeholder="Bot Token (e.g. 123456:ABC...)"
+                        className="w-full px-4 py-3 dark:bg-slate-900 border dark:border-slate-600 rounded-xl text-sm"
+                    />
+                    <button
+                        onClick={handleUpdateTelegramWebhook}
+                        disabled={updatingWebhook || !settings.tg_token}
+                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all disabled:opacity-50"
+                    >
+                        {updatingWebhook ? '⏳ جاري الربط...' : '🔗 ربط الـ Webhook الآن'}
+                    </button>
+                </div>
+            )}
+        </div>
+    )
+
+    const renderEmbedSettings = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div>
+                <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                    <span className="text-lg">🔗</span> كود التضمين في الموقع
+                </h3>
+            </div>
+            
+            <div className="relative group">
+                <pre className="text-[10px] bg-slate-900 text-blue-400 p-4 rounded-xl overflow-x-auto border border-slate-700 font-mono leading-relaxed">
+                    {`<iframe src="${window.location.origin}?embed=true&user_id=${userId}" style="position:fixed; bottom:0; right:0; width:400px; height:700px; border:none; z-index:999999; background:transparent;" allowtransparency="true"></iframe>`}
+                </pre>
+            </div>
+
+            <div className="flex gap-2">
+                <button
+                    onClick={() => {
+                        const code = `<iframe src="${window.location.origin}?embed=true&user_id=${userId}" style="position:fixed; bottom:0; right:0; width:400px; height:700px; border:none; z-index:999999; background:transparent;" allowtransparency="true"></iframe>`;
+                        navigator.clipboard.writeText(code);
+                        setMessage({ type: 'success', text: 'تم نسخ كود التضمين!' });
+                    }}
+                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm"
+                >
+                    📋 نسخ الكود
+                </button>
+                <a
+                    href={`${window.location.origin}?embed=true&user_id=${userId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-white rounded-xl transition-all font-semibold text-sm flex items-center justify-center gap-2"
+                >
+                    🔗 تجربة الرابط
+                </a>
+            </div>
+        </div>
+    )
+
     if (!isOpen) return null
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+            <div className="bg-white dark:bg-slate-800 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                 <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 flex-shrink-0">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
                         <span>⚙️</span> الإعدادات
@@ -264,833 +555,62 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                     </button>
                 </div>
 
-                <div className="p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar">
-                    {message && (
-                        <div className={`p-4 rounded-xl text-sm font-medium animate-in slide-in-from-top-2 duration-300 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}>
-                            <div className="flex items-center gap-2">
-                                <span>{message.type === 'success' ? '✅' : '❌'}</span>
-                                {message.text}
-                            </div>
-                        </div>
-                    )}
-
-                    {settings.is_admin && (
-                        <>
-                            <div>
-                                <div className="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-800 dark:text-white">OpenAI API</h3>
-                                        <p className="text-xs text-slate-500">GPT-4, GPT-3.5 Turbo</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={settings.use_openai || false}
-                                            onChange={e => setSettings({ ...settings, use_openai: e.target.checked })}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-                                    </label>
-                                </div>
-
-                                {settings.use_openai && (
-                                    <div className="animate-in slide-in-from-top-2 duration-200">
-                                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                            API Key
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={settings.openai_api_key || ''}
-                                            onChange={e => setSettings({ ...settings, openai_api_key: e.target.value })}
-                                            placeholder="sk-..."
-                                            autoComplete="off"
-                                            name="api_key_openai_custom"
-                                            style={{ WebkitTextSecurity: 'disc' } as any}
-                                            className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm mb-1 text-slate-900 dark:text-white"
-                                        />
-                                        <p className="text-[10px] text-slate-500">
-                                            احصل عليه من <a href="https://platform.openai.com/api-keys" target="_blank" className="text-green-500 underline">OpenAI Platform</a>
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Gemini API</h3>
-                                        <p className="text-xs text-slate-500">Gemini Pro, Gemini Flash</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={settings.use_gemini || false}
-                                            onChange={e => setSettings({ ...settings, use_gemini: e.target.checked })}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-                                    </label>
-                                </div>
-
-                                {settings.use_gemini && (
-                                    <div className="animate-in slide-in-from-top-2 duration-200">
-                                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                            API Key
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={settings.gemini_api_key || ''}
-                                            onChange={e => setSettings({ ...settings, gemini_api_key: e.target.value })}
-                                            placeholder="Enter your Gemini API Key"
-                                            autoComplete="off"
-                                            name="api_key_gemini_custom"
-                                            style={{ WebkitTextSecurity: 'disc' } as any}
-                                            className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm mb-1 text-slate-900 dark:text-white"
-                                        />
-                                        <p className="text-[10px] text-slate-500">
-                                            احصل عليه مجاناً من <a href="https://aistudio.google.com/" target="_blank" className="text-green-500 underline">Google AI Studio</a>
-                                        </p>
-                                    </div>
-                                )}
-
-                                {settings.use_gemini && (
-                                    <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
-                                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                            اسم النموذج (Gemini Model)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={settings.gemini_model_name || ''}
-                                            onChange={e => setSettings({ ...settings, gemini_model_name: e.target.value })}
-                                            placeholder="e.g. gemini-1.5-flash-latest"
-                                            className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                        />
-                                        <p className="text-[10px] text-slate-500 mt-1">
-                                            أمثلة: gemini-1.5-flash-latest, gemini-2.0-flash, gemini-1.5-pro
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Ollama المحلي (Local)</h3>
-                                        <p className="text-xs text-slate-500">استخدم نموذج يعمل على جهازك مباشرة</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={settings.use_local_model || false}
-                                            onChange={e => setSettings({
-                                                ...settings,
-                                                use_local_model: e.target.checked,
-                                                use_remote_ollama: e.target.checked ? false : settings.use_remote_ollama,
-                                                use_openai: e.target.checked ? false : settings.use_openai,
-                                                use_gemini: e.target.checked ? false : settings.use_gemini
-                                            })}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                    </label>
-                                </div>
-
-                                {settings.use_local_model && (
-                                    <div className="space-y-3 p-3 border-2 border-red-500 rounded-xl bg-red-50 dark:bg-red-900/10">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                                اسم النموذج (Model Name)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.local_model_name || ''}
-                                                onChange={e => setSettings({ ...settings, local_model_name: e.target.value })}
-                                                placeholder="e.g. gemma3:4b"
-                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                                رابط السيرفر (Base URL)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.ollama_base_url || ''}
-                                                onChange={e => setSettings({ ...settings, ollama_base_url: e.target.value })}
-                                                placeholder="http://localhost:11434"
-                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                            <p className="text-[10px] text-slate-500 mt-1">
-                                                استخدم http://localhost:11434 للتشغيل العادي، أو http://host.docker.internal:11434 إذا كنت تستخدم Coolify/Docker.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Ollama API الخارجي (Remote)</h3>
-                                        <p className="text-xs text-slate-500">اتصل بخادم Ollama بعيد</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={settings.use_remote_ollama || false}
-                                            onChange={e => setSettings({
-                                                ...settings,
-                                                use_remote_ollama: e.target.checked,
-                                                use_local_model: e.target.checked ? false : settings.use_local_model,
-                                                use_openai: e.target.checked ? false : settings.use_openai,
-                                                use_gemini: e.target.checked ? false : settings.use_gemini
-                                            })}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-                                    </label>
-                                </div>
-
-                                {settings.use_remote_ollama && (
-                                    <div className="animate-in slide-in-from-top-2 duration-200 space-y-3">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                                اسم النموذج (Model Name)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.local_model_name || ''}
-                                                onChange={e => setSettings({ ...settings, local_model_name: e.target.value })}
-                                                placeholder="e.g. gemma3:4b"
-                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                                Base URL
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.ollama_base_url || ''}
-                                                onChange={e => setSettings({ ...settings, ollama_base_url: e.target.value })}
-                                                placeholder="https://your-server.com:11434"
-                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                                API Key
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.ollama_api_key || ''}
-                                                onChange={e => setSettings({ ...settings, ollama_api_key: e.target.value })}
-                                                placeholder="Enter your Ollama API key"
-                                                autoComplete="off"
-                                                style={{ WebkitTextSecurity: 'disc' } as any}
-                                                className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm mb-1 text-slate-900 dark:text-white"
-                                            />
-                                            <p className="text-[10px] text-slate-500">
-                                                مطلوب للخوادم البعيدة
-                                            </p>
-                                        </div>
-
-                                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl">
-                                            <h4 className="text-[10px] font-bold text-amber-800 dark:text-amber-400 mb-1">💡 نصيحة للاتصال البعيد:</h4>
-                                            <p className="text-[10px] text-amber-700 dark:text-amber-500 leading-relaxed">
-                                                لتجنب مشاكل CORS، تأكد من تشغيل Ollama مع إعداد:
-                                                <code className="block mt-1 p-1 bg-amber-100 dark:bg-amber-800 rounded">OLLAMA_ORIGINS="*" ollama serve</code>
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </>
-                    )}
-
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                                    <span className="text-lg">💬</span> إعدادات الواتساب (WhatsApp)
-                                </h3>
-                                <p className="text-[10px] text-slate-500">للسماح للعملاء بالتواصل معك مباشرة عبر واتساب</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={settings.use_whatsapp || false}
-                                    onChange={e => setSettings({ ...settings, use_whatsapp: e.target.checked })}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-                            </label>
-                        </div>
-
-                        {settings.use_whatsapp && (
-                            <div className="animate-in slide-in-from-top-2 duration-200 space-y-3">
-                                <div>
-                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                        مزود خدمة الواتساب
-                                    </label>
-                                    <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4">
-                                        <button 
-                                            type="button"
-                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: false, wa_whatchimp_enabled: false })}
-                                            className={`py-3 text-[10px] font-bold rounded-xl transition-all ${(!settings.wa_cloud_enabled && !settings.wa_twilio_enabled && !settings.wa_whatchimp_enabled) ? 'bg-white dark:bg-slate-700 shadow-md text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
-                                        >
-                                            Evolution
-                                        </button>
-                                        <button 
-                                            type="button"
-                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: true, wa_twilio_enabled: false, wa_whatchimp_enabled: false })}
-                                            className={`py-3 text-[10px] font-bold rounded-xl transition-all ${settings.wa_cloud_enabled ? 'bg-white dark:bg-slate-700 shadow-md text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
-                                        >
-                                            Cloud API
-                                        </button>
-                                        <button 
-                                            type="button"
-                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: true, wa_whatchimp_enabled: false })}
-                                            className={`py-3 text-[10px] font-bold rounded-xl transition-all ${settings.wa_twilio_enabled ? 'bg-white dark:bg-slate-700 shadow-md text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
-                                        >
-                                            Twilio
-                                        </button>
-                                        <button 
-                                            type="button"
-                                            onClick={() => setSettings({ ...settings, wa_cloud_enabled: false, wa_twilio_enabled: false, wa_whatchimp_enabled: true })}
-                                            className={`py-3 text-[10px] font-bold rounded-xl transition-all ${settings.wa_whatchimp_enabled ? 'bg-white dark:bg-slate-700 shadow-md text-orange-600 dark:text-orange-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
-                                        >
-                                            WhatChimp 🐒
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                        رقم الواتساب
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={settings.whatsapp_number || ''}
-                                            onChange={e => setSettings({ ...settings, whatsapp_number: e.target.value })}
-                                            placeholder="مثال: 966500000000"
-                                            dir="ltr"
-                                            className="flex-1 px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                        />
-                                        {!settings.wa_cloud_enabled && settings.evolution_bot_enabled && (
-                                            <button
-                                                type="button"
-                                                onClick={handleSmartLink}
-                                                disabled={discoveryLoading}
-                                                className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all font-semibold text-xs whitespace-nowrap disabled:opacity-50"
-                                            >
-                                                {discoveryLoading ? '⏳...' : '🔗 ربط ذكي'}
-                                            </button>
-                                        )}
-                                    </div>
-                                    <p className="text-[9px] text-slate-500 mt-1">
-                                        استخدم الرقم مع مفتاح الدولة بدون أصفار أو علامة +
-                                    </p>
-                                </div>
-
-                                {/* Diagnostic Tool */}
-                                {settings.evolution_bot_enabled && (
-                                    <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">أداة التشخيص</span>
-                                            <button
-                                                onClick={testEvolutionConnection}
-                                                disabled={discoveryLoading}
-                                                className="text-[9px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded hover:bg-slate-300 transition-colors"
-                                            >
-                                                {discoveryLoading ? '...' : 'اختبار'}
-                                            </button>
-                                        </div>
-                                        {testResults.length > 0 && (
-                                            <div className="space-y-1">
-                                                {testResults.map((r, i) => (
-                                                    <div key={i} className="flex items-center justify-between text-[8px] font-mono">
-                                                        <span>{r.url}</span>
-                                                        <span className={r.ok ? 'text-green-500' : 'text-red-500'}>{r.status}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                <div>
-                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                        الرسالة الافتراضية
-                                    </label>
-                                    <textarea
-                                        value={settings.whatsapp_message || ''}
-                                        onChange={e => setSettings({ ...settings, whatsapp_message: e.target.value })}
-                                        rows={2}
-                                        placeholder="الرسالة التي ستظهر للمستخدم عند فتح واتساب"
-                                        className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white resize-none"
-                                    />
-                                </div>
-
-                                {/* Cloud API Specific Settings */}
-                                {settings.wa_cloud_enabled && (
-                                    <div className="mt-4 p-4 border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-xl">✅</span>
-                                            <div>
-                                                <h4 className="font-bold text-emerald-800 dark:text-emerald-400 text-sm">إعدادات Cloud API</h4>
-                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-500">هذه الطريقة أسرع، وأكثر أماناً ولا تعرضك للحظر.</p>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Phone Number ID (معرف رقم الهاتف)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.wa_cloud_phone_number_id || ''}
-                                                onChange={e => setSettings({ ...settings, wa_cloud_phone_number_id: e.target.value })}
-                                                placeholder="مثال: 10593847382019"
-                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Permanent Access Token (رمز الوصول)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.wa_cloud_access_token || ''}
-                                                onChange={e => setSettings({ ...settings, wa_cloud_access_token: e.target.value })}
-                                                placeholder="EAAM..."
-                                                style={{ WebkitTextSecurity: 'disc' } as any}
-                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Verify Token (لإعداد الـ Webhook)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.wa_cloud_verify_token || ''}
-                                                onChange={e => setSettings({ ...settings, wa_cloud_verify_token: e.target.value })}
-                                                placeholder="رمز للتحقق (اختياري، يمكنك إنشاء أي كلمة)"
-                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div className="pt-2">
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Webhook URL لربطه في Facebook:
-                                            </label>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    readOnly
-                                                    value={`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-cloud-bot`}
-                                                    className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs font-mono text-slate-500 outline-none"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-cloud-bot`);
-                                                        setMessage({ type: 'success', text: 'تم نسخ رابط الـ Webhook' });
-                                                    }}
-                                                    className="px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
-                                                >
-                                                    نسخ
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Twilio API Specific Settings */}
-                                {settings.wa_twilio_enabled && (
-                                    <div className="mt-4 p-4 border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-xl">🔴</span>
-                                            <div>
-                                                <h4 className="font-bold text-red-800 dark:text-red-400 text-sm">إعدادات Twilio API</h4>
-                                                <p className="text-[10px] text-red-600 dark:text-red-500">مزود خدمة معتمد وموثوق جداً للشركات.</p>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Account SID
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.wa_twilio_account_sid || ''}
-                                                onChange={e => setSettings({ ...settings, wa_twilio_account_sid: e.target.value })}
-                                                placeholder="AC..."
-                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Auth Token
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.wa_twilio_auth_token || ''}
-                                                onChange={e => setSettings({ ...settings, wa_twilio_auth_token: e.target.value })}
-                                                placeholder="Auth Token..."
-                                                style={{ WebkitTextSecurity: 'disc' } as any}
-                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Twilio WhatsApp Number
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.wa_twilio_phone_number || ''}
-                                                onChange={e => setSettings({ ...settings, wa_twilio_phone_number: e.target.value })}
-                                                placeholder="whatsapp:+1..."
-                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div className="pt-2">
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Webhook URL لربطه في Twilio:
-                                            </label>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    readOnly
-                                                    value={`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-twilio-bot`}
-                                                    className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs font-mono text-slate-500 outline-none"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-twilio-bot`);
-                                                        setMessage({ type: 'success', text: 'تم نسخ رابط الـ Webhook' });
-                                                    }}
-                                                    className="px-3 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
-                                                >
-                                                    نسخ
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Whatchimp API Specific Settings */}
-                                {settings.wa_whatchimp_enabled && (
-                                    <div className="mt-4 p-4 border border-orange-200 dark:border-orange-900/50 bg-orange-50/50 dark:bg-orange-900/10 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-xl">🐒</span>
-                                            <div>
-                                                <h4 className="font-bold text-orange-800 dark:text-orange-400 text-sm">إعدادات WhatChimp API</h4>
-                                                <p className="text-[10px] text-orange-600 dark:text-orange-500">حل متكامل ورسمي للأعمال والتمتة.</p>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                API Key (Token)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.wa_whatchimp_api_key || ''}
-                                                onChange={e => setSettings({ ...settings, wa_whatchimp_api_key: e.target.value })}
-                                                placeholder="أدخل الـ Token من لوحة تحكم Whatchimp"
-                                                style={{ WebkitTextSecurity: 'disc' } as any}
-                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                WhatsApp Number (الرقم المربوط)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={settings.wa_whatchimp_phone_number || ''}
-                                                onChange={e => setSettings({ ...settings, wa_whatchimp_phone_number: e.target.value })}
-                                                placeholder="966500000000"
-                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-
-                                        <div className="pt-2">
-                                            <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                                Webhook URL لربطه في Whatchimp:
-                                            </label>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    readOnly
-                                                    value={`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-whatchimp-bot`}
-                                                    className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs font-mono text-slate-500 outline-none"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(`https://rawobjxsbzpmlwwhmsec.supabase.co/functions/v1/whatsapp-whatchimp-bot`);
-                                                        setMessage({ type: 'success', text: 'تم نسخ رابط الـ Webhook' });
-                                                    }}
-                                                    className="px-3 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700"
-                                                >
-                                                    نسخ
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                <div className="flex flex-1 overflow-hidden flex-row-reverse text-right" dir="rtl">
+                    {/* Sidebar Navigation */}
+                    <div className="w-56 border-r border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col p-3 gap-2 flex-shrink-0">
+                        <button
+                            onClick={() => setActiveTab('ai')}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'ai' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                        >
+                            <span className="text-lg">🤖</span>
+                            <span className="font-bold text-sm">نماذج الذكاء</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('whatsapp')}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'whatsapp' ? 'bg-green-600 text-white shadow-lg shadow-green-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                        >
+                            <span className="text-lg">💬</span>
+                            <span className="font-bold text-sm">الواتساب</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('telegram')}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'telegram' ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                        >
+                            <span className="text-lg">✈️</span>
+                            <span className="font-bold text-sm">تيليقرام</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('embed')}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'embed' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                        >
+                            <span className="text-lg">🔗</span>
+                            <span className="font-bold text-sm">التضمين</span>
+                        </button>
                     </div>
 
-                    {/* Telegram Bot Integration Section */}
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                                    <span className="text-lg">✈️</span> إعدادات تيليقرام (Telegram)
-                                </h3>
-                                <p className="text-[10px] text-slate-500">اربط بوت تيليقرام الخاص بك للرد التلقائي.</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={settings.tg_enabled || false}
-                                    onChange={e => setSettings({ ...settings, tg_enabled: e.target.checked })}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
-                            </label>
-                        </div>
-
-                        {settings.tg_enabled && (
-                            <div className="animate-in slide-in-from-top-2 duration-200 space-y-4">
-                                <div>
-                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                        Bot Token (من BotFather)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={settings.tg_token || ''}
-                                        onChange={e => setSettings({ ...settings, tg_token: e.target.value })}
-                                        placeholder="1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ"
-                                        style={{ WebkitTextSecurity: 'disc' } as any}
-                                        className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                        Bot Username (بدون @)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={settings.tg_bot_username || ''}
-                                        onChange={e => setSettings({ ...settings, tg_bot_username: e.target.value })}
-                                        placeholder="MySmartBot"
-                                        className="w-full px-4 py-3 bg-transparent border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                    />
-                                </div>
-
-                                <div className="p-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl">
-                                    <h4 className="text-[10px] font-bold text-blue-800 dark:text-blue-400 mb-1">💡 نصيحة للربط:</h4>
-                                    <p className="text-[10px] text-blue-700 dark:text-blue-500 leading-relaxed mb-3">
-                                        بعد حفظ التوكن، اضغط على الزر أدناه لربط البوت بسيرفرنا الخاص لبدء استقبال الرسائل.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        onClick={handleUpdateTelegramWebhook}
-                                        disabled={updatingWebhook || !settings.tg_token}
-                                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
-                                    >
-                                        {updatingWebhook ? '⏳ يتم الربط...' : '🔗 ربط Webhook الآن'}
-                                    </button>
+                    {/* Content Area */}
+                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-white dark:bg-slate-800 overflow-x-hidden">
+                        {message && (
+                            <div className={`mb-6 p-4 rounded-xl text-sm font-medium animate-in slide-in-from-top-2 duration-300 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}>
+                                <div className="flex items-center gap-2">
+                                    <span>{message.type === 'success' ? '✅' : '❌'}</span>
+                                    {message.text}
                                 </div>
                             </div>
                         )}
+
+                        {activeTab === 'ai' && renderAISettings()}
+                        {activeTab === 'whatsapp' && renderWhatsAppSettings()}
+                        {activeTab === 'telegram' && renderTelegramSettings()}
+                        {activeTab === 'embed' && renderEmbedSettings()}
                     </div>
-
-                    {!settings.wa_cloud_enabled && !settings.wa_twilio_enabled && !settings.wa_whatchimp_enabled && (
-                        <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                                        <BotAvatar size="sm" /> ربط الواتساب (Evolution)
-                                    </h3>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={settings.evolution_bot_enabled || false}
-                                        onChange={async (e) => {
-                                            const isEnabled = e.target.checked
-                                            const instanceName = settings.evolution_instance_name || `user_${userId.substring(0, 8)}`
-
-                                            const sanitize = (str: string) => str.trim().replace(/[^\x00-\x7F]/g, "")
-                                            let finalBaseUrl = settings.evolution_base_url || import.meta.env.VITE_EVOLUTION_BASE_URL || ''
-                                            let finalGlobalKey = settings.evolution_global_api_key || import.meta.env.VITE_EVOLUTION_GLOBAL_API_KEY || ''
-
-                                            // Try fetching from global_settings if missing
-                                            if (!finalBaseUrl || !finalGlobalKey) {
-                                                try {
-                                                    const globals = await SettingsService.getGlobalSettings()
-                                                    finalBaseUrl = finalBaseUrl || globals['evolution_base_url'] || ''
-                                                    finalGlobalKey = finalGlobalKey || globals['evolution_global_api_key'] || ''
-                                                } catch (e) {
-                                                    console.warn('Failed to fetch global settings', e)
-                                                }
-                                            }
-
-                                            finalBaseUrl = sanitize(finalBaseUrl)
-                                            finalGlobalKey = sanitize(finalGlobalKey)
-
-                                            if (isEnabled) {
-                                                // Diagnostic section (Hidden by default, shown when testing)
-                                                if (testResults.length > 0) {
-                                                    testEvolutionConnection() // Refresh if already showing? Or just show results
-                                                }
-
-                                                // ----------------- ENABLING -----------------
-
-                                                if (finalBaseUrl && finalGlobalKey) {
-                                                    try {
-                                                        const updatedSettings = {
-                                                            ...settings,
-                                                            evolution_bot_enabled: true,
-                                                            evolution_base_url: finalBaseUrl,
-                                                            evolution_global_api_key: finalGlobalKey,
-                                                            evolution_instance_name: instanceName
-                                                        }
-                                                        setSettings(updatedSettings)
-                                                        await SettingsService.updateSettings(userId, updatedSettings)
-                                                        setShowQRModal(true)
-                                                    } catch (error: any) {
-                                                        setMessage({ type: 'error', text: `خطأ في الحفظ: ${error.message}` })
-                                                    }
-                                                } else {
-                                                    setMessage({ type: 'error', text: 'فشل التفعيل: إعدادات Evolution API غير مكتملة في السيرفر (قاعدة البيانات والبيئة).' })
-                                                }
-                                            } else {
-                                                // ----------------- DISABLING -----------------
-                                                if (window.confirm('هل أنت متأكد؟ سيتم حذف رقم الواتس، وسوف تحتاج إلى إعادة تفعيله عبر QR code.')) {
-                                                    try {
-                                                        setMessage({ type: 'success', text: 'جاري حذف الربط...' })
-
-                                                        // 1. Delete Instance from Evolution API
-                                                        const cleanBaseUrl = finalBaseUrl.replace(/\/$/, '')
-                                                        const endpoints = [
-                                                            `${cleanBaseUrl}/instance/delete/${instanceName}`,
-                                                            `${cleanBaseUrl}/v2/instance/delete/${instanceName}`
-                                                        ]
-
-                                                        for (const url of endpoints) {
-                                                            try {
-                                                                const resp = await fetch(url, {
-                                                                    method: 'DELETE',
-                                                                    headers: {
-                                                                        'apikey': finalGlobalKey
-                                                                    }
-                                                                })
-                                                                if (resp.ok || resp.status === 404) break
-                                                            } catch (e) {
-                                                                console.warn(`Delete failed at ${url}, trying next...`)
-                                                            }
-                                                        }
-
-                                                        // 2. Update Settings - clear whatsapp_number on unlink
-                                                        const updatedSettings = { 
-                                                            ...settings, 
-                                                            evolution_bot_enabled: false,
-                                                            whatsapp_number: '',
-                                                            evolution_instance_name: '',
-                                                            evolution_api_key: ''
-                                                        }
-                                                        setSettings(updatedSettings)
-
-                                                        // 3. Save to database
-                                                        await SettingsService.updateSettings(userId, updatedSettings)
-
-                                                        setMessage({ type: 'success', text: 'تم إلغاء الربط وحذف الرقم بنجاح' })
-                                                    } catch (error: any) {
-                                                        console.error('Logout Error:', error)
-                                                        // Even if API fails, we disable locally to reflect user intent
-                                                        setSettings({ 
-                                                            ...settings, 
-                                                            evolution_bot_enabled: false,
-                                                            whatsapp_number: '',
-                                                            evolution_instance_name: '',
-                                                            evolution_api_key: ''
-                                                        })
-                                                        setMessage({ type: 'error', text: 'حدث خطأ أثناء الحذف من السيرفر، لكن تم التعطيل محلياً' })
-                                                    }
-                                                }
-                                                // If cancelled, do nothing (checkbox stays checked)
-                                            }
-                                        }}
-                                        className="sr-only peer"
-                                    />
-                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                </label>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Instagram Integration Removed */}
-
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                            🚀 تضمين الشات في موقعك
-                        </label>
-                        <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
-                            💡 ملاحظة: هذا الكود سيعمل تلقائياً بحسب المحرك الذي تفعله في الأعلى (Gemini أو OpenAI أو Ollama). لا تحتاج لتغيير الكود عند تغيير المحرك.
-                        </p>
-                        <div className="relative group mb-4">
-                            <pre className="text-[10px] bg-slate-900 text-blue-400 p-4 rounded-xl overflow-x-auto border border-slate-700">
-                                {`<iframe src="${window.location.origin}?embed=true&user_id=${userId}" style="position:fixed; bottom:0; right:0; width:400px; height:700px; border:none; z-index:999999; background:transparent;" allowtransparency="true"></iframe>`}
-                            </pre>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const code = `<iframe src="${window.location.origin}?embed=true&user_id=${userId}" style="position:fixed; bottom:0; right:0; width:400px; height:700px; border:none; z-index:999999; background:transparent;" allowtransparency="true"></iframe>`;
-                                    navigator.clipboard.writeText(code);
-                                    setMessage({ type: 'success', text: 'تم نسخ كود التضمين!' });
-                                }}
-                                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all font-semibold text-sm"
-                            >
-                                📋 نسخ الكود
-                            </button>
-                            <a
-                                href={`${window.location.origin}?embed=true&user_id=${userId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-white rounded-xl transition-all font-semibold text-sm flex items-center justify-center gap-2"
-                            >
-                                🔗 تجربة الرابط
-                            </a>
-                        </div>
-                    </div>
-
-
                 </div>
 
-                <div className="p-6 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30 flex gap-3 flex-shrink-0">
+                <div className="p-6 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 flex gap-3 flex-shrink-0">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-semibold"
+                        className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-bold"
                     >
                         إلغاء
                     </button>
@@ -1098,7 +618,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                         type="button"
                         onClick={handleSave}
                         disabled={saving || loading}
-                        className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all font-semibold disabled:opacity-50"
+                        className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all font-bold disabled:opacity-50"
                     >
                         {saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
                     </button>
@@ -1114,16 +634,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                     const updatedSettings = { ...settings, evolution_bot_enabled: true }
                     setSettings(updatedSettings)
                     setMessage({ type: 'success', text: 'تم ربط WhatsApp بنجاح!' })
-
-                    // Save to database
                     try {
                         await SettingsService.updateSettings(userId, updatedSettings)
-                        loadSettings() // Reload settings to get updated data
+                        loadSettings()
                     } catch (error) {
                         console.error('Failed to save bot enabled state:', error)
                     }
                 }}
             />
-        </div >
+        </div>
     )
 }

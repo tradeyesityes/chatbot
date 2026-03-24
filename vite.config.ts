@@ -4,19 +4,33 @@ import path from 'path';
 import fs from 'fs';
 
 function loadEnvLocal() {
-  const envPath = path.resolve(__dirname, '.env.local');
-  if (!fs.existsSync(envPath)) return {};
-
-  const envContent = fs.readFileSync(envPath, 'utf-8');
   const env: Record<string, string> = {};
+  
+  // Load from .env (base)
+  const baseEnvPath = path.resolve(__dirname, '.env');
+  if (fs.existsSync(baseEnvPath)) {
+    const baseContent = fs.readFileSync(baseEnvPath, 'utf-8');
+    baseContent.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, ...valueParts] = trimmed.split('=');
+        if (key && valueParts.length > 0) env[key.trim()] = valueParts.join('=').trim();
+      }
+    });
+  }
 
-  envContent.split('\n').forEach(line => {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith('#')) {
-      const [key, ...valueParts] = trimmed.split('=');
-      env[key.trim()] = valueParts.join('=').trim();
-    }
-  });
+  // Override with .env.local (if exists)
+  const envPath = path.resolve(__dirname, '.env.local');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    envContent.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, ...valueParts] = trimmed.split('=');
+        if (key && valueParts.length > 0) env[key.trim()] = valueParts.join('=').trim();
+      }
+    });
+  }
 
   return env;
 }
