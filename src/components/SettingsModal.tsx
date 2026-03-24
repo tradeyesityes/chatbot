@@ -555,9 +555,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                     </button>
                 </div>
 
-                <div className="flex flex-1 overflow-hidden flex-row-reverse text-right" dir="rtl">
+                <div className="flex flex-1 overflow-hidden flex-row text-right" dir="rtl">
                     {/* Sidebar Navigation */}
-                    <div className="w-56 border-r border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col p-3 gap-2 flex-shrink-0">
+                    <div className="w-56 border-l border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col p-3 gap-2 flex-shrink-0">
                         <button
                             onClick={() => setActiveTab('ai')}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'ai' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
@@ -589,7 +589,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                     </div>
 
                     {/* Content Area */}
-                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-white dark:bg-slate-800 overflow-x-hidden">
+                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-white dark:bg-slate-800">
                         {message && (
                             <div className={`mb-6 p-4 rounded-xl text-sm font-medium animate-in slide-in-from-top-2 duration-300 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}>
                                 <div className="flex items-center gap-2">
