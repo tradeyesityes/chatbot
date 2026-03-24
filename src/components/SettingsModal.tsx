@@ -555,41 +555,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ userId, isOpen, on
                     </button>
                 </div>
 
-                <div className="flex flex-1 overflow-hidden flex-row text-right" dir="rtl">
-                    {/* Sidebar Navigation */}
-                    <div className="w-56 border-l border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col p-3 gap-2 flex-shrink-0">
+                <div className="flex flex-1 overflow-hidden h-full" dir="rtl">
+                    {/* Sidebar Navigation - 1st child is Right in RTL */}
+                    <div className="w-64 border-l border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col p-4 gap-2 flex-shrink-0 animate-in slide-in-from-right duration-500">
                         <button
                             onClick={() => setActiveTab('ai')}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'ai' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all ${activeTab === 'ai' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                         >
-                            <span className="text-lg">🤖</span>
+                            <span className="text-xl">🤖</span>
                             <span className="font-bold text-sm">نماذج الذكاء</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('whatsapp')}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'whatsapp' ? 'bg-green-600 text-white shadow-lg shadow-green-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all ${activeTab === 'whatsapp' ? 'bg-green-600 text-white shadow-lg shadow-green-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                         >
-                            <span className="text-lg">💬</span>
+                            <span className="text-xl">💬</span>
                             <span className="font-bold text-sm">الواتساب</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('telegram')}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'telegram' ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all ${activeTab === 'telegram' ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                         >
-                            <span className="text-lg">✈️</span>
+                            <span className="text-xl">✈️</span>
                             <span className="font-bold text-sm">تيليقرام</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('embed')}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'embed' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all ${activeTab === 'embed' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                         >
-                            <span className="text-lg">🔗</span>
+                            <span className="text-xl">🔗</span>
                             <span className="font-bold text-sm">التضمين</span>
                         </button>
                     </div>
 
-                    {/* Content Area */}
-                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-white dark:bg-slate-800">
+                    {/* Content Area - 2nd child is Left in RTL */}
+                    <div className="flex-1 min-w-0 overflow-y-auto p-10 custom-scrollbar bg-white dark:bg-slate-800 text-right animate-in fade-in slide-in-from-left duration-500">
                         {message && (
                             <div className={`mb-6 p-4 rounded-xl text-sm font-medium animate-in slide-in-from-top-2 duration-300 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}>
                                 <div className="flex items-center gap-2">
