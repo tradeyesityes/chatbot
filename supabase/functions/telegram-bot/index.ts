@@ -76,46 +76,67 @@ serve(async (req) => {
             .eq('id', convId)
             .single();
 
+        const normalizeArabic = (t: string) => {
+            if (!t) return '';
+            return t
+                .replace(/[أإآ]/g, 'ا')
+                .replace(/ة/g, 'ه')
+                .replace(/ى/g, 'ي')
+                .replace(/[\u064B-\u0652]/g, '')
+                .trim();
+        };
+
         let status = conv?.handover_status || 'idle';
         let data = conv?.handover_data || {};
 
-        const keywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
-        const isTrigger = keywords.some(k => text.toLowerCase().includes(k.toLowerCase()));
+        const textNormalized = normalizeArabic(text.toLowerCase());
+        const keywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'موظف', 'مساعدة', 'تحدث مع', 'خدمة عملاء', 'تواصل', 'مشرف'];
+        const normalizedKeywords = keywords.map(k => normalizeArabic(k.toLowerCase()));
+        
+        const isTrigger = normalizedKeywords.some(k => textNormalized.includes(k));
+
+        await logDebug('HandoverCheck', `Input: ${text}, Status: ${status}, isTrigger: ${isTrigger}`, { chatId })
 
         let handoverResponse = null;
 
-        if (isTrigger && status === 'idle') {
-            status = 'collecting_name';
-            handoverResponse = "يسعدنا خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
-        } else if (status === 'collecting_name') {
-            data.name = text;
-            status = 'collecting_phone';
-            handoverResponse = `شكراً ${text}. من فضلك زودنا برقم جوالك لنتمكن من التواصل معك.`;
-        } else if (status === 'collecting_phone') {
-            data.phone = text;
-            status = 'collecting_email';
-            handoverResponse = "شكراً. من فضلك زودنا ببريدك الإلكتروني (اختياري، اكتب 'تخطي' للمتابعة).";
-        } else if (status === 'collecting_email') {
-            data.email = (text.toLowerCase().includes('تخطي') || text.toLowerCase().includes('skip')) ? 'N/A' : text;
-            const ticketId = `T-${Math.floor(10000 + Math.random() * 90000)}`;
-            data.ticket_id = ticketId;
-
-            // Trigger Email Notification
-            supabase.functions.invoke('send-handover-email', {
-                body: {
-                    userId: userId,
-                    customerName: data.name,
-                    customerEmail: data.email,
-                    customerPhone: data.phone,
-                    ticketId: data.ticket_id,
-                    message: text,
-                    channel: 'Telegram'
+        if ((isTrigger || status !== 'idle') && status !== 'completed') {
+            if (status === 'idle') {
+                if (!settings.support_email) {
+                    handoverResponse = "عذراً، يجب على صاحب المتجر إعداد (البريد الإلكتروني للدعم) في الإعدادات لتفعيل نظام التحدث مع الموظفين والتذاكر.";
+                } else {
+                    status = 'collecting_name';
+                    handoverResponse = "يسعدنا خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
                 }
-            }).catch(e => console.error('Handover notification failed:', e.message));
+            } else if (status === 'collecting_name') {
+                data.name = text;
+                status = 'collecting_phone';
+                handoverResponse = `شكراً ${text}. من فضلك زودنا برقم جوالك لنتمكن من التواصل معك.`;
+            } else if (status === 'collecting_phone') {
+                data.phone = text;
+                status = 'collecting_email';
+                handoverResponse = "شكراً. من فضلك زودنا ببريدك الإلكتروني (اختياري، اكتب 'تخطي' للمتابعة).";
+            } else if (status === 'collecting_email') {
+                data.email = (textNormalized.includes('تخطي') || textNormalized.includes('skip')) ? 'N/A' : text;
+                const ticketId = `T-${Math.floor(10000 + Math.random() * 90000)}`;
+                data.ticket_id = ticketId;
 
-            status = 'idle';
-            data = {};
-            handoverResponse = `تم إنشاء تذكرة برقم #${ticketId}. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.`;
+                // Trigger Email Notification
+                supabase.functions.invoke('send-handover-email', {
+                    body: {
+                        userId: userId,
+                        customerName: data.name,
+                        customerEmail: data.email,
+                        customerPhone: data.phone,
+                        ticketId: data.ticket_id,
+                        message: text,
+                        channel: 'Telegram'
+                    }
+                }).catch(e => console.error('Handover notification failed:', e.message));
+
+                status = 'idle';
+                data = {};
+                handoverResponse = `تم إنشاء تذكرة برقم #${ticketId}. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.`;
+            }
         }
 
         if (handoverResponse) {
