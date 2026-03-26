@@ -30,47 +30,53 @@ export class HandoverService {
         text: string, 
         keywords: string[],
         supportEmail: string | null,
-        channel: 'Web' | 'WhatsApp' | 'Telegram'
+        channel: 'Web' | 'WhatsApp' | 'Telegram',
+        likelyNew: boolean = false
     ): Promise<string | null> {
         if (!conversationId) return null;
 
-        // 1. Fetch current handover state
-        const { data: conv, error } = await supabase
-            .from('conversations')
-            .select('handover_status, handover_data')
-            .eq('id', conversationId)
-            .single();
-
-        if (error || !conv) {
-            console.error('[Handover] Failed to fetch conversation state. Error:', error);
-            
-            // Helpful message if SQL migration wasn't run
-            if (error && (error as any).code === '42703') {
-                return "⚠️ فشل بدء نظام التذاكر: يبدو أنك لم تقم بتشغيل كود SQL اللازم في Supabase. يرجى مراجعة التعليمات السابقة وإضافة الأعمدة (handover_status, handover_data) لجدول conversations.";
-            }
-            return null;
-        }
-
-        let status = (conv.handover_status as HandoverStatus) || 'idle';
-        let data = (conv.handover_data as HandoverData) || {};
-
         const normalizedText = this.normalizeArabic(text.toLowerCase());
-        
-        // Define triggers with normalization
         const baseKeywords = (keywords && keywords.length > 0) ? keywords : ['موظف', 'مساعدة', 'تحدث مع', 'خدمة عملاء', 'تواصل', 'مشرف'];
         const normalizedKeywords = baseKeywords.map(k => this.normalizeArabic(k.toLowerCase()));
-        
         const isTrigger = normalizedKeywords.some(k => normalizedText.includes(k));
+
+        // 1. Fetch current handover state
+        let status: HandoverStatus = 'idle';
+        let data: HandoverData = {};
+        
+        try {
+            const { data: conv, error } = await supabase
+                .from('conversations')
+                .select('handover_status, handover_data')
+                .eq('id', conversationId)
+                .single();
+
+            if (error) {
+                console.error('[Handover] DB Fetch Error:', error);
+                if ((error as any).code === '42703') {
+                    if (isTrigger) return "⚠️ النظام يحتاج لتفعيل: يرجى تشغيل كود SQL المذكور سابقاً في Supabase (إضافة handover_status).";
+                    return null;
+                }
+                // If it's a new conversation, it might not be in DB yet due to lag
+                if (likelyNew) status = 'idle';
+                else return null; 
+            } else if (conv) {
+                status = (conv.handover_status as HandoverStatus) || 'idle';
+                data = (conv.handover_data as HandoverData) || {};
+            }
+        } catch (e) {
+            console.error('[Handover] Critical Error:', e);
+            if (likelyNew) status = 'idle';
+            else return null;
+        }
 
         console.log(`[Handover] Channel: ${channel}, Input: "${text}", Status: ${status}, isTrigger: ${isTrigger}`);
 
         // 2. State Machine
         if ((isTrigger || status !== 'idle') && status !== 'completed') {
             
-            // Check for configuration ONLY if we are starting a NEW handover
             if (status === 'idle') {
                 if (!supportEmail || supportEmail.trim() === '') {
-                    console.warn('[Handover] Support email not configured.');
                     return "عذراً، يجب على صاحب المتجر إعداد (البريد الإلكتروني للدعم) في الإعدادات لتفعيل نظام التحدث مع الموظفين والتذاكر.";
                 }
                 
@@ -99,7 +105,7 @@ export class HandoverService {
                 await this.triggerHandoverEmail(userId, data, text, channel);
 
                 // Finalize
-                await this.updateState(conversationId, 'idle', {}); // Reset for future use
+                await this.updateState(conversationId, 'idle', {}); // Reset
                 return `تم إنشاء تذكرة برقم #${ticketId}. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.`;
             }
         }
@@ -108,14 +114,18 @@ export class HandoverService {
     }
 
     private static async updateState(conversationId: string, status: HandoverStatus, data: HandoverData) {
-        await supabase
-            .from('conversations')
-            .update({ 
-                handover_status: status, 
-                handover_data: data,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', conversationId);
+        try {
+            await supabase
+                .from('conversations')
+                .update({ 
+                    handover_status: status, 
+                    handover_data: data,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', conversationId);
+        } catch (e) {
+            console.error('[Handover] Failed to update state:', e);
+        }
     }
 
     private static async triggerHandoverEmail(userId: string, data: HandoverData, lastMessage: string, channel: string) {
@@ -132,7 +142,7 @@ export class HandoverService {
                 }
             });
         } catch (e) {
-            console.error('Failed to trigger handover email:', e);
+            console.error('[Handover] Failed to trigger email:', e);
         }
     }
 }

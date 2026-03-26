@@ -236,7 +236,7 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 		}
 
 		// 1. Fetch current handover state
-		const { data: conv } = await supabase
+		const { data: conv, error: convError } = await supabase
 			.from('conversations')
 			.select('handover_status, handover_data')
 			.eq('id', conversationId)

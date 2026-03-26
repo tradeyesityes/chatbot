@@ -202,7 +202,8 @@ export default function App() {
       input,
       userSettings?.handover_keywords || [],
       userSettings?.support_email || null,
-      'Web'
+      'Web',
+      !currentConversationId // Passing likelyNew flag
     );
 
     if (handoverResponse) {
