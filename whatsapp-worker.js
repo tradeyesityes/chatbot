@@ -235,39 +235,79 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 			if (error) console.error('[Worker] Save user msg RPC error:', error.message);
 		}
 
-		// Handover Detection
-		const handoverKeywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
-		const isHandoverRequested = handoverKeywords.some(k => incomingText.toLowerCase().includes(k.toLowerCase()));
+		// 1. Fetch current handover state
+		const { data: conv } = await supabase
+			.from('conversations')
+			.select('handover_status, handover_data')
+			.eq('id', conversationId)
+			.single();
 
-		if (isHandoverRequested && settings.support_email) {
-			console.log(`[Worker] Handover requested by ${remoteJid} for user ${settings.user_id}`);
-			// 1. Send handover email notification
+		let status = conv?.handover_status || 'idle';
+		let data = conv?.handover_data || {};
+
+		const keywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
+		const isTrigger = keywords.some(k => incomingText.toLowerCase().includes(k.toLowerCase()));
+
+		let handoverResponse = null;
+
+		if (isTrigger && status === 'idle') {
+			status = 'collecting_name';
+			handoverResponse = "يسعدنا خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
+		} else if (status === 'collecting_name') {
+			data.name = incomingText;
+			status = 'collecting_phone';
+			handoverResponse = `شكراً ${incomingText}. من فضلك زودنا برقم جوالك لنتمكن من التواصل معك.`;
+		} else if (status === 'collecting_phone') {
+			data.phone = incomingText;
+			status = 'collecting_email';
+			handoverResponse = "شكراً. من فضلك زودنا ببريدك الإلكتروني (اختياري، اكتب 'تخطي' للمتابعة).";
+		} else if (status === 'collecting_email') {
+			data.email = (incomingText.toLowerCase().includes('تخطي') || incomingText.toLowerCase().includes('skip')) ? 'N/A' : incomingText;
+			const ticketId = `T-${Math.floor(10000 + Math.random() * 90000)}`;
+			data.ticket_id = ticketId;
+
+			// Trigger Email Notification
 			supabase.functions.invoke('send-handover-email', {
 				body: {
 					userId: settings.user_id,
-					customerName: senderName,
-					customerEmail: null,
-					customerPhone: remoteJid.replace('@s.whatsapp.net', ''),
+					customerName: data.name,
+					customerEmail: data.email,
+					customerPhone: data.phone,
+					ticketId: data.ticket_id,
 					message: incomingText,
 					channel: 'WhatsApp'
 				}
 			}).catch(e => console.error('[Worker] Handover notification failed:', e.message));
 
-			// 2. Respond to user
-			const handoverMsg = 'تم إرسال طلبك للإدارة. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.';
+			status = 'idle';
+			data = {};
+			handoverResponse = `تم إنشاء تذكرة برقم #${ticketId}. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.`;
+		}
+
+		if (handoverResponse) {
+			// Update state in DB
+			await supabase.from('conversations').update({ 
+				handover_status: status, 
+				handover_data: data,
+				updated_at: new Date().toISOString()
+			}).eq('id', conversationId);
+
+			console.log(`[Worker] Handover response: ${handoverResponse}`);
+			
+			// Send message via Evolution API
 			await axios.post(`${cleanBaseUrl}/message/sendText/${settings.evolution_instance_name}`, {
 				number: remoteJid,
-				text: handoverMsg,
+				text: handoverResponse,
 				delay: 1200
 			}, { headers: { 'apikey': apiKey } });
 
-			// Save AI response to DB
+			// Save response to DB
 			if (settings.user_id && conversationId) {
 				await supabase.rpc('save_whatsapp_message', {
 					p_user_id: settings.user_id,
 					p_conversation_id: conversationId,
 					p_role: 'assistant',
-					p_content: handoverMsg
+					p_content: handoverResponse
 				});
 			}
 			return;

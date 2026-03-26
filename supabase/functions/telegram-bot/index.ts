@@ -69,39 +69,79 @@ serve(async (req) => {
             });
         }
 
-        // Handover Detection
-        const handoverKeywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
-        const isHandoverRequested = handoverKeywords.some(k => text.toLowerCase().includes(k.toLowerCase()));
+        // 1. Fetch current handover state
+        const { data: conv } = await supabase
+            .from('conversations')
+            .select('handover_status, handover_data')
+            .eq('id', convId)
+            .single();
 
-        if (isHandoverRequested && settings.support_email) {
-            await logDebug('Handover', 'Handover requested via Telegram', { chatId, userId })
-            // 1. Send handover email notification
+        let status = conv?.handover_status || 'idle';
+        let data = conv?.handover_data || {};
+
+        const keywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
+        const isTrigger = keywords.some(k => text.toLowerCase().includes(k.toLowerCase()));
+
+        let handoverResponse = null;
+
+        if (isTrigger && status === 'idle') {
+            status = 'collecting_name';
+            handoverResponse = "يسعدنا خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
+        } else if (status === 'collecting_name') {
+            data.name = text;
+            status = 'collecting_phone';
+            handoverResponse = `شكراً ${text}. من فضلك زودنا برقم جوالك لنتمكن من التواصل معك.`;
+        } else if (status === 'collecting_phone') {
+            data.phone = text;
+            status = 'collecting_email';
+            handoverResponse = "شكراً. من فضلك زودنا ببريدك الإلكتروني (اختياري، اكتب 'تخطي' للمتابعة).";
+        } else if (status === 'collecting_email') {
+            data.email = (text.toLowerCase().includes('تخطي') || text.toLowerCase().includes('skip')) ? 'N/A' : text;
+            const ticketId = `T-${Math.floor(10000 + Math.random() * 90000)}`;
+            data.ticket_id = ticketId;
+
+            // Trigger Email Notification
             supabase.functions.invoke('send-handover-email', {
                 body: {
                     userId: userId,
-                    customerName: senderName,
-                    customerEmail: null,
-                    customerPhone: `TG_${chatId}`,
+                    customerName: data.name,
+                    customerEmail: data.email,
+                    customerPhone: data.phone,
+                    ticketId: data.ticket_id,
                     message: text,
                     channel: 'Telegram'
                 }
             }).catch(e => console.error('Handover notification failed:', e.message));
 
-            // 2. Respond to user
-            const handoverMsg = 'تم إرسال طلبك للإدارة. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.'
+            status = 'idle';
+            data = {};
+            handoverResponse = `تم إنشاء تذكرة برقم #${ticketId}. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.`;
+        }
+
+        if (handoverResponse) {
+            // Update state in DB
+            if (convId) {
+                await supabase.from('conversations').update({ 
+                    handover_status: status, 
+                    handover_data: data,
+                    updated_at: new Date().toISOString()
+                }).eq('id', convId);
+            }
+
+            // Send message via Telegram API
             await fetch(`https://api.telegram.org/bot${tokenFromUrl}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: handoverMsg })
+                body: JSON.stringify({ chat_id: chatId, text: handoverResponse })
             })
 
-            // Save assistant message to DB
+            // Save response to DB
             if (convId) {
                 await supabase.rpc('save_whatsapp_message', {
                     p_user_id: userId,
                     p_conversation_id: convId,
                     p_role: 'assistant',
-                    p_content: handoverMsg
+                    p_content: handoverResponse
                 });
             }
             return new Response('OK', { status: 200 })

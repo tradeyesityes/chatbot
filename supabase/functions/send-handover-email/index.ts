@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, customerName, customerEmail, customerPhone, message, channel } = await req.json()
+    const { userId, customerName, customerEmail, customerPhone, message, channel, ticketId } = await req.json()
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Missing userId' }), {
@@ -51,11 +51,11 @@ serve(async (req) => {
     }
 
     const supportEmail = settings.support_email
-    const subject = `🔔 طلب تواصل بشري - ${customerName || 'عميل جديد'}`
+    const subject = `🔔 [${ticketId || 'جديد'}] طلب تواصل بشري - ${customerName || 'عميل'}`
     
     const htmlContent = `
       <div dir="rtl" style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #e11d48;">طلب مساعدة بشرية جديد</h2>
+        <h2 style="color: #e11d48;">طلب مساعدة بشرية جديد - تذكرة #${ticketId || '---'}</h2>
         <p>لديك طلب تواصل جديد من عميل عبر قناة: <strong>${channel || 'الويب'}</strong></p>
         <hr />
         <p><strong>تفاصيل العميل:</strong></p>
