@@ -43,6 +43,11 @@ export class HandoverService {
 
         if (error || !conv) {
             console.error('[Handover] Failed to fetch conversation state. Error:', error);
+            
+            // Helpful message if SQL migration wasn't run
+            if (error && (error as any).code === '42703') {
+                return "⚠️ فشل بدء نظام التذاكر: يبدو أنك لم تقم بتشغيل كود SQL اللازم في Supabase. يرجى مراجعة التعليمات السابقة وإضافة الأعمدة (handover_status, handover_data) لجدول conversations.";
+            }
             return null;
         }
 
