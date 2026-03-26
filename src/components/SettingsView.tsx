@@ -47,13 +47,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
         use_qdrant: false,
         qdrant_url: '',
         qdrant_api_key: '',
-        qdrant_collection: 'segments'
+        qdrant_collection: 'segments',
+        support_email: '',
+        handover_keywords: ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف']
     })
 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-    const [activeTab, setActiveTab] = useState<'ai' | 'whatsapp' | 'telegram' | 'embed'>('ai')
+    const [activeTab, setActiveTab] = useState<'ai' | 'whatsapp' | 'telegram' | 'embed' | 'handover'>('ai')
     const [showQRModal, setShowQRModal] = useState(false)
     const [updatingWebhook, setUpdatingWebhook] = useState(false)
 
@@ -478,6 +480,57 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
         </div>
     )
 
+    const renderHandoverSettings = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="bg-slate-50/50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center text-xl">👨‍💼</div>
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-white">تنبيهات التدخل البشري</h3>
+                        <p className="text-[10px] text-slate-500">تلقي تنبيهات عندما يطلب العميل التحدث مع موظف</p>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 mr-1">الإيميل لاستقبال التنبيهات</label>
+                            <input
+                                type="email"
+                                value={settings.support_email || ''}
+                                onChange={e => setSettings({ ...settings, support_email: e.target.value })}
+                                placeholder="support@company.com"
+                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm"
+                            />
+                            <p className="text-[10px] text-slate-400 mt-2 mr-1">سيتم إرسال تفاصيل العميل (الاسم، الجوال، الإيميل) إلى هذا العنوان عند طلب المساعدة.</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 mr-1">الكلمات المفتاحية للتحويل (مفصولة بفاصلة)</label>
+                            <input
+                                type="text"
+                                value={settings.handover_keywords?.join(', ') || ''}
+                                onChange={e => setSettings({ ...settings, handover_keywords: e.target.value.split(',').map(s => s.trim()) })}
+                                placeholder="موظف، مساعدة، support..."
+                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-end">
+                    <button 
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all flex items-center gap-2"
+                    >
+                        {saving ? 'جاري الحفظ...' : 'حفظ إعدادات التنبيهات 🔔'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+
     return (
         <div className="h-full flex flex-col bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-500">
             {/* Header */}
@@ -537,6 +590,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                         <span className="text-xl">🔗</span>
                         <span className="font-bold text-sm">التضمين</span>
                     </button>
+                    <button
+                        onClick={() => setActiveTab('handover')}
+                        className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all ${activeTab === 'handover' ? 'bg-salla-primary text-white shadow-lg shadow-salla-primary/20' : 'text-slate-500 hover:bg-slate-100/50 dark:hover:bg-slate-800'}`}
+                    >
+                        <span className="text-xl">👨‍💼</span>
+                        <span className="font-bold text-sm">التواصل البشري</span>
+                    </button>
                 </div>
 
                 {/* Content Area */}
@@ -546,6 +606,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                         {activeTab === 'whatsapp' && renderWhatsAppSettings()}
                         {activeTab === 'telegram' && renderTelegramSettings()}
                         {activeTab === 'embed' && renderEmbedSettings()}
+                        {activeTab === 'handover' && renderHandoverSettings()}
                     </div>
                 </div>
             </div>

@@ -234,6 +234,44 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 			});
 			if (error) console.error('[Worker] Save user msg RPC error:', error.message);
 		}
+
+		// Handover Detection
+		const handoverKeywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
+		const isHandoverRequested = handoverKeywords.some(k => incomingText.toLowerCase().includes(k.toLowerCase()));
+
+		if (isHandoverRequested && settings.support_email) {
+			console.log(`[Worker] Handover requested by ${remoteJid} for user ${settings.user_id}`);
+			// 1. Send handover email notification
+			supabase.functions.invoke('send-handover-email', {
+				body: {
+					userId: settings.user_id,
+					customerName: senderName,
+					customerEmail: null,
+					customerPhone: remoteJid.replace('@s.whatsapp.net', ''),
+					message: incomingText,
+					channel: 'WhatsApp'
+				}
+			}).catch(e => console.error('[Worker] Handover notification failed:', e.message));
+
+			// 2. Respond to user
+			const handoverMsg = 'تم إرسال طلبك للإدارة. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.';
+			await axios.post(`${cleanBaseUrl}/message/sendText/${settings.evolution_instance_name}`, {
+				number: remoteJid,
+				text: handoverMsg,
+				delay: 1200
+			}, { headers: { 'apikey': apiKey } });
+
+			// Save AI response to DB
+			if (settings.user_id && conversationId) {
+				await supabase.rpc('save_whatsapp_message', {
+					p_user_id: settings.user_id,
+					p_conversation_id: conversationId,
+					p_role: 'assistant',
+					p_content: handoverMsg
+				});
+			}
+			return;
+		}
 		
 		// Fetch user files for RAG context
 		let context = '';

@@ -40,6 +40,8 @@ export interface UserSettings {
     tg_enabled?: boolean
     tg_token?: string | null
     tg_bot_username?: string | null
+    support_email?: string | null
+    handover_keywords?: string[]
 }
 
 export class SettingsService {
@@ -95,7 +97,9 @@ export class SettingsService {
             wa_whatchimp_phone_number: data?.wa_whatchimp_phone_number || null,
             tg_enabled: data?.tg_enabled || false,
             tg_token: data?.tg_token || null,
-            tg_bot_username: data?.tg_bot_username || null
+            tg_bot_username: data?.tg_bot_username || null,
+            support_email: data?.support_email || null,
+            handover_keywords: data?.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف']
         }
 
         // If no row exists, or the default API key was missing, save it now so it persists

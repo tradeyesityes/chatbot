@@ -69,6 +69,44 @@ serve(async (req) => {
             });
         }
 
+        // Handover Detection
+        const handoverKeywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
+        const isHandoverRequested = handoverKeywords.some(k => text.toLowerCase().includes(k.toLowerCase()));
+
+        if (isHandoverRequested && settings.support_email) {
+            await logDebug('Handover', 'Handover requested via Telegram', { chatId, userId })
+            // 1. Send handover email notification
+            supabase.functions.invoke('send-handover-email', {
+                body: {
+                    userId: userId,
+                    customerName: senderName,
+                    customerEmail: null,
+                    customerPhone: `TG_${chatId}`,
+                    message: text,
+                    channel: 'Telegram'
+                }
+            }).catch(e => console.error('Handover notification failed:', e.message));
+
+            // 2. Respond to user
+            const handoverMsg = 'تم إرسال طلبك للإدارة. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.'
+            await fetch(`https://api.telegram.org/bot${tokenFromUrl}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: handoverMsg })
+            })
+
+            // Save assistant message to DB
+            if (convId) {
+                await supabase.rpc('save_whatsapp_message', {
+                    p_user_id: userId,
+                    p_conversation_id: convId,
+                    p_role: 'assistant',
+                    p_content: handoverMsg
+                });
+            }
+            return new Response('OK', { status: 200 })
+        }
+
         // --- AI Processing ---
         const { data: files } = await supabase.from('user_files').select('name, content').eq('user_id', userId)
         const context = files?.map(f => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''

@@ -194,6 +194,41 @@ export default function App() {
     setMessages(prev => [...prev, userMessage])
     setInput('')
 
+    // Handover Detection
+    const handoverKeywords = userSettings?.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
+    const isHandoverRequested = handoverKeywords.some(k => input.toLowerCase().includes(k.toLowerCase()));
+
+    if (isHandoverRequested && userSettings?.support_email && user) {
+      // 1. Send handover email notification
+      supabase.functions.invoke('send-handover-email', {
+        body: {
+          userId: user.id,
+          customerName: user.username,
+          customerEmail: user.email,
+          customerPhone: userSettings.whatsapp_number,
+          message: input,
+          channel: 'Web'
+        }
+      }).catch((e: any) => console.error('Handover notification failed:', e));
+
+      // 2. Respond to user
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'تم إرسال طلبك للإدارة. سيتواصل معك أحد موظفينا قريباً عبر البريد الإلكتروني أو الواتساب. شكراً لصبرك.',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, assistantMessage])
+
+      // Save assistant message to Supabase
+      ChatService.saveMessage(user.id, assistantMessage, convId).catch(e => {
+        console.error('Save Assistant Message Error:', e);
+      });
+
+      setLoading(false)
+      return;
+    }
+
     // Save user message to Supabase
     if (user) {
       ChatService.saveMessage(user.id, userMessage, convId).catch(e => {
