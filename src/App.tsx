@@ -189,28 +189,30 @@ export default function App() {
       }
     }
 
-    // --- Handover Detection & Processing (Moved BEFORE file check) ---
-    const isManualTrigger = input.includes('موظف') || input.includes('تحدث') || input.includes('مساعدة') || input.includes('تواصل');
+    // --- Handover Detection & Processing (v1.6-trace) ---
+    const isManualTrigger = input.includes('موظف') || input.includes('تحدث') || input.includes('مساعدة') || input.includes('تواصل') || input.includes('human');
     
-    let handoverResponse = await HandoverService.processMessage(
-      user.id,
-      convId,
-      input,
-      userSettings?.handover_keywords || [],
-      userSettings?.support_email || null,
-      'Web',
-      !currentConversationId
-    );
+    let handoverResponse: string | null = null;
+    let traceInfo = `Input: "${input}", ID: ${convId}, Trigger: ${isManualTrigger}`;
 
-    // Ultra-permissive fallback for debug
+    try {
+      handoverResponse = await HandoverService.processMessage(
+        user.id,
+        convId,
+        input,
+        userSettings?.handover_keywords || [],
+        userSettings?.support_email || null,
+        'Web',
+        !currentConversationId
+      );
+    } catch (err: any) {
+      console.error('[Handover Trace Error]', err);
+      handoverResponse = `⚠️ خطأ تقني في نظام التحويل: ${err.message}. Trace: ${traceInfo}`;
+    }
+
+    // Trace fallback
     if (!handoverResponse && isManualTrigger) {
-      console.warn('[Handover] Service returned null for trigger word. Forcing start.');
-      if (!userSettings?.support_email) {
-        handoverResponse = "⚠️ تنبيه: يرجى ضبط (بريد الدعم) في الإعدادات لتفعيل نظام التذاكر.";
-      } else {
-        // We can't easily force the state here without the service, but let's at least show a message
-        handoverResponse = "جاري تحويلك للموظف المختص... (تنبيه: عطل في فحص الحالة، يرجى المحاولة مرة أخرى أو التأكد من إعدادات الجدولة).";
-      }
+      handoverResponse = `🕒 تنبيه نظام التحويل (Trace): لم يتم التعرف على الحالة. Trace: ${traceInfo}. الرجاء التأكد من إعدادات البريد الإلكتروني.`;
     }
 
     if (handoverResponse) {
@@ -223,7 +225,6 @@ export default function App() {
       }
       setMessages(prev => [...prev, assistantMessage])
 
-      // Save assistant message to Supabase
       ChatService.saveMessage(user.id, assistantMessage, convId).catch(e => {
         console.error('Save Assistant Message Error:', e);
       });
