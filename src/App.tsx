@@ -190,7 +190,9 @@ export default function App() {
     }
 
     // --- Handover Detection & Processing (Moved BEFORE file check) ---
-    const handoverResponse = await HandoverService.processMessage(
+    const isManualTrigger = input.includes('موظف') || input.includes('تحدث') || input.includes('مساعدة') || input.includes('تواصل');
+    
+    let handoverResponse = await HandoverService.processMessage(
       user.id,
       convId,
       input,
@@ -200,8 +202,19 @@ export default function App() {
       !currentConversationId
     );
 
+    // Ultra-permissive fallback for debug
+    if (!handoverResponse && isManualTrigger) {
+      console.warn('[Handover] Service returned null for trigger word. Forcing start.');
+      if (!userSettings?.support_email) {
+        handoverResponse = "⚠️ تنبيه: يرجى ضبط (بريد الدعم) في الإعدادات لتفعيل نظام التذاكر.";
+      } else {
+        // We can't easily force the state here without the service, but let's at least show a message
+        handoverResponse = "جاري تحويلك للموظف المختص... (تنبيه: عطل في فحص الحالة، يرجى المحاولة مرة أخرى أو التأكد من إعدادات الجدولة).";
+      }
+    }
+
     if (handoverResponse) {
-      setMessages(prev => [...prev, userMessage]) // Still show the user message
+      setMessages(prev => [...prev, userMessage])
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
