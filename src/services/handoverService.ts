@@ -9,6 +9,9 @@ export interface HandoverData {
     ticket_id?: string
 }
 
+// In-memory fallback to avoid DB lag issues within a session
+const sessionCache: Record<string, { status: HandoverStatus, data: HandoverData }> = {};
+
 export class HandoverService {
     private static normalizeArabic(text: string): string {
         if (!text) return '';
@@ -16,7 +19,7 @@ export class HandoverService {
             .replace(/[أإآ]/g, 'ا')
             .replace(/ة/g, 'ه')
             .replace(/ى/g, 'ي')
-            .replace(/[\u064B-\u0652]/g, '') // Remove harakat
+            .replace(/[\u064B-\u0652]/g, '')
             .trim();
     }
 
@@ -40,34 +43,39 @@ export class HandoverService {
         const normalizedKeywords = baseKeywords.map(k => this.normalizeArabic(k.toLowerCase()));
         const isTrigger = normalizedKeywords.some(k => normalizedText.includes(k));
 
-        // 1. Fetch current handover state
+        // 1. Fetch current handover state (with in-memory fallback)
         let status: HandoverStatus = 'idle';
         let data: HandoverData = {};
         
-        try {
-            const { data: conv, error } = await supabase
-                .from('conversations')
-                .select('handover_status, handover_data')
-                .eq('id', conversationId)
-                .single();
+        // Check cache first
+        if (sessionCache[conversationId]) {
+            status = sessionCache[conversationId].status;
+            data = sessionCache[conversationId].data;
+            console.log(`[Handover] Found cached state for ${conversationId}: ${status}`);
+        } else {
+            try {
+                const { data: conv, error } = await supabase
+                    .from('conversations')
+                    .select('handover_status, handover_data')
+                    .eq('id', conversationId)
+                    .single();
 
-            if (error) {
-                console.error('[Handover] DB Fetch Error:', error);
-                if ((error as any).code === '42703') {
-                    if (isTrigger) return "⚠️ النظام يحتاج لتفعيل: يرجى تشغيل كود SQL المذكور سابقاً في Supabase (إضافة handover_status).";
-                    return null;
+                if (error) {
+                    console.error('[Handover] DB Fetch Error:', error);
+                    if ((error as any).code === '42703') {
+                        if (isTrigger) return "⚠️ الميزة تحتاج تفعيل: يرجى تشغيل كود SQL في Supabase.";
+                        return null;
+                    }
+                    if (likelyNew) status = 'idle';
+                    else return null; 
+                } else if (conv) {
+                    status = (conv.handover_status as HandoverStatus) || 'idle';
+                    data = (conv.handover_data as HandoverData) || {};
                 }
-                // If it's a new conversation, it might not be in DB yet due to lag
+            } catch (e) {
                 if (likelyNew) status = 'idle';
-                else return null; 
-            } else if (conv) {
-                status = (conv.handover_status as HandoverStatus) || 'idle';
-                data = (conv.handover_data as HandoverData) || {};
+                else return null;
             }
-        } catch (e) {
-            console.error('[Handover] Critical Error:', e);
-            if (likelyNew) status = 'idle';
-            else return null;
         }
 
         console.log(`[Handover] Channel: ${channel}, Input: "${text}", Status: ${status}, isTrigger: ${isTrigger}`);
@@ -114,8 +122,11 @@ export class HandoverService {
     }
 
     private static async updateState(conversationId: string, status: HandoverStatus, data: HandoverData) {
+        // Update Cache FIRST
+        sessionCache[conversationId] = { status, data };
+        
         try {
-            await supabase
+            const { error } = await supabase
                 .from('conversations')
                 .update({ 
                     handover_status: status, 
@@ -123,8 +134,10 @@ export class HandoverService {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', conversationId);
+            
+            if (error) console.error('[Handover] Update error:', error);
         } catch (e) {
-            console.error('[Handover] Failed to update state:', e);
+            console.error('[Handover] Update exception:', e);
         }
     }
 
@@ -142,7 +155,7 @@ export class HandoverService {
                 }
             });
         } catch (e) {
-            console.error('[Handover] Failed to trigger email:', e);
+            console.error('[Handover] Email trigger failed:', e);
         }
     }
 }
