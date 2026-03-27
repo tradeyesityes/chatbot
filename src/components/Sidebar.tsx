@@ -352,6 +352,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>v2.1.0</span>
           <span>© {new Date().getFullYear()}</span>
         </div>
+        <div className="text-[10px] text-gray-400 mt-2 px-4">v1.4-beta</div>
       </div>
 
     </aside>
