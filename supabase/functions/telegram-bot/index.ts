@@ -86,14 +86,15 @@ serve(async (req) => {
                 .trim();
         };
 
-        let status = conv?.handover_status || 'idle';
-        let data = conv?.handover_data || {};
-
         const textNormalized = normalizeArabic(text.toLowerCase());
-        const keywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'موظف', 'مساعدة', 'تحدث مع', 'خدمة عملاء', 'تواصل', 'مشرف'];
-        const normalizedKeywords = keywords.map(k => normalizeArabic(k.toLowerCase()));
+        const keywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
+        const baseKeywords = keywords.length > 0 ? keywords : ['موظف', 'مساعدة', 'تحدث مع', 'خدمة عملاء', 'تواصل', 'مشرف'];
+        const normalizedKeywords = baseKeywords.map(k => normalizeArabic(k.toLowerCase()));
         
         const isTrigger = normalizedKeywords.some(k => textNormalized.includes(k));
+
+        let status = conv?.handover_status || 'idle';
+        let data = conv?.handover_data || {};
 
         await logDebug('HandoverCheck', `Input: ${text}, Status: ${status}, isTrigger: ${isTrigger}`, { chatId })
 
@@ -105,7 +106,7 @@ serve(async (req) => {
                     handoverResponse = "عذراً، يجب على صاحب المتجر إعداد (البريد الإلكتروني للدعم) في الإعدادات لتفعيل نظام التحدث مع الموظفين والتذاكر.";
                 } else {
                     status = 'collecting_name';
-                    handoverResponse = "يسعدنا خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
+                    handoverResponse = "نحن في خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
                 }
             } else if (status === 'collecting_name') {
                 data.name = text;

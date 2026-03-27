@@ -271,7 +271,7 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 					handoverResponse = "عذراً، يجب على صاحب المتجر إعداد (البريد الإلكتروني للدعم) في الإعدادات لتفعيل نظام التحدث مع الموظفين والتذاكر.";
 				} else {
 					status = 'collecting_name';
-					handoverResponse = "يسعدنا خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
+					handoverResponse = "نحن في خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
 				}
 			} else if (status === 'collecting_name') {
 				data.name = incomingText;

@@ -162,10 +162,7 @@ export default function App() {
   }
 
   const handleSend = async () => {
-    if (!input.trim() || files.length === 0) {
-      setError(files.length === 0 ? 'يرجى تحميل ملف أولاً' : '')
-      return
-    }
+    if (!input.trim()) return
 
     setLoading(true)
     setError('')
@@ -192,10 +189,7 @@ export default function App() {
       }
     }
 
-    setMessages(prev => [...prev, userMessage])
-    setInput('')
-
-    // Handover Detection & Processing
+    // --- Handover Detection & Processing (Moved BEFORE file check) ---
     const handoverResponse = await HandoverService.processMessage(
       user.id,
       convId,
@@ -203,10 +197,11 @@ export default function App() {
       userSettings?.handover_keywords || [],
       userSettings?.support_email || null,
       'Web',
-      !currentConversationId // Passing likelyNew flag
+      !currentConversationId
     );
 
     if (handoverResponse) {
+      setMessages(prev => [...prev, userMessage]) // Still show the user message
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -221,8 +216,19 @@ export default function App() {
       });
 
       setLoading(false)
+      setInput('')
       return;
     }
+
+    // --- File Requirement (ONLY for AI response) ---
+    if (files.length === 0) {
+      setError('يرجى تحميل ملف أولاً للتمكن من الدردشة مع النظام الآلي. لطلب تواصل بشري، اكتب "موظف".')
+      setLoading(false)
+      return
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setInput('')
 
     // Save user message to Supabase
     if (user) {
