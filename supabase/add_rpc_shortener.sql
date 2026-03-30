@@ -18,9 +18,9 @@ AS $$
 DECLARE
     v_response http_response;
 BEGIN
-    -- Perform the GET request to is.gd via the Supabase server
-    -- This avoids all browser-side CORS and network blocking.
-    v_response := http_get('https://is.gd/create.php?format=simple&url=' || urlencode(p_url));
+    -- Perform the GET request to TinyURL via the Supabase server
+    -- TinyURL is more widely trusted and usually avoids forced preview pages.
+    v_response := http_get('https://tinyurl.com/api-create.php?url=' || urlencode(p_url));
     
     RETURN v_response.content;
 END;
