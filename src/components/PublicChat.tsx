@@ -28,7 +28,9 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
     const [settings, setSettings] = useState<any>(null)
     const [formData, setFormData] = useState({ name: '', email: '' })
     const [isStarted, setIsStarted] = useState(false)
-    const [isWidgetOpen, setIsWidgetOpen] = useState(false)
+    const params = new URLSearchParams(window.location.search)
+    const isFull = params.get('full') === 'true' || params.get('f') === 'true'
+    const [isWidgetOpen, setIsWidgetOpen] = useState(isFull)
     const [conversationId, setConversationId] = useState<string | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -231,11 +233,15 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
         }
     }
 
+    const containerClasses = isFull 
+        ? "h-screen w-full flex flex-col bg-slate-950 relative" 
+        : `fixed z-[9999] pointer-events-none flex items-end justify-end ${isWidgetOpen ? 'inset-0 p-4 sm:p-8' : 'bottom-6 right-6 sm:bottom-8 sm:right-8'}`
+
     return (
-        <div className={`fixed z-[9999] pointer-events-none flex items-end justify-end ${isWidgetOpen ? 'inset-0 p-4 sm:p-8' : 'bottom-6 right-6 sm:bottom-8 sm:right-8'}`}>
-            <div className="pointer-events-auto contents">
-                {/* Bubble Button */}
-                {!isWidgetOpen && (
+        <div className={containerClasses}>
+            <div className={isFull ? "flex-1 overflow-hidden pointer-events-auto" : "pointer-events-auto contents"}>
+                {/* Bubble Button - Only if NOT full screen and NOT open */}
+                {!isWidgetOpen && !isFull && (
                     <button
                         onClick={() => setIsWidgetOpen(true)}
                         className="pointer-events-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-full shadow-2xl flex items-center justify-center transform hover:scale-110 transition-all duration-300 animate-in zoom-in slide-in-from-bottom-10"
@@ -249,7 +255,10 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
 
                 {/* Chat Window */}
                 {isWidgetOpen && (
-                    <div className="pointer-events-auto w-full max-w-[400px] h-[600px] max-h-[85vh] glass-dark rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-300">
+                    <div className={isFull 
+                        ? "w-full h-full flex flex-col overflow-hidden" 
+                        : "pointer-events-auto w-full max-w-[400px] h-[600px] max-h-[85vh] glass-dark rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-300"
+                    }>
                         <header className="px-6 py-5 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border-b border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <BotAvatar size="sm" />
@@ -275,12 +284,14 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
                                         </svg>
                                     </a>
                                 )}
-                                <button
-                                    onClick={() => setIsWidgetOpen(false)}
-                                    className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 transition-colors"
-                                >
-                                    <span className="text-xl">×</span>
-                                </button>
+                                {!isFull && (
+                                    <button
+                                        onClick={() => setIsWidgetOpen(false)}
+                                        className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 transition-colors"
+                                    >
+                                        <span className="text-xl">×</span>
+                                    </button>
+                                )}
                             </div>
                         </header>
 

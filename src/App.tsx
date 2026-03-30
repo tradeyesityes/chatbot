@@ -20,8 +20,8 @@ const ollama = new OllamaService()
 export default function App() {
   // Initialize mode directly from URL to avoid flicker
   const params = new URLSearchParams(window.location.search)
-  const embedOwner = params.get('user_id')
-  const isEmbed = params.get('embed') === 'true' && !!embedOwner
+  const embedOwner = params.get('user_id') || params.get('u')
+  const isEmbed = (params.get('embed') === 'true' || params.get('e') === 'true') && !!embedOwner
   const [isAdminMode, setIsAdminMode] = useState(!isEmbed)
   const [ownerId, setOwnerId] = useState<string | null>(embedOwner)
 
@@ -196,15 +196,17 @@ export default function App() {
     let traceInfo = `Input: "${input}", ID: ${convId}, Trigger: ${isManualTrigger}`;
 
     try {
-      handoverResponse = await HandoverService.processMessage(
-        user.id,
-        convId,
-        input,
-        userSettings?.handover_keywords || [],
-        userSettings?.support_email || null,
-        'Web',
-        !currentConversationId
-      );
+      if (user) {
+        handoverResponse = await HandoverService.processMessage(
+          user.id,
+          convId,
+          input,
+          userSettings?.handover_keywords || [],
+          userSettings?.support_email || null,
+          'Web',
+          !currentConversationId
+        );
+      }
     } catch (err: any) {
       console.error('[Handover Trace Error]', err);
       handoverResponse = `⚠️ خطأ تقني في نظام التحويل: ${err.message}. Trace: ${traceInfo}`;
@@ -225,9 +227,11 @@ export default function App() {
       }
       setMessages(prev => [...prev, assistantMessage])
 
-      ChatService.saveMessage(user.id, assistantMessage, convId).catch(e => {
-        console.error('Save Assistant Message Error:', e);
-      });
+      if (user?.id) {
+        ChatService.saveMessage(user.id, assistantMessage, convId).catch(e => {
+          console.error('Save Assistant Message Error:', e);
+        });
+      }
 
       setLoading(false)
       setInput('')

@@ -479,12 +479,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                             <input 
                                 type="text" 
                                 readOnly 
-                                value={`${window.location.origin}?embed=true&user_id=${userId}`}
+                                value={`${window.location.origin}?e=true&u=${userId}&f=true`}
                                 className="flex-1 bg-transparent text-[10px] text-slate-600 dark:text-slate-400 outline-none font-mono"
                             />
                             <button
                                 onClick={() => {
-                                    navigator.clipboard.writeText(`${window.location.origin}?embed=true&user_id=${userId}`)
+                                    navigator.clipboard.writeText(`${window.location.origin}?e=true&u=${userId}&f=true`)
                                     setMessage({ text: 'تم نسخ الرابط بنجاح!', type: 'success' })
                                 }}
                                 className="px-3 py-1.5 bg-salla-primary hover:bg-salla-primary/90 text-white text-[10px] rounded-lg font-bold transition-all shadow-sm active:scale-95"
@@ -492,7 +492,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                 نسخ
                             </button>
                             <a
-                                href={`${window.location.origin}?embed=true&user_id=${userId}`}
+                                href={`${window.location.origin}?e=true&u=${userId}&f=true`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] rounded-lg font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-all shadow-sm"
@@ -500,7 +500,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                 فتح
                             </a>
                         </div>
-                        <p className="text-[9px] text-slate-400 mt-2 mr-1">يمكنك إرسال هذا الرابط لعملائك مباشرة إذا لم يتوفر لديك موقع إلكتروني.</p>
+                        <p className="text-[9px] text-slate-400 mt-2 mr-1">هذا الرابط المختصر سيفتح المحادثة مباشرة للعملاء بشكل كامل.</p>
                     </div>
                 </div>
             </div>
