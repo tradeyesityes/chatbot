@@ -555,22 +555,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                             }
                                             setGeneratingShort(true);
                                             try {
-                                                const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
-                                                navigator.clipboard.writeText(longUrl);
+                                                // Internal shortening - uses our own database (100% stable & never banned)
+                                                const code = await SettingsService.generateShortLink(userId, true);
+                                                const internalShort = `${window.location.origin}?s=${code}`;
                                                 
-                                                setMessage({ 
-                                                    text: 'تم نسخ الرابط! يمكنك الآن لصقه في TinyURL (سيفتح في نافذة جديدة).', 
-                                                    type: 'success' 
-                                                });
-                                                
-                                                // Open TinyURL in a new tab after a brief delay
-                                                setTimeout(() => {
-                                                    window.open('https://tinyurl.com/app', '_blank');
-                                                }, 1500);
-                                                
+                                                setShortUrl(internalShort);
+                                                navigator.clipboard.writeText(internalShort);
+                                                setMessage({ text: 'تم توليد ونسخ الرابط الداخلي المصلح!', type: 'success' });
                                             } catch (e: any) {
                                                 console.error('Shorten Error:', e);
-                                                setMessage({ text: 'خطأ في النسخ.', type: 'error' });
+                                                setMessage({ text: 'خطأ: تأكد من تشغيل ملف add_short_links.sql في سوبابيس.', type: 'error' });
                                             } finally {
                                                 setGeneratingShort(false);
                                             }
@@ -578,7 +572,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                         disabled={generatingShort}
                                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] rounded-lg font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
                                     >
-                                        {generatingShort ? '...' : shortUrl ? 'نسخ' : '✨ نسخ واختصار'}
+                                        {generatingShort ? '...' : shortUrl ? 'تحديث' : '✨ توليد'}
                                     </button>
                                 </div>
                             </div>
