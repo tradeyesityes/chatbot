@@ -56,6 +56,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [activeTab, setActiveTab] = useState<'ai' | 'whatsapp' | 'telegram' | 'embed' | 'handover'>('ai')
+    const [shortUrl, setShortUrl] = useState<string | null>(null)
+    const [generatingShort, setGeneratingShort] = useState(false)
     const [showQRModal, setShowQRModal] = useState(false)
     const [updatingWebhook, setUpdatingWebhook] = useState(false)
 
@@ -470,37 +472,108 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                     </div>
 
                     {/* Direct Link Section */}
-                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-lg">🔗</div>
-                            <h4 className="text-xs font-bold text-slate-800 dark:text-white">رابط مباشر للمحادثة</h4>
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-lg">🔗</div>
+                                <h4 className="text-xs font-bold text-slate-800 dark:text-white">روابط المحادثة المباشرة</h4>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-inner group">
-                            <input 
-                                type="text" 
-                                readOnly 
-                                value={`${window.location.origin}?e=true&u=${userId}&f=true`}
-                                className="flex-1 bg-transparent text-[10px] text-slate-600 dark:text-slate-400 outline-none font-mono"
-                            />
-                            <button
-                                onClick={() => {
-                                    navigator.clipboard.writeText(`${window.location.origin}?e=true&u=${userId}&f=true`)
-                                    setMessage({ text: 'تم نسخ الرابط بنجاح!', type: 'success' })
-                                }}
-                                className="px-3 py-1.5 bg-salla-primary hover:bg-salla-primary/90 text-white text-[10px] rounded-lg font-bold transition-all shadow-sm active:scale-95"
-                            >
-                                نسخ
-                            </button>
-                            <a
-                                href={`${window.location.origin}?e=true&u=${userId}&f=true`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] rounded-lg font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-all shadow-sm"
-                            >
-                                فتح
-                            </a>
+
+                        {/* Slug Configuration */}
+                        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-500 mb-2 mr-1">اسم الرابط المخصص (Slug)</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={settings.slug || ''}
+                                        onChange={e => setSettings({ ...settings, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') })}
+                                        placeholder="مثال: ali أو mychat"
+                                        className="flex-1 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono"
+                                    />
+                                    <button 
+                                        onClick={handleSave}
+                                        className="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-bold hover:bg-slate-300 transition-all"
+                                    >
+                                        تحديث الاسم
+                                    </button>
+                                </div>
+                                <p className="text-[9px] text-slate-400 mt-2 mr-1 italic">سيتم استبدال الرموز الطويلة بهذا الاسم في روابطك.</p>
+                            </div>
+
+                            <hr className="border-slate-100 dark:border-slate-800" />
+
+                            {/* Option 1: Branded Slug Link */}
+                            <div className="space-y-3">
+                                <span className="text-[10px] font-bold text-blue-500 uppercase">١- رابط براند مخصص (Branded)</span>
+                                <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm group">
+                                    <input 
+                                        type="text" 
+                                        readOnly 
+                                        value={`${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`}
+                                        className="flex-1 bg-transparent text-[10px] text-slate-600 dark:text-slate-400 outline-none font-mono"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`)
+                                            setMessage({ text: 'تم نسخ الرابط بنجاح!', type: 'success' })
+                                        }}
+                                        className="px-3 py-1.5 bg-salla-primary hover:bg-salla-primary/90 text-white text-[10px] rounded-lg font-bold transition-all shadow-sm active:scale-95"
+                                    >
+                                        نسخ
+                                    </button>
+                                    <a
+                                        href={`${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] rounded-lg font-bold hover:bg-slate-200 transition-all shadow-sm"
+                                    >
+                                        فتح
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Option 2: TinyURL (Extra Short) */}
+                            <div className="space-y-3">
+                                <span className="text-[10px] font-bold text-emerald-500 uppercase">٢- رابط فائق القصر (TinyURL)</span>
+                                <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm group">
+                                    <input 
+                                        type="text" 
+                                        readOnly 
+                                        value={shortUrl || 'اضغط على السهم لتوليد رابط قصير...'}
+                                        placeholder="توليد رابط قصير..."
+                                        className="flex-1 bg-transparent text-[10px] text-slate-400 dark:text-slate-500 outline-none font-mono italic"
+                                    />
+                                    <button
+                                        onClick={async () => {
+                                            if (shortUrl) {
+                                                navigator.clipboard.writeText(shortUrl);
+                                                setMessage({ text: 'تم نسخ الرابط القصير!', type: 'success' });
+                                                return;
+                                            }
+                                            setGeneratingShort(true);
+                                            try {
+                                                const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
+                                                const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+                                                const tiny = await res.text();
+                                                setShortUrl(tiny);
+                                                navigator.clipboard.writeText(tiny);
+                                                setMessage({ text: 'تم توليد ونسخ الرابط بنجاح!', type: 'success' });
+                                            } catch (e) {
+                                                setMessage({ text: 'خطأ في توليد الرابط القصير', type: 'error' });
+                                            } finally {
+                                                setGeneratingShort(false);
+                                            }
+                                        }}
+                                        disabled={generatingShort}
+                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] rounded-lg font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                                    >
+                                        {generatingShort ? '...' : shortUrl ? 'نسخ' : '✨ توليد'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <p className="text-[9px] text-slate-400 mt-2 mr-1">هذا الرابط المختصر سيفتح المحادثة مباشرة للعملاء بشكل كامل.</p>
                     </div>
                 </div>
             </div>

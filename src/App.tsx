@@ -35,15 +35,46 @@ export default function App() {
   }, [isEmbed])
 
   const [user, setUser] = useState<User | null>(null)
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // --- Slug/ID Resolution ---
+  useEffect(() => {
+    const resolveOwner = async () => {
+      if (!embedOwner) {
+        setLoading(false)
+        return
+      }
+
+      // Check if it's a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (uuidRegex.test(embedOwner)) {
+        setOwnerId(embedOwner)
+      } else {
+        // It's a slug, resolve it
+        try {
+          const resolvedId = await SettingsService.getUserIdBySlug(embedOwner)
+          if (resolvedId) {
+            setOwnerId(resolvedId)
+          } else {
+            console.error("Could not resolve slug:", embedOwner)
+          }
+        } catch (e) {
+          console.error("Resolution error:", e)
+        }
+      }
+      setLoading(false)
+    }
+    resolveOwner()
+  }, [embedOwner])
+
   const [messages, setMessages] = useState<Message[]>([])
   const [files, setFiles] = useState<FileContext[]>([])
-  const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isResetMode, setIsResetMode] = useState(false)
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [showLanding, setShowLanding] = useState(true)
   const [legalView, setLegalView] = useState<'none' | 'privacy' | 'terms'>('none')
@@ -417,6 +448,15 @@ export default function App() {
     } catch (err: any) {
       setError('تعذر تغيير اسم المحادثة')
     }
+  }
+
+  // --- Render Logic ---
+  if (isEmbed && loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-slate-950">
+        <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+      </div>
+    )
   }
 
   if (!isAdminMode && ownerId) {

@@ -42,6 +42,7 @@ export interface UserSettings {
     tg_bot_username?: string | null
     support_email?: string | null
     handover_keywords?: string[]
+    slug?: string | null
 }
 
 export class SettingsService {
@@ -99,7 +100,8 @@ export class SettingsService {
             tg_token: data?.tg_token || null,
             tg_bot_username: data?.tg_bot_username || null,
             support_email: data?.support_email || null,
-            handover_keywords: data?.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف']
+            handover_keywords: data?.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'],
+            slug: data?.slug || null
         }
 
         // If no row exists, or the default API key was missing, save it now so it persists
@@ -128,6 +130,18 @@ export class SettingsService {
             console.error("Supabase Upsert Error:", error);
             throw error;
         }
+    }
+
+    static async getUserIdBySlug(slug: string): Promise<string | null> {
+        const { data, error } = await supabase
+            .rpc('get_user_id_by_slug', { p_slug: slug })
+
+        if (error) {
+            console.error('getUserIdBySlug Error:', error)
+            return null
+        }
+
+        return data as string | null
     }
 
     static async getGlobalSettings(): Promise<Record<string, string>> {
