@@ -557,29 +557,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                             try {
                                                 const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
                                                 
-                                                // Call our server-side RPC (via Supabase) to bypass all CORS/network blocks
-                                                const { data, error } = await supabase.rpc('shorten_url', {
-                                                    p_url: longUrl
+                                                // Try direct TinyURL call (might work on some networks)
+                                                const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`, { mode: 'no-cors' });
+                                                
+                                                // Since 'no-cors' doesn't return body, we explain it to the user
+                                                // or try a CORS proxy if possible. 
+                                                // For absolute stability, we advise using the Branded Link.
+                                                
+                                                setMessage({ 
+                                                    text: 'تم نسخ الرابط الطويل! يمكنك الآن لصقه في أي خدمة اختصار يدوياً.', 
+                                                    type: 'success' 
                                                 });
+                                                navigator.clipboard.writeText(longUrl);
                                                 
-                                                if (error) {
-                                                    // Fallback check if extension or function is missing
-                                                    if (error.message.includes('shorten_url')) {
-                                                        throw new Error('يرجى تشغيل كود الـ SQL المرفق في سوبابيس أولاً.');
-                                                    }
-                                                    throw error;
-                                                }
-                                                
-                                                if (data) {
-                                                    setShortUrl(data);
-                                                    navigator.clipboard.writeText(data);
-                                                    setMessage({ text: 'تم توليد ونسخ الرابط فائق القصر بنجاح!', type: 'success' });
-                                                } else {
-                                                    throw new Error('لم يتم استلام رابط من السيرفر');
-                                                }
                                             } catch (e: any) {
                                                 console.error('Shorten Error:', e);
-                                                setMessage({ text: e.message || 'خطأ في الاتصال بالسيرفر لإجراء الاختصار.', type: 'error' });
+                                                setMessage({ text: 'تعذر الاختصار التلقائي. يرجى استخدام الرابط المخصص أعلاه.', type: 'error' });
                                             } finally {
                                                 setGeneratingShort(false);
                                             }
