@@ -451,7 +451,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                 </div>
 
                 <div className="space-y-4">
-                    <div className="bg-slate-900 rounded-xl p-5 relative group overflow-hidden border border-slate-800">
+                    <div className="bg-slate-900 rounded-xl p-5 relative group overflow-hidden border border-slate-800 shadow-sm transition-all hover:bg-slate-950">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">كود التضمين (iFrame)</span>
+                        </div>
                         <pre className="text-[10px] text-blue-400 font-mono whitespace-pre-wrap leading-relaxed">
                             {`<iframe src="${window.location.origin}?embed=true&user_id=${userId}" style="position:fixed; bottom:20px; right:20px; width:400px; height:600px; border:none; border-radius:12px; shadow: 0 4px 6px rgba(0,0,0,0.1); z-index:9999;" allowtransparency="true"></iframe>`}
                         </pre>
@@ -465,15 +468,39 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                             نسخ الكود
                         </button>
                     </div>
-                    <div className="flex gap-2">
-                        <a
-                            href={`${window.location.origin}?embed=true&user_id=${userId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-center rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
-                        >
-                            🔗 تجربة رابط التضمين
-                        </a>
+
+                    {/* Direct Link Section */}
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-lg">🔗</div>
+                            <h4 className="text-xs font-bold text-slate-800 dark:text-white">رابط مباشر للمحادثة</h4>
+                        </div>
+                        <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-inner group">
+                            <input 
+                                type="text" 
+                                readOnly 
+                                value={`${window.location.origin}?embed=true&user_id=${userId}`}
+                                className="flex-1 bg-transparent text-[10px] text-slate-600 dark:text-slate-400 outline-none font-mono"
+                            />
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`${window.location.origin}?embed=true&user_id=${userId}`)
+                                    setMessage({ text: 'تم نسخ الرابط بنجاح!', type: 'success' })
+                                }}
+                                className="px-3 py-1.5 bg-salla-primary hover:bg-salla-primary/90 text-white text-[10px] rounded-lg font-bold transition-all shadow-sm active:scale-95"
+                            >
+                                نسخ
+                            </button>
+                            <a
+                                href={`${window.location.origin}?embed=true&user_id=${userId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] rounded-lg font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-all shadow-sm"
+                            >
+                                فتح
+                            </a>
+                        </div>
+                        <p className="text-[9px] text-slate-400 mt-2 mr-1">يمكنك إرسال هذا الرابط لعملائك مباشرة إذا لم يتوفر لديك موقع إلكتروني.</p>
                     </div>
                 </div>
             </div>
