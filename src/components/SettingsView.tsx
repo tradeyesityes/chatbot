@@ -537,12 +537,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
 
                             {/* Option 2: TinyURL (Extra Short) */}
                             <div className="space-y-3">
-                                <span className="text-[10px] font-bold text-emerald-500 uppercase">٢- رابط فائق القصر (TinyURL)</span>
+                                <span className="text-[10px] font-bold text-emerald-500 uppercase">٢- رابط فائق القصر (خارجي)</span>
                                 <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm group">
                                     <input 
                                         type="text" 
                                         readOnly 
-                                        value={shortUrl || 'اضغط على السهم لتوليد رابط قصير...'}
+                                        value={shortUrl || 'اضغط لتوليد الرابط الطويل واختصاره...'}
                                         placeholder="توليد رابط قصير..."
                                         className="flex-1 bg-transparent text-[10px] text-slate-400 dark:text-slate-500 outline-none font-mono italic"
                                     />
@@ -556,23 +556,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                             setGeneratingShort(true);
                                             try {
                                                 const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
-                                                
-                                                // Try direct TinyURL call (might work on some networks)
-                                                const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`, { mode: 'no-cors' });
-                                                
-                                                // Since 'no-cors' doesn't return body, we explain it to the user
-                                                // or try a CORS proxy if possible. 
-                                                // For absolute stability, we advise using the Branded Link.
+                                                navigator.clipboard.writeText(longUrl);
                                                 
                                                 setMessage({ 
-                                                    text: 'تم نسخ الرابط الطويل! يمكنك الآن لصقه في أي خدمة اختصار يدوياً.', 
+                                                    text: 'تم نسخ الرابط! يمكنك الآن لصقه في TinyURL (سيفتح في نافذة جديدة).', 
                                                     type: 'success' 
                                                 });
-                                                navigator.clipboard.writeText(longUrl);
+                                                
+                                                // Open TinyURL in a new tab after a brief delay
+                                                setTimeout(() => {
+                                                    window.open('https://tinyurl.com/app', '_blank');
+                                                }, 1500);
                                                 
                                             } catch (e: any) {
                                                 console.error('Shorten Error:', e);
-                                                setMessage({ text: 'تعذر الاختصار التلقائي. يرجى استخدام الرابط المخصص أعلاه.', type: 'error' });
+                                                setMessage({ text: 'خطأ في النسخ.', type: 'error' });
                                             } finally {
                                                 setGeneratingShort(false);
                                             }
@@ -580,7 +578,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                         disabled={generatingShort}
                                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] rounded-lg font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
                                     >
-                                        {generatingShort ? '...' : shortUrl ? 'نسخ' : '✨ توليد'}
+                                        {generatingShort ? '...' : shortUrl ? 'نسخ' : '✨ نسخ واختصار'}
                                     </button>
                                 </div>
                             </div>
