@@ -557,33 +557,30 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                             try {
                                                 const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
                                                 
-                                                // Using JSONP technique with is.gd to bypass CORS and get a super short URL
-                                                const callbackName = 'isgd_callback_' + Math.random().toString(36).substring(7);
-                                                (window as any)[callbackName] = (data: any) => {
-                                                    if (data.shorturl) {
-                                                        setShortUrl(data.shorturl);
-                                                        navigator.clipboard.writeText(data.shorturl);
-                                                        setMessage({ text: 'تم توليد ونسخ الرابط فائق القصر!', type: 'success' });
-                                                    } else if (data.errormessage) {
-                                                        setMessage({ text: `خطأ من الخدمة: ${data.errormessage}`, type: 'error' });
+                                                // Call our server-side RPC (via Supabase) to bypass all CORS/network blocks
+                                                const { data, error } = await supabase.rpc('shorten_url', {
+                                                    p_url: longUrl
+                                                });
+                                                
+                                                if (error) {
+                                                    // Fallback check if extension or function is missing
+                                                    if (error.message.includes('shorten_url')) {
+                                                        throw new Error('يرجى تشغيل كود الـ SQL المرفق في سوبابيس أولاً.');
                                                     }
-                                                    setGeneratingShort(false);
-                                                    delete (window as any)[callbackName];
-                                                    const script = document.getElementById(callbackName);
-                                                    if (script) script.remove();
-                                                };
-
-                                                const script = document.createElement('script');
-                                                script.id = callbackName;
-                                                script.src = `https://is.gd/create.php?format=jsonp&callback=${callbackName}&url=${encodeURIComponent(longUrl)}`;
-                                                script.onerror = () => {
-                                                    setMessage({ text: 'تعذر الاتصال بخدمة الاختصار. جرب الرابط المخصص.', type: 'error' });
-                                                    setGeneratingShort(false);
-                                                };
-                                                document.body.appendChild(script);
+                                                    throw error;
+                                                }
+                                                
+                                                if (data) {
+                                                    setShortUrl(data);
+                                                    navigator.clipboard.writeText(data);
+                                                    setMessage({ text: 'تم توليد ونسخ الرابط فائق القصر بنجاح!', type: 'success' });
+                                                } else {
+                                                    throw new Error('لم يتم استلام رابط من السيرفر');
+                                                }
                                             } catch (e: any) {
                                                 console.error('Shorten Error:', e);
-                                                setMessage({ text: 'خطأ تقني في الاختصار.', type: 'error' });
+                                                setMessage({ text: e.message || 'خطأ في الاتصال بالسيرفر لإجراء الاختصار.', type: 'error' });
+                                            } finally {
                                                 setGeneratingShort(false);
                                             }
                                         }}
