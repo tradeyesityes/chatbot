@@ -555,17 +555,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                             }
                                             setGeneratingShort(true);
                                             try {
-                                                // Internal shortening - uses our own database (100% stable)
-                                                const code = await SettingsService.generateShortLink(userId, true);
-                                                const internalShort = `${window.location.origin}?s=${code}`;
+                                                const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
                                                 
-                                                setShortUrl(internalShort);
-                                                navigator.clipboard.writeText(internalShort);
-                                                setMessage({ text: 'تم توليد ونسخ الرابط المصلح بنجاح!', type: 'success' });
+                                                // Using JSONP technique with is.gd to bypass CORS and get a super short URL
+                                                const callbackName = 'isgd_callback_' + Math.random().toString(36).substring(7);
+                                                (window as any)[callbackName] = (data: any) => {
+                                                    if (data.shorturl) {
+                                                        setShortUrl(data.shorturl);
+                                                        navigator.clipboard.writeText(data.shorturl);
+                                                        setMessage({ text: 'تم توليد ونسخ الرابط فائق القصر!', type: 'success' });
+                                                    } else if (data.errormessage) {
+                                                        setMessage({ text: `خطأ من الخدمة: ${data.errormessage}`, type: 'error' });
+                                                    }
+                                                    setGeneratingShort(false);
+                                                    delete (window as any)[callbackName];
+                                                    const script = document.getElementById(callbackName);
+                                                    if (script) script.remove();
+                                                };
+
+                                                const script = document.createElement('script');
+                                                script.id = callbackName;
+                                                script.src = `https://is.gd/create.php?format=jsonp&callback=${callbackName}&url=${encodeURIComponent(longUrl)}`;
+                                                script.onerror = () => {
+                                                    setMessage({ text: 'تعذر الاتصال بخدمة الاختصار. جرب الرابط المخصص.', type: 'error' });
+                                                    setGeneratingShort(false);
+                                                };
+                                                document.body.appendChild(script);
                                             } catch (e: any) {
                                                 console.error('Shorten Error:', e);
-                                                setMessage({ text: 'خطأ في إنشاء الرابط الداخلي. يرجى التأكد من تشغيل كود الـ SQL.', type: 'error' });
-                                            } finally {
+                                                setMessage({ text: 'خطأ تقني في الاختصار.', type: 'error' });
                                                 setGeneratingShort(false);
                                             }
                                         }}
