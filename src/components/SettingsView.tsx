@@ -557,23 +557,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                             try {
                                                 const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
                                                 
-                                                // Using CleanURI which supports CORS from browser
-                                                const res = await fetch('https://cleanuri.com/api/v1/shorten', {
-                                                    method: 'POST',
-                                                    headers: {
-                                                        'Content-Type': 'application/x-www-form-urlencoded',
-                                                    },
-                                                    body: `url=${encodeURIComponent(longUrl)}`
-                                                });
+                                                // Using allorigins.win as a free CORS proxy to call TinyURL
+                                                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`)}`;
                                                 
+                                                const res = await fetch(proxyUrl);
                                                 const data = await res.json();
                                                 
-                                                if (data.result_url) {
-                                                    setShortUrl(data.result_url);
-                                                    navigator.clipboard.writeText(data.result_url);
+                                                if (data.contents) {
+                                                    const tiny = data.contents;
+                                                    setShortUrl(tiny);
+                                                    navigator.clipboard.writeText(tiny);
                                                     setMessage({ text: 'تم توليد ونسخ الرابط بنجاح!', type: 'success' });
                                                 } else {
-                                                    throw new Error(data.error || 'فشل في توليد الرابط');
+                                                    throw new Error('فشل استلام الرابط من الوسيط');
                                                 }
                                             } catch (e: any) {
                                                 console.error('Shorten Error:', e);
