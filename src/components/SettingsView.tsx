@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { SettingsService, UserSettings } from '../services/settingsService'
+import { supabase } from '../services/supabaseService'
 import { WhatsAppQRModal } from './WhatsAppQRModal'
 import { BotAvatar } from './BotAvatar'
 
@@ -555,13 +556,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                             setGeneratingShort(true);
                                             try {
                                                 const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
-                                                const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
-                                                const tiny = await res.text();
+                                                
+                                                // Call our own Edge Function to bypass CORS
+                                                const { data, error } = await supabase.functions.invoke('shorten-url', {
+                                                    body: { url: longUrl }
+                                                });
+                                                
+                                                if (error) throw error;
+                                                
+                                                const tiny = data.shortUrl;
                                                 setShortUrl(tiny);
                                                 navigator.clipboard.writeText(tiny);
                                                 setMessage({ text: 'تم توليد ونسخ الرابط بنجاح!', type: 'success' });
-                                            } catch (e) {
-                                                setMessage({ text: 'خطأ في توليد الرابط القصير', type: 'error' });
+                                            } catch (e: any) {
+                                                console.error('Shorten Error:', e);
+                                                setMessage({ text: `خطأ: ${e.message || 'فشل في توليد الرابط'}`, type: 'error' });
                                             } finally {
                                                 setGeneratingShort(false);
                                             }
