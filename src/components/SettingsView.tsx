@@ -557,20 +557,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                             try {
                                                 const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
                                                 
-                                                // Call our own Edge Function to bypass CORS
-                                                const { data, error } = await supabase.functions.invoke('shorten-url', {
-                                                    body: { url: longUrl }
+                                                // Using CleanURI which supports CORS from browser
+                                                const res = await fetch('https://cleanuri.com/api/v1/shorten', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/x-www-form-urlencoded',
+                                                    },
+                                                    body: `url=${encodeURIComponent(longUrl)}`
                                                 });
                                                 
-                                                if (error) throw error;
+                                                const data = await res.json();
                                                 
-                                                const tiny = data.shortUrl;
-                                                setShortUrl(tiny);
-                                                navigator.clipboard.writeText(tiny);
-                                                setMessage({ text: 'تم توليد ونسخ الرابط بنجاح!', type: 'success' });
+                                                if (data.result_url) {
+                                                    setShortUrl(data.result_url);
+                                                    navigator.clipboard.writeText(data.result_url);
+                                                    setMessage({ text: 'تم توليد ونسخ الرابط بنجاح!', type: 'success' });
+                                                } else {
+                                                    throw new Error(data.error || 'فشل في توليد الرابط');
+                                                }
                                             } catch (e: any) {
                                                 console.error('Shorten Error:', e);
-                                                setMessage({ text: `خطأ: ${e.message || 'فشل في توليد الرابط'}`, type: 'error' });
+                                                setMessage({ text: 'عذراً، تعذر اختصار الرابط تلقائياً. يرجى استخدام الرابط المخصص أعلاه.', type: 'error' });
                                             } finally {
                                                 setGeneratingShort(false);
                                             }
