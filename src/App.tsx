@@ -21,7 +21,7 @@ export default function App() {
   // Initialize mode directly from URL to avoid flicker
   const params = new URLSearchParams(window.location.search)
   const embedOwner = params.get('user_id') || params.get('u')
-  const isEmbed = (params.get('embed') === 'true' || params.get('e') === 'true') && !!embedOwner
+  const isEmbed = (params.get('embed') === 'true' || params.get('e') === 'true' || !!params.get('s')) && (!!embedOwner || !!params.get('s'))
   const [isAdminMode, setIsAdminMode] = useState(!isEmbed)
   const [ownerId, setOwnerId] = useState<string | null>(embedOwner)
 
@@ -38,9 +38,27 @@ export default function App() {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // --- Slug/ID Resolution ---
+  // --- Slug/ID/ShortCode Resolution ---
   useEffect(() => {
     const resolveOwner = async () => {
+      const sCode = params.get('s')
+      
+      // 1. Check for Internal Short Code (?s=xxxxxx)
+      if (sCode) {
+        try {
+          const result = await SettingsService.getUserIdByShortCode(sCode)
+          if (result) {
+            setOwnerId(result.userId)
+            // If it's a short link, it usually implies embed + full screen
+            setLoading(false)
+            return
+          }
+        } catch (e) {
+          console.error("Short code resolution error:", e)
+        }
+      }
+
+      // 2. Fallback to standard params (?u= or ?user_id=)
       if (!embedOwner) {
         setLoading(false)
         return

@@ -555,25 +555,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                             }
                                             setGeneratingShort(true);
                                             try {
-                                                const longUrl = `${window.location.origin}?e=true&u=${settings.slug || userId}&f=true`;
+                                                // Internal shortening - uses our own database (100% stable)
+                                                const code = await SettingsService.generateShortLink(userId, true);
+                                                const internalShort = `${window.location.origin}?s=${code}`;
                                                 
-                                                // Using allorigins.win as a free CORS proxy to call TinyURL
-                                                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`)}`;
-                                                
-                                                const res = await fetch(proxyUrl);
-                                                const data = await res.json();
-                                                
-                                                if (data.contents) {
-                                                    const tiny = data.contents;
-                                                    setShortUrl(tiny);
-                                                    navigator.clipboard.writeText(tiny);
-                                                    setMessage({ text: 'تم توليد ونسخ الرابط بنجاح!', type: 'success' });
-                                                } else {
-                                                    throw new Error('فشل استلام الرابط من الوسيط');
-                                                }
+                                                setShortUrl(internalShort);
+                                                navigator.clipboard.writeText(internalShort);
+                                                setMessage({ text: 'تم توليد ونسخ الرابط المصلح بنجاح!', type: 'success' });
                                             } catch (e: any) {
                                                 console.error('Shorten Error:', e);
-                                                setMessage({ text: 'عذراً، تعذر اختصار الرابط تلقائياً. يرجى استخدام الرابط المخصص أعلاه.', type: 'error' });
+                                                setMessage({ text: 'خطأ في إنشاء الرابط الداخلي. يرجى التأكد من تشغيل كود الـ SQL.', type: 'error' });
                                             } finally {
                                                 setGeneratingShort(false);
                                             }

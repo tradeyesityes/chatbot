@@ -144,6 +144,41 @@ export class SettingsService {
         return data as string | null
     }
 
+    static async generateShortLink(userId: string, isFull: boolean = true): Promise<string> {
+        // Generate a random 6-character code
+        const code = Math.random().toString(36).substring(2, 8);
+        
+        const { error } = await supabase
+            .from('short_links')
+            .insert({
+                code,
+                user_id: userId,
+                is_full_mode: isFull
+            })
+
+        if (error) {
+            console.error('generateShortLink Error:', error)
+            throw error
+        }
+
+        return code
+    }
+
+    static async getUserIdByShortCode(code: string): Promise<{ userId: string, isFull: boolean } | null> {
+        const { data, error } = await supabase
+            .from('short_links')
+            .select('user_id, is_full_mode')
+            .eq('code', code)
+            .single()
+
+        if (error) {
+            if (error.code !== 'PGRST116') console.error('getUserIdByShortCode Error:', error)
+            return null
+        }
+
+        return { userId: data.user_id, isFull: data.is_full_mode }
+    }
+
     static async getGlobalSettings(): Promise<Record<string, string>> {
         const { data, error } = await supabase
             .from('global_settings')
