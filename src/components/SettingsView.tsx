@@ -57,8 +57,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [activeTab, setActiveTab] = useState<'ai' | 'whatsapp' | 'telegram' | 'embed' | 'handover'>('ai')
-    const [shortUrl, setShortUrl] = useState<string | null>(null)
-    const [generatingShort, setGeneratingShort] = useState(false)
     const [showQRModal, setShowQRModal] = useState(false)
     const [updatingWebhook, setUpdatingWebhook] = useState(false)
 
@@ -532,48 +530,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                     >
                                         فتح
                                     </a>
-                                </div>
-                            </div>
-
-                            {/* Option 2: TinyURL (Extra Short) */}
-                            <div className="space-y-3">
-                                <span className="text-[10px] font-bold text-emerald-500 uppercase">٢- رابط فائق القصر (خارجي)</span>
-                                <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm group">
-                                    <input 
-                                        type="text" 
-                                        readOnly 
-                                        value={shortUrl || 'اضغط لتوليد الرابط الطويل واختصاره...'}
-                                        placeholder="توليد رابط قصير..."
-                                        className="flex-1 bg-transparent text-[10px] text-slate-400 dark:text-slate-500 outline-none font-mono italic"
-                                    />
-                                    <button
-                                        onClick={async () => {
-                                            if (shortUrl) {
-                                                navigator.clipboard.writeText(shortUrl);
-                                                setMessage({ text: 'تم نسخ الرابط القصير!', type: 'success' });
-                                                return;
-                                            }
-                                            setGeneratingShort(true);
-                                            try {
-                                                // Internal shortening - uses our own database (100% stable & never banned)
-                                                const code = await SettingsService.generateShortLink(userId, true);
-                                                const internalShort = `${window.location.origin}?s=${code}`;
-                                                
-                                                setShortUrl(internalShort);
-                                                navigator.clipboard.writeText(internalShort);
-                                                setMessage({ text: 'تم توليد ونسخ الرابط الداخلي المصلح!', type: 'success' });
-                                            } catch (e: any) {
-                                                console.error('Shorten Error:', e);
-                                                setMessage({ text: 'خطأ: تأكد من تشغيل ملف add_short_links.sql في سوبابيس.', type: 'error' });
-                                            } finally {
-                                                setGeneratingShort(false);
-                                            }
-                                        }}
-                                        disabled={generatingShort}
-                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] rounded-lg font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
-                                    >
-                                        {generatingShort ? '...' : shortUrl ? 'تحديث' : '✨ توليد'}
-                                    </button>
                                 </div>
                             </div>
                         </div>
