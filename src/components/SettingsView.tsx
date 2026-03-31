@@ -503,9 +503,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
 
                             <hr className="border-slate-100 dark:border-slate-800" />
 
-                            {/* Option 1: Branded Slug Link */}
                             <div className="space-y-3">
-                                <span className="text-[10px] font-bold text-blue-500 uppercase">١- رابط براند مخصص (Branded)</span>
+                                <span className="text-[10px] font-bold text-blue-500 uppercase">١- رابط السوشيال والواتساب (Social)</span>
                                 <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm group">
                                     <input 
                                         type="text" 
