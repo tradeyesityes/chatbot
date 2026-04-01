@@ -234,12 +234,12 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
     }
 
     const containerClasses = isFull 
-        ? "h-screen w-full flex flex-col bg-slate-950 relative" 
+        ? "h-screen w-full flex items-center justify-center bg-slate-950 relative p-4 sm:p-10" 
         : `fixed z-[9999] pointer-events-none flex items-end justify-end ${isWidgetOpen ? 'inset-0 p-4 sm:p-8' : 'bottom-6 right-6 sm:bottom-8 sm:right-8'}`
 
     return (
         <div className={containerClasses}>
-            <div className={isFull ? "flex-1 overflow-hidden pointer-events-auto" : "pointer-events-auto contents"}>
+            <div className={isFull ? "w-full max-w-[500px] h-full max-h-[750px] flex flex-col overflow-hidden pointer-events-auto shadow-2xl rounded-3xl border border-white/10 glass-dark animate-in fade-in zoom-in-95 duration-500" : "pointer-events-auto contents"}>
                 {/* Bubble Button - Only if NOT full screen and NOT open */}
                 {!isWidgetOpen && !isFull && (
                     <button
