@@ -1,45 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import fs from 'fs';
-
-function loadEnvLocal() {
-  const env: Record<string, string> = {};
-  
-  // Load from .env (base)
-  const baseEnvPath = path.resolve(__dirname, '.env');
-  if (fs.existsSync(baseEnvPath)) {
-    const baseContent = fs.readFileSync(baseEnvPath, 'utf-8');
-    baseContent.split('\n').forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const [key, ...valueParts] = trimmed.split('=');
-        if (key && valueParts.length > 0) env[key.trim()] = valueParts.join('=').trim();
-      }
-    });
-  }
-
-  // Override with .env.local (if exists)
-  const envPath = path.resolve(__dirname, '.env.local');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf-8');
-    envContent.split('\n').forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const [key, ...valueParts] = trimmed.split('=');
-        if (key && valueParts.length > 0) env[key.trim()] = valueParts.join('=').trim();
-      }
-    });
-  }
-
-  return env;
-}
-
-const envLocal = loadEnvLocal();
-Object.assign(process.env, envLocal);
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
     port: 8089,
     host: '0.0.0.0',
@@ -54,17 +23,6 @@ export default defineConfig({
         target: 'https://ollama.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ollama-cloud/, ''),
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request to the Target:', req.method, req.url, '->', proxyReq.path);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
-        },
       },
       '/api/ollama': {
         target: 'http://172.17.0.1:11434',
@@ -77,15 +35,5 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/supabase/, ''),
       },
     },
-  },
-  define: {
-    'process.env.VITE_OPENAI_API_KEY': JSON.stringify(process.env.VITE_OPENAI_API_KEY),
-    'process.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL),
-    'process.env.VITE_SUPABASE_KEY': JSON.stringify(process.env.VITE_SUPABASE_KEY),
-    'process.env.VITE_META_APP_ID': JSON.stringify(process.env.VITE_META_APP_ID),
-    'process.env.VITE_EVOLUTION_BASE_URL': JSON.stringify(process.env.VITE_EVOLUTION_BASE_URL),
-    'process.env.VITE_EVOLUTION_GLOBAL_API_KEY': JSON.stringify(process.env.VITE_EVOLUTION_GLOBAL_API_KEY),
-    'process.env.VITE_OLLAMA_API_KEY': JSON.stringify(process.env.VITE_OLLAMA_API_KEY),
-    'process.env.VITE_HCAPTCHA_SITE_KEY': JSON.stringify(process.env.VITE_HCAPTCHA_SITE_KEY),
   }
 });

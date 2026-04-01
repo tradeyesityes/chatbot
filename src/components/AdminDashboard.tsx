@@ -113,6 +113,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         }
     }
 
+    const handleStartEdit = async (user: AdminUser) => {
+        setLoadingSubData(true)
+        try {
+            // Fetch full settings directly from user_settings table
+            // Admins have RLS permission to read all rows
+            const fullSettings = await SettingsService.getSettings(user.user_id)
+            setEditingUser({ ...user, ...fullSettings })
+        } catch (e: any) {
+            setMessage({ type: 'error', text: 'فشل تحميل إعدادات المستخدم: ' + e.message })
+        } finally {
+            setLoadingSubData(false)
+        }
+    }
+
     const handleSaveSettings = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!editingUser) return
@@ -218,10 +232,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             </button>
                                             <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 self-center" />
                                             <button
-                                                onClick={() => setEditingUser(u)}
+                                                onClick={() => handleStartEdit(u)}
                                                 className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                disabled={loadingSubData}
                                             >
-                                                تعديل
+                                                {loadingSubData && editingUser?.user_id === u.user_id ? 'جاري...' : 'تعديل'}
                                             </button>
                                             <button
                                                 onClick={() => handleToggleStatus(u.user_id, u.is_enabled || false)}

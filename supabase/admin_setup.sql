@@ -75,44 +75,28 @@ CREATE POLICY "Admins manage all" ON user_settings
     FOR ALL
     USING (public.check_user_is_admin());
 
--- 4. Create a view to safely expose emails to admins
--- This allows us to join auth.users (restricted) with user_settings (public)
--- Using LEFT JOIN ensures users show up even before they initialize their settings
+-- 4. Create a SECURE view to expose user info to admins only
+-- We remove all API keys and sensitive tokens from this view.
+-- The WHERE clause ensures only an admin (as identified by check_user_is_admin()) can see any data.
 DROP VIEW IF EXISTS public.admin_user_view CASCADE;
 CREATE OR REPLACE VIEW public.admin_user_view AS
 SELECT 
     u.id as user_id,
     u.email,
-    us.use_openai,
-    us.openai_api_key,
-    us.use_gemini,
-    us.gemini_api_key,
-    us.gemini_model_name,
-    us.use_local_model,
-    us.local_model_name,
-    us.use_remote_ollama,
-    us.ollama_api_key,
-    us.ollama_base_url,
-    us.use_whatsapp,
-    us.evolution_bot_enabled,
-    us.use_qdrant,
-    us.qdrant_url,
-    us.qdrant_api_key,
-    us.qdrant_collection,
+    u.last_sign_in_at,
     COALESCE(us.is_admin, false) as is_admin,
     COALESCE(us.is_enabled, true) as is_enabled,
-    COALESCE(us.is_deleted, false) as is_deleted
+    COALESCE(us.is_deleted, false) as is_deleted,
+    u.created_at -- Using auth.users created_at for reliability
 FROM 
     auth.users u
 LEFT JOIN 
     public.user_settings us ON u.id = us.user_id
 WHERE 
-    us.is_deleted IS NOT TRUE OR us.is_deleted IS NULL;
+    public.check_user_is_admin(); -- This restriction ensures only admins get results
 
--- Grant access to authenticated users to read the view
--- RLS on the underlying user_settings table will still apply if we use simple select,
--- but since this is a view, we need to be careful.
--- However, we'll keep it simple for the user to apply.
+-- Grant select to authenticated users, but the WHERE clause above protects it.
+-- Any non-admin user will get 0 rows.
 GRANT SELECT ON public.admin_user_view TO authenticated;
 
 -- 5. Set the first user as admin (OPTIONAL - you should run this manually for your ID)
