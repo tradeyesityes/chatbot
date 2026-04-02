@@ -179,7 +179,13 @@ serve(async (req: Request) => {
 
         // --- AI Processing ---
         const { data: files } = await supabase.from('user_files').select('name, content').eq('user_id', userId)
-        const context = files?.map((f: { name: string, content: string }) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
+        let context = files?.map((f: { name: string, content: string }) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
+        
+        // Truncate context if too long to avoid token limits (approx 20k chars is safer)
+        if (context.length > 20000) {
+            context = context.substring(0, 20000) + '... [Context truncated due to size]';
+        }
+
         const botName = settings.tg_bot_name || 'مساعد ذكي'
         const systemPrompt = `أنت ${botName}، مساعد ذكي لخدمة العملاء على تيليقرام. أجب بناءً على المعلومات التالية فقط:\n\n${context}`
 
