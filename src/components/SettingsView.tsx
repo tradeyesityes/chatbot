@@ -406,6 +406,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                 {settings.tg_enabled && (
                     <div className="space-y-4">
                         <div className="space-y-2">
+                            <label className="block text-[10px] font-bold text-slate-500 mr-1">اسم البوت (Bot Name)</label>
+                            <input
+                                type="text"
+                                value={settings.tg_bot_name || ''}
+                                onChange={e => setSettings({ ...settings, tg_bot_name: e.target.value })}
+                                placeholder="مثال: مساعد المبيعات"
+                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm"
+                            />
+                        </div>
+                        <div className="space-y-2">
                             <label className="block text-[10px] font-bold text-slate-500 mr-1">Bot Token</label>
                             <input
                                 type="password"

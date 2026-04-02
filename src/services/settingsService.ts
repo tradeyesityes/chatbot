@@ -40,6 +40,7 @@ export interface UserSettings {
     tg_enabled?: boolean
     tg_token?: string | null
     tg_bot_username?: string | null
+    tg_bot_name?: string | null
     support_email?: string | null
     handover_keywords?: string[]
     slug?: string | null
@@ -100,6 +101,7 @@ export class SettingsService {
             tg_enabled: data?.tg_enabled || false,
             tg_token: data?.tg_token || null,
             tg_bot_username: data?.tg_bot_username || null,
+            tg_bot_name: data?.tg_bot_name || null,
             support_email: data?.support_email || null,
             handover_keywords: data?.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'],
             slug: data?.slug || null,

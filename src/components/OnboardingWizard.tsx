@@ -227,7 +227,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ userId, onCo
 
             <div className="space-y-4">
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="text-xs font-bold text-salla-muted mb-2">إيميل استقبال التذاكر</p>
+                <p className="text-xs font-bold text-salla-muted mb-2">إيميل استقبال التذاكر (Support Email)</p>
                 <input 
                   type="email"
                   placeholder="support@yourcompany.com"
@@ -235,7 +235,24 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ userId, onCo
                   onChange={e => handleUpdate({ support_email: e.target.value })}
                   className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500/20"
                 />
-                <p className="text-[10px] text-salla-muted mt-2 italic">سيتم إرسال تنبيه فوري لهذا الإيميل عند طلب العميل تواصل بشري.</p>
+              </div>
+
+              <div className="p-4 bg-sky-50/50 rounded-2xl border border-sky-100 space-y-3">
+                <p className="text-xs font-bold text-sky-600 mb-1">إعدادات تيليجرام (اختياري)</p>
+                <input 
+                  type="text"
+                  placeholder="اسم البوت (مثال: مساعدي الذكي)"
+                  value={settings.tg_bot_name || ''}
+                  onChange={e => handleUpdate({ tg_bot_name: e.target.value })}
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-sky-500/20"
+                />
+                <input 
+                  type="password"
+                  placeholder="Bot Token (123456...)"
+                  value={settings.tg_token || ''}
+                  onChange={e => handleUpdate({ tg_token: e.target.value })}
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-sky-500/20"
+                />
               </div>
             </div>
 

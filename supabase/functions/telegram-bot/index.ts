@@ -180,7 +180,8 @@ serve(async (req: Request) => {
         // --- AI Processing ---
         const { data: files } = await supabase.from('user_files').select('name, content').eq('user_id', userId)
         const context = files?.map((f: { name: string, content: string }) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
-        const systemPrompt = `أنت مساعد ذكي لخدمة العملاء على تيليقرام. أجب بناءً على المعلومات التالية فقط:\n\n${context}`
+        const botName = settings.tg_bot_name || 'مساعد ذكي'
+        const systemPrompt = `أنت ${botName}، مساعد ذكي لخدمة العملاء على تيليقرام. أجب بناءً على المعلومات التالية فقط:\n\n${context}`
 
         let aiResponse = ''
 
@@ -225,6 +226,7 @@ serve(async (req: Request) => {
                 const result = await response.json()
                 aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
             } else if (settings.openai_api_key) {
+                await logDebug('AIStart', 'Using OpenAI', { model: 'gpt-4o-mini' })
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.openai_api_key}` },
@@ -232,6 +234,13 @@ serve(async (req: Request) => {
                 })
                 const result = await response.json()
                 aiResponse = result.choices?.[0]?.message?.content || ''
+            } else {
+                await logDebug('AIError', 'No AI provider configured or keys missing', { 
+                    hasOpenAI: !!settings.openai_api_key, 
+                    hasGemini: !!settings.gemini_api_key,
+                    useGemini: settings.use_gemini,
+                    useOllama: settings.use_remote_ollama
+                })
             }
         } catch (aiErr: unknown) {
             const message = aiErr instanceof Error ? aiErr.message : String(aiErr)
