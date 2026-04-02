@@ -27,6 +27,31 @@ const logDebug = async (step: string, message: string, details: Record<string, u
     }
 }
 
+const buildKeywordContext = (allContent: string, query: string, maxChars: number = 40000): string => {
+    if (!allContent || allContent.length <= maxChars) return allContent;
+    
+    const paragraphs = allContent.split(/\n\s*\n/);
+    const queryKeywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    
+    const scoredParagraphs = paragraphs.map(p => {
+        let score = 0;
+        const lowerP = p.toLowerCase();
+        queryKeywords.forEach(kw => {
+            if (lowerP.includes(kw)) score += 1;
+        });
+        return { text: p, score };
+    });
+
+    scoredParagraphs.sort((a, b) => b.score - a.score);
+    
+    let result = "";
+    for (const p of scoredParagraphs) {
+        if ((result.length + p.text.length) > maxChars) break;
+        result += (result ? "\n\n---\n\n" : "") + p.text;
+    }
+    return result || allContent.substring(0, maxChars);
+}
+
 serve(async (req: Request) => {
     try {
         const url = new URL(req.url)
@@ -218,12 +243,14 @@ serve(async (req: Request) => {
         // --- Step 3: AI Processing ---
         if (!context) {
             const { data: files } = await supabase.from('user_files').select('name, content').eq('user_id', userId)
-            context = files?.map((f: { name: string, content: string }) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
-        }
-
-        // Truncate context if still too long for safety
-        if (context.length > 50000) {
-            context = context.substring(0, 50000) + '... [Context truncated]';
+            const allContent = files?.map((f: { name: string, content: string }) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
+            
+            // Intelligent fallback retrieval (Keyword scoring)
+            context = buildKeywordContext(allContent, text, 45000);
+            await logDebug('KeywordSearch', 'Using keyword-based context selection', { 
+                originalSize: allContent.length,
+                selectedSize: context.length
+            })
         }
 
         const botName = settings.tg_bot_name || 'مساعد ذكي'
