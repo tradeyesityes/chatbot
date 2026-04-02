@@ -43,6 +43,7 @@ export interface UserSettings {
     support_email?: string | null
     handover_keywords?: string[]
     slug?: string | null
+    has_completed_onboarding?: boolean
 }
 
 export class SettingsService {
@@ -101,7 +102,8 @@ export class SettingsService {
             tg_bot_username: data?.tg_bot_username || null,
             support_email: data?.support_email || null,
             handover_keywords: data?.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'],
-            slug: data?.slug || null
+            slug: data?.slug || null,
+            has_completed_onboarding: data?.has_completed_onboarding ?? false
         }
 
         // If no row exists, or the default API key was missing, save it now so it persists

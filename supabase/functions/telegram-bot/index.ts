@@ -5,7 +5,15 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-const logDebug = async (step: string, message: string, details: any = {}) => {
+interface TelegramUpdate {
+    message?: {
+        chat: { id: number };
+        text?: string;
+        from: { first_name?: string };
+    };
+}
+
+const logDebug = async (step: string, message: string, details: Record<string, unknown> = {}) => {
     console.log(`[${step}] ${message}`, details)
     try {
         await supabase.from('bot_debug_logs').insert({
@@ -19,14 +27,14 @@ const logDebug = async (step: string, message: string, details: any = {}) => {
     }
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
     try {
         const url = new URL(req.url)
         const tokenFromUrl = url.searchParams.get('token')
 
         if (!tokenFromUrl) return new Response('Missing token', { status: 400 })
 
-        const body = await req.json()
+        const body: TelegramUpdate = await req.json()
         await logDebug('WebhookReceived', 'Data from Telegram', { body })
 
         if (!body.message) return new Response('OK', { status: 200 })
@@ -88,10 +96,10 @@ serve(async (req) => {
 
         const textNormalized = normalizeArabic(text.toLowerCase());
         const keywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
-        const baseKeywords = keywords.length > 0 ? keywords : ['موظف', 'مساعدة', 'تحدث مع', 'خدمة عملاء', 'تواصل', 'مشرف'];
-        const normalizedKeywords = baseKeywords.map(k => normalizeArabic(k.toLowerCase()));
+        const baseKeywords: string[] = keywords.length > 0 ? keywords : ['موظف', 'مساعدة', 'تحدث مع', 'خدمة عملاء', 'تواصل', 'مشرف'];
+        const normalizedKeywords = baseKeywords.map((k: string) => normalizeArabic(k.toLowerCase()));
         
-        const isTrigger = normalizedKeywords.some(k => textNormalized.includes(k));
+        const isTrigger = normalizedKeywords.some((k: string) => textNormalized.includes(k));
 
         let status = conv?.handover_status || 'idle';
         let data = conv?.handover_data || {};
@@ -132,7 +140,7 @@ serve(async (req) => {
                         message: text,
                         channel: 'Telegram'
                     }
-                }).catch(e => console.error('Handover notification failed:', e.message));
+                }).catch((e: Error) => console.error('Handover notification failed:', e.message));
 
                 status = 'idle';
                 data = {};
@@ -171,7 +179,7 @@ serve(async (req) => {
 
         // --- AI Processing ---
         const { data: files } = await supabase.from('user_files').select('name, content').eq('user_id', userId)
-        const context = files?.map(f => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
+        const context = files?.map((f: { name: string, content: string }) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
         const systemPrompt = `أنت مساعد ذكي لخدمة العملاء على تيليقرام. أجب بناءً على المعلومات التالية فقط:\n\n${context}`
 
         let aiResponse = ''
@@ -225,8 +233,9 @@ serve(async (req) => {
                 const result = await response.json()
                 aiResponse = result.choices?.[0]?.message?.content || ''
             }
-        } catch (aiErr: any) {
-            await logDebug('AIError', 'AI fetch failed', { message: aiErr.message })
+        } catch (aiErr: unknown) {
+            const message = aiErr instanceof Error ? aiErr.message : String(aiErr)
+            await logDebug('AIError', 'AI fetch failed', { message })
         }
 
         if (aiResponse) {
@@ -249,8 +258,10 @@ serve(async (req) => {
         }
 
         return new Response('OK', { status: 200 })
-    } catch (err: any) {
-        await logDebug('FatalError', 'Unhandled error', { message: err.message })
-        return new Response(err.message, { status: 500 })
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        await logDebug('FatalError', 'Unhandled error', { message })
+        return new Response(message, { status: 500 })
     }
 })
+

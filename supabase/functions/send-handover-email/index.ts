@@ -11,14 +11,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+interface HandoverPayload {
+  userId: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  message?: string;
+  channel?: string;
+  ticketId?: string;
+}
+
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { userId, customerName, customerEmail, customerPhone, message, channel, ticketId } = await req.json()
+    const { userId, customerName, customerEmail, customerPhone, message, channel, ticketId }: HandoverPayload = await req.json()
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Missing userId' }), {
@@ -88,11 +98,11 @@ serve(async (req) => {
       }),
     })
 
-    const resData = await res.json()
+    const resData: { id?: string; message?: string } = await res.json()
 
     if (!res.ok) {
       console.error('Resend API error:', resData)
-      throw new Error(`Failed to send email: ${resData.message}`)
+      throw new Error(`Failed to send email: ${resData.message || 'Unknown error'}`)
     }
 
     return new Response(JSON.stringify({ success: true, id: resData.id }), {
@@ -100,11 +110,13 @@ serve(async (req) => {
       status: 200,
     })
 
-  } catch (error: any) {
-    console.error('Handover email function error:', error.message)
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('Handover email function error:', message)
+    return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })
   }
 })
+

@@ -5,7 +5,7 @@ import { GeminiService } from './services/geminiService'
 import { OllamaService } from './services/ollamaService'
 import { StorageService } from './services/storageService'
 import { ChatService } from './services/chatService'
-import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle, LandingPage, LegalPage, AdminDashboard, SettingsView } from './components'
+import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle, LandingPage, LegalPage, AdminDashboard, SettingsView, OnboardingWizard } from './components'
 import { BotAvatar } from './components/BotAvatar'
 import { AuthService } from './services/authService'
 import { supabase } from './services/supabaseService'
@@ -516,6 +516,16 @@ export default function App() {
 
   if (currentView === 'admin' && userSettings?.is_admin) {
     return <AdminDashboard onBack={() => setCurrentView('chat')} />
+  }
+
+  // Show Onboarding Wizard if not completed
+  if (user && userSettings && userSettings.has_completed_onboarding === false) {
+    return (
+      <OnboardingWizard 
+        userId={user.id} 
+        onComplete={(newSettings) => setUserSettings(prev => ({ ...prev, ...newSettings }))} 
+      />
+    )
   }
 
   return (
