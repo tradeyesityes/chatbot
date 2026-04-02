@@ -177,17 +177,60 @@ serve(async (req: Request) => {
             return new Response('OK', { status: 200 })
         }
 
-        // --- AI Processing ---
-        const { data: files } = await supabase.from('user_files').select('name, content').eq('user_id', userId)
-        let context = files?.map((f: { name: string, content: string }) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
-        
-        // Truncate context if too long to avoid token limits (approx 20k chars is safer)
-        if (context.length > 20000) {
-            context = context.substring(0, 20000) + '... [Context truncated due to size]';
+        // --- Step 2: Semantic Search (RAG) Integration ---
+        const apiKey = settings.openai_api_key || Deno.env.get('OPENAI_API_KEY')
+        let context = ''
+
+        if (apiKey) {
+            try {
+                await logDebug('RAGStart', 'Generating embedding for query', { query: text })
+                // 1. Generate Embedding
+                const embRes = await fetch('https://api.openai.com/v1/embeddings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({ input: text, model: 'text-embedding-3-small' })
+                })
+                
+                if (!embRes.ok) throw new Error(`Embedding failed: ${embRes.statusText}`)
+                const embData = await embRes.json()
+                const embedding = embData.data[0].embedding
+
+                // 2. Vector Search (Supabase RPC)
+                await logDebug('VectorSearch', 'Matching segments in DB', { userId })
+                const { data: segments, error: vError } = await supabase.rpc('match_file_segments', {
+                    query_embedding: embedding,
+                    match_threshold: 0.20,
+                    match_count: 8,
+                    p_user_id: userId
+                })
+
+                if (vError) throw vError
+
+                if (segments && segments.length > 0) {
+                    context = segments.map((s: any) => s.content).join('\n\n---\n\n')
+                    await logDebug('RAGSuccess', `Found ${segments.length} relevant segments`)
+                }
+            } catch (err: any) {
+                await logDebug('RAGError', 'Semantic search failed, falling back to full context', { error: err.message })
+            }
+        }
+
+        // --- Step 3: AI Processing ---
+        if (!context) {
+            const { data: files } = await supabase.from('user_files').select('name, content').eq('user_id', userId)
+            context = files?.map((f: { name: string, content: string }) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
+        }
+
+        // Truncate context if still too long for safety
+        if (context.length > 30000) {
+            context = context.substring(0, 30000) + '... [Context truncated]';
         }
 
         const botName = settings.tg_bot_name || 'مساعد ذكي'
-        const systemPrompt = `أنت ${botName}، مساعد ذكي لخدمة العملاء على تيليقرام. أجب بناءً على المعلومات التالية فقط:\n\n${context}`
+        const systemPrompt = `أنت ${botName}، مساعد ذكي لخدمة العملاء على تيليقرام. أجب بناءً على المعلومات التالية فقط:
+
+معلومات السياق:
+${context}`
 
         let aiResponse = ''
 
