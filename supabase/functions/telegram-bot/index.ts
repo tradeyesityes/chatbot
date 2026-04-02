@@ -222,8 +222,8 @@ serve(async (req: Request) => {
         }
 
         // Truncate context if still too long for safety
-        if (context.length > 30000) {
-            context = context.substring(0, 30000) + '... [Context truncated]';
+        if (context.length > 50000) {
+            context = context.substring(0, 50000) + '... [Context truncated]';
         }
 
         const botName = settings.tg_bot_name || 'مساعد ذكي'
