@@ -235,114 +235,106 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 			if (error) console.error('[Worker] Save user msg RPC error:', error.message);
 		}
 
-		// 1. Fetch current handover state
-		const { data: conv, error: convError } = await supabase
-			.from('conversations')
-			.select('handover_status, handover_data')
-			.eq('id', conversationId)
-			.single();
+		// --- Unified Handover Logic (v2.0) ---
+		try {
+			const { data: handoverData, error: handoverError } = await supabase.rpc('process_handover_message', {
+				p_conversation_id: conversationId,
+				p_message_text: incomingText,
+				p_keywords: settings.handover_keywords || [],
+				p_channel: 'WhatsApp'
+			});
 
-		const normalizeArabic = (text) => {
-			if (!text) return '';
-			return text
-				.replace(/[أإآ]/g, 'ا')
-				.replace(/ة/g, 'ه')
-				.replace(/ى/g, 'ي')
-				.replace(/[\u064B-\u0652]/g, '')
-				.trim();
-		};
+			if (handoverError) {
+				console.error('[Worker] Handover RPC Error:', handoverError.message);
+			} else if (handoverData && handoverData.length > 0) {
+				const result = handoverData[0];
+				const handoverResponse = result.response_text;
 
-		let status = conv?.handover_status || 'idle';
-		let data = conv?.handover_data || {};
+				if (handoverResponse) {
+					console.log(`[Worker] Handover response: ${handoverResponse}`);
+					
+					// Send message via Evolution API
+					await axios.post(`${cleanBaseUrl}/message/sendText/${settings.evolution_instance_name}`, {
+						number: remoteJid,
+						text: handoverResponse,
+						delay: 1200
+					}, { headers: { 'apikey': apiKey } });
 
-		const incomingNormalized = normalizeArabic(incomingText.toLowerCase());
-		const keywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'موظف', 'مساعدة', 'تحدث مع', 'خدمة عملاء', 'تواصل', 'مشرف'];
-		const normalizedKeywords = keywords.map(k => normalizeArabic(k.toLowerCase()));
-		
-		const isTrigger = normalizedKeywords.some(k => incomingNormalized.includes(k));
-
-		console.log(`[Worker] Handover check: "${incomingText}", Status: ${status}, isTrigger: ${isTrigger}`);
-
-		let handoverResponse = null;
-
-		if ((isTrigger || status !== 'idle') && status !== 'completed') {
-			if (status === 'idle') {
-				if (!settings.support_email) {
-					handoverResponse = "عذراً، يجب على صاحب المتجر إعداد (البريد الإلكتروني للدعم) في الإعدادات لتفعيل نظام التحدث مع الموظفين والتذاكر.";
-				} else {
-					status = 'collecting_name';
-					handoverResponse = "نحن في خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
-				}
-			} else if (status === 'collecting_name') {
-				data.name = incomingText;
-				status = 'collecting_phone';
-				handoverResponse = `شكراً ${incomingText}. من فضلك زودنا برقم جوالك لنتمكن من التواصل معك.`;
-			} else if (status === 'collecting_phone') {
-				data.phone = incomingText;
-				status = 'collecting_email';
-				handoverResponse = "شكراً. من فضلك زودنا ببريدك الإلكتروني (اختياري، اكتب 'تخطي' للمتابعة).";
-			} else if (status === 'collecting_email') {
-				data.email = (incomingNormalized.includes('تخطي') || incomingNormalized.includes('skip')) ? 'N/A' : incomingText;
-				const ticketId = `T-${Math.floor(10000 + Math.random() * 90000)}`;
-				data.ticket_id = ticketId;
-
-				// Trigger Email Notification
-				supabase.functions.invoke('send-handover-email', {
-					body: {
-						userId: settings.user_id,
-						customerName: data.name,
-						customerEmail: data.email,
-						customerPhone: data.phone,
-						ticketId: data.ticket_id,
-						message: incomingText,
-						channel: 'WhatsApp'
+					// Save response to DB via RPC
+					if (settings.user_id && conversationId) {
+						await supabase.rpc('save_whatsapp_message', {
+							p_user_id: settings.user_id,
+							p_conversation_id: conversationId,
+							p_role: 'assistant',
+							p_content: handoverResponse
+						});
 					}
-				}).catch(e => console.error('[Worker] Handover notification failed:', e.message));
 
-				status = 'idle';
-				data = {};
-				handoverResponse = `تم إنشاء تذكرة برقم #${ticketId}. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.`;
+					// If ticket completed, trigger email
+					if (result.should_send_email) {
+						supabase.functions.invoke('send-handover-email', {
+							body: {
+								userId: result.user_id,
+								customerName: result.customer_name,
+								customerEmail: result.customer_email,
+								customerPhone: result.customer_phone,
+								ticketId: result.ticket_id,
+								message: incomingText,
+								channel: 'WhatsApp'
+							}
+						}).catch(e => console.error('[Worker] Handover notification failed:', e.message));
+					}
+					return; // Stop processing further (no AI response)
+				}
 			}
-		}
-
-		if (handoverResponse) {
-			// Update state in DB
-			await supabase.from('conversations').update({ 
-				handover_status: status, 
-				handover_data: data,
-				updated_at: new Date().toISOString()
-			}).eq('id', conversationId);
-
-			console.log(`[Worker] Handover response: ${handoverResponse}`);
-			
-			// Send message via Evolution API
-			await axios.post(`${cleanBaseUrl}/message/sendText/${settings.evolution_instance_name}`, {
-				number: remoteJid,
-				text: handoverResponse,
-				delay: 1200
-			}, { headers: { 'apikey': apiKey } });
-
-			// Save response to DB
-			if (settings.user_id && conversationId) {
-				await supabase.rpc('save_whatsapp_message', {
-					p_user_id: settings.user_id,
-					p_conversation_id: conversationId,
-					p_role: 'assistant',
-					p_content: handoverResponse
-				});
-			}
-			return;
+		} catch (e) {
+			console.error('[Worker] Handover processing exception:', e.message);
 		}
 		
-		// Fetch user files for RAG context
+		// --- RAG System (v2.0: Vector Search with Fallback) ---
 		let context = '';
-		if (settings.user_id) {
+		const openaiKey = settings.openai_api_key || process.env.VITE_OPENAI_API_KEY;
+
+		if (settings.user_id && openaiKey) {
+			try {
+				console.log(`[Worker] Generating embedding for: "${incomingText.substring(0, 30)}..."`);
+				// 1. Generate Embedding
+				const embRes = await axios.post('https://api.openai.com/v1/embeddings', {
+					input: incomingText,
+					model: 'text-embedding-3-small'
+				}, { headers: { 'Authorization': `Bearer ${openaiKey}` } });
+				
+				const embedding = embRes.data.data[0].embedding;
+
+				// 2. Vector Search via Supabase RPC
+				const { data: segments, error: vError } = await supabase.rpc('match_file_segments', {
+					query_embedding: embedding,
+					match_threshold: 0.20,
+					match_count: 8,
+					p_user_id: settings.user_id
+				});
+
+				if (vError) throw vError;
+
+				if (segments && segments.length > 0) {
+					context = segments.map(s => s.content).join('\n\n---\n\n');
+					console.log(`[Worker] Vector search found ${segments.length} segments.`);
+				}
+			} catch (err) {
+				console.error(`[Worker] Vector search failed: ${err.message}. Falling back to keyword search.`);
+			}
+		}
+
+		// Fallback: Keyword-based context scoring
+		if (!context && settings.user_id) {
 			const { data: files } = await supabase
 				.from('user_files')
 				.select('name, content')
 				.eq('user_id', settings.user_id);
 				
-			context = files?.map(f => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || '';
+			const allContent = files?.map(f => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || '';
+			context = buildKeywordContext(allContent, incomingText, 40000);
+			console.log(`[Worker] Keyword fallback selected ${context.length} chars of context.`);
 		}
 		
 		// Generate AI Response
@@ -376,6 +368,31 @@ async function handleMessage(settings, remoteJid, incomingText, cleanBaseUrl, ap
 	} catch (error) {
 		console.error(`❌ [Worker] Error handling message:`, error.message);
 	}
+}
+
+function buildKeywordContext(allContent, query, maxChars = 40000) {
+	if (!allContent || allContent.length <= maxChars) return allContent;
+	
+	const paragraphs = allContent.split(/\n\s*\n/);
+	const queryKeywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+	
+	const scoredParagraphs = paragraphs.map(p => {
+		let score = 0;
+		const lowerP = p.toLowerCase();
+		queryKeywords.forEach(kw => {
+			if (lowerP.includes(kw)) score += 1;
+		});
+		return { text: p, score };
+	});
+
+	scoredParagraphs.sort((a, b) => b.score - a.score);
+	
+	let result = "";
+	for (const p of scoredParagraphs) {
+		if ((result.length + p.text.length) > maxChars) break;
+		result += (result ? "\n\n---\n\n" : "") + p.text;
+	}
+	return result || allContent.substring(0, maxChars);
 }
 
 async function generateAIResponse(settings, context, question) {

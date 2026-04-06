@@ -66,15 +66,30 @@ const SourceBadge: React.FC<{ source?: ConversationSource; phoneNumber?: string 
     )
   }
 
+  if (source === 'telegram') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[#0088cc] text-[9px] font-bold leading-none"
+        title={phoneNumber || 'تيليجرام'}
+      >
+        <svg className="w-2.5 h-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1 .22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.52-1.4.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.45-.42-1.39-.89.03-.24.37-.49 1.02-.75 4-.1.74 8.33 1.74 3.73 1.1 6.39 2.5 7.12 3.41.81.91.81 1.09 1.02 1.48 1.48.05.4.15.8.44 1.1.28.3.58.55.76.64.18.1.39.17.61.17.21 0 .44-.06.63-.16.03-.02.49-.33.75-.53.26-.2.51-.41.65-.54.14-.13.38-.28.53-.44.15-.16.14-.3.02-.45-.12-.15-.49-.49-1.05-1.01z" />
+        </svg>
+        تيليجرام
+      </span>
+    )
+  }
+
   return null
 }
 
 // --- Group conversations by source for display ---
 function groupConversations(conversations: Conversation[]) {
   const whatsapp = conversations.filter(c => c.source === 'whatsapp')
+  const telegram = conversations.filter(c => c.source === 'telegram')
   const publicChats = conversations.filter(c => c.source === 'public')
   const webchat = conversations.filter(c => !c.source || c.source === 'webchat')
-  return { whatsapp, publicChats, webchat }
+  return { whatsapp, telegram, publicChats, webchat }
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -96,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [editTitle, setEditTitle] = useState('')
   const [activeFilter, setActiveFilter] = useState<'all' | ConversationSource>('all')
 
-  const { whatsapp, publicChats, webchat } = groupConversations(conversations)
+  const { whatsapp, telegram, publicChats, webchat } = groupConversations(conversations)
 
   const filteredConversations = activeFilter === 'all'
     ? conversations
@@ -271,6 +286,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {whatsapp.length}
             </button>
           )}
+          {telegram.length > 0 && (
+            <button
+              onClick={() => setActiveFilter('telegram')}
+              className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 ${activeFilter === 'telegram' ? 'bg-white shadow-sm text-[#0088cc]' : 'text-salla-muted hover:text-[#0088cc]'}`}
+              title="محادثات تيليجرام"
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1 .22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.52-1.4.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.45-.42-1.39-.89.03-.24.37-.49 1.02-.75 4-.1.74 8.33 1.74 3.73 1.1 6.39 2.5 7.12 3.41.81.91.81 1.09 1.02 1.48 1.48.05.4.15.8.44 1.1.28.3.58.55.76.64.18.1.39.17.61.17.21 0 .44-.06.63-.16.03-.02.49-.33.75-.53.26-.2.51-.41.65-.54.14-.13.38-.28.53-.44.15-.16.14-.3.02-.45-.12-.15-.49-.49-1.05-1.01z" />
+              </svg>
+              {telegram.length}
+            </button>
+          )}
           {publicChats.length > 0 && (
             <button
               onClick={() => setActiveFilter('public')}
@@ -291,13 +318,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {activeFilter === 'all' ? 'المحادثات المحفوظة' :
            activeFilter === 'webchat' ? '💬 محادثات الويب' :
            activeFilter === 'whatsapp' ? '📱 محادثات واتساب' :
+           activeFilter === 'telegram' ? '🔹 محادثات تيليجرام' :
            '👤 محادثات الزوار'}
         </h3>
         <div className="space-y-2">
           {filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center py-8 text-salla-muted/50">
               <span className="text-3xl mb-2">
-                {activeFilter === 'whatsapp' ? '📱' : activeFilter === 'public' ? '👤' : '💬'}
+                {activeFilter === 'whatsapp' ? '📱' : activeFilter === 'telegram' ? '🔹' : activeFilter === 'public' ? '👤' : '💬'}
               </span>
               <p className="text-xs text-center">لا توجد محادثات</p>
             </div>

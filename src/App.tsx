@@ -238,12 +238,8 @@ export default function App() {
       }
     }
 
-    // --- Handover Detection & Processing (v1.6-trace) ---
-    const isManualTrigger = input.includes('موظف') || input.includes('تحدث') || input.includes('مساعدة') || input.includes('تواصل') || input.includes('human');
-    
+    // --- Handover Detection & Processing (Unified v2.0) ---
     let handoverResponse: string | null = null;
-    let traceInfo = `Input: "${input}", ID: ${convId}, Trigger: ${isManualTrigger}`;
-
     try {
       if (user) {
         handoverResponse = await HandoverService.processMessage(
@@ -252,18 +248,11 @@ export default function App() {
           input,
           userSettings?.handover_keywords || [],
           userSettings?.support_email || null,
-          'Web',
-          !currentConversationId
+          'Web'
         );
       }
     } catch (err: any) {
-      console.error('[Handover Trace Error]', err);
-      handoverResponse = `⚠️ خطأ تقني في نظام التحويل: ${err.message}. Trace: ${traceInfo}`;
-    }
-
-    // Trace fallback
-    if (!handoverResponse && isManualTrigger) {
-      handoverResponse = `🕒 تنبيه نظام التحويل (Trace): لم يتم التعرف على الحالة. Trace: ${traceInfo}. الرجاء التأكد من إعدادات البريد الإلكتروني.`;
+      console.error('[Handover Error]', err);
     }
 
     if (handoverResponse) {

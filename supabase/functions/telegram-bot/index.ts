@@ -53,300 +53,177 @@ const buildKeywordContext = (allContent: string, query: string, maxChars: number
 }
 
 serve(async (req: Request) => {
+    // Health check
+    if (req.method === 'GET') {
+        return new Response('OK', { status: 200 });
+    }
+
     try {
         const url = new URL(req.url)
-        const tokenFromUrl = url.searchParams.get('token')
+        const tokenFromUrl = url.searchParams.get('token')?.trim()
 
-        if (!tokenFromUrl) return new Response('Missing token', { status: 400 })
+        if (!tokenFromUrl) return new Response('Missing token', { status: 400 });
 
         const body: TelegramUpdate = await req.json()
-        await logDebug('WebhookReceived', 'Data from Telegram', { body })
 
-        if (!body.message) return new Response('OK', { status: 200 })
+        // --- Silent return for non-messages ---
+        if (!body.message || !body.message.text) return new Response('OK', { status: 200 })
 
         const chatId = body.message.chat.id
         const text = body.message.text
-        const senderName = body.message.from.first_name || 'User'
+        const senderName = body.message.from?.first_name || 'User'
 
-        if (!text) return new Response('OK', { status: 200 })
-
+        // 1. Fetch User Settings
         const { data: settings, error: settingsError } = await supabase
             .from('user_settings')
             .select('*')
             .eq('tg_token', tokenFromUrl)
-            .eq('tg_enabled', true)
             .maybeSingle()
 
-        if (settingsError || !settings) {
-            await logDebug('Error', 'User settings not found', { token: tokenFromUrl, error: settingsError })
-            return new Response('Not configured', { status: 200 })
+        // If not found or disabled, returned 200 OK to stop Telegram retries
+        if (settingsError || !settings || !settings.tg_enabled) {
+            console.log('[Info] Bot disabled or settings missing');
+            return new Response('OK', { status: 200 })
         }
 
         const userId = settings.user_id
 
-        // --- Save Message & Create Conversation ---
-        const telegramKey = `telegram_${chatId}`
-        const { data: convId } = await supabase.rpc('get_or_create_whatsapp_conversation', {
-            p_user_id: userId,
-            p_phone: telegramKey,
-            p_title: `Telegram: ${senderName}`,
-            p_visitor_name: senderName
-        })
+        // 2. Manage Conversation
+        let convId = null;
+        try {
+            const telegramKey = `telegram_${chatId}`
+            const { data: rpcConvId } = await supabase.rpc('get_or_create_whatsapp_conversation', {
+                p_user_id: userId,
+                p_phone: telegramKey,
+                p_title: `Telegram: ${senderName}`,
+                p_visitor_name: senderName,
+                p_source: 'telegram'
+            })
+            convId = rpcConvId;
+        } catch (e) {
+            console.error('Conv Error:', e);
+        }
 
+        // 3. Handover Logic
         if (convId) {
-             await supabase.rpc('save_whatsapp_message', {
+            // Save user message asynchronously
+            supabase.rpc('save_whatsapp_message', {
                 p_user_id: userId,
                 p_conversation_id: convId,
                 p_role: 'user',
-                p_content: text
+                p_content: text,
+                p_source: 'telegram'
+            }).catch(() => {});
+
+            const { data: handoverData } = await supabase.rpc('process_handover_message', {
+                p_conversation_id: convId,
+                p_message_text: text,
+                p_keywords: settings.handover_keywords || [],
+                p_channel: 'Telegram'
             });
-        }
 
-        // 1. Fetch current handover state
-        const { data: conv } = await supabase
-            .from('conversations')
-            .select('handover_status, handover_data')
-            .eq('id', convId)
-            .single();
-
-        const normalizeArabic = (t: string) => {
-            if (!t) return '';
-            return t
-                .replace(/[أإآ]/g, 'ا')
-                .replace(/ة/g, 'ه')
-                .replace(/ى/g, 'ي')
-                .replace(/[\u064B-\u0652]/g, '')
-                .trim();
-        };
-
-        const textNormalized = normalizeArabic(text.toLowerCase());
-        const keywords = settings.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'];
-        const baseKeywords: string[] = keywords.length > 0 ? keywords : ['موظف', 'مساعدة', 'تحدث مع', 'خدمة عملاء', 'تواصل', 'مشرف'];
-        const normalizedKeywords = baseKeywords.map((k: string) => normalizeArabic(k.toLowerCase()));
-        
-        const isTrigger = normalizedKeywords.some((k: string) => textNormalized.includes(k));
-
-        let status = conv?.handover_status || 'idle';
-        let data = conv?.handover_data || {};
-
-        await logDebug('HandoverCheck', `Input: ${text}, Status: ${status}, isTrigger: ${isTrigger}`, { chatId })
-
-        let handoverResponse = null;
-
-        if ((isTrigger || status !== 'idle') && status !== 'completed') {
-            if (status === 'idle') {
-                if (!settings.support_email) {
-                    handoverResponse = "عذراً، يجب على صاحب المتجر إعداد (البريد الإلكتروني للدعم) في الإعدادات لتفعيل نظام التحدث مع الموظفين والتذاكر.";
-                } else {
-                    status = 'collecting_name';
-                    handoverResponse = "نحن في خدمتك وتحويلك للموظف المختص. من فضلك زودنا باسمك الكريم للبدء.";
-                }
-            } else if (status === 'collecting_name') {
-                data.name = text;
-                status = 'collecting_phone';
-                handoverResponse = `شكراً ${text}. من فضلك زودنا برقم جوالك لنتمكن من التواصل معك.`;
-            } else if (status === 'collecting_phone') {
-                data.phone = text;
-                status = 'collecting_email';
-                handoverResponse = "شكراً. من فضلك زودنا ببريدك الإلكتروني (اختياري، اكتب 'تخطي' للمتابعة).";
-            } else if (status === 'collecting_email') {
-                data.email = (textNormalized.includes('تخطي') || textNormalized.includes('skip')) ? 'N/A' : text;
-                const ticketId = `T-${Math.floor(10000 + Math.random() * 90000)}`;
-                data.ticket_id = ticketId;
-
-                // Trigger Email Notification
-                supabase.functions.invoke('send-handover-email', {
-                    body: {
-                        userId: userId,
-                        customerName: data.name,
-                        customerEmail: data.email,
-                        customerPhone: data.phone,
-                        ticketId: data.ticket_id,
-                        message: text,
-                        channel: 'Telegram'
-                    }
-                }).catch((e: Error) => console.error('Handover notification failed:', e.message));
-
-                status = 'idle';
-                data = {};
-                handoverResponse = `تم إنشاء تذكرة برقم #${ticketId}. سيتواصل معك أحد موظفينا قريباً. شكراً لصبرك.`;
-            }
-        }
-
-        if (handoverResponse) {
-            // Update state in DB
-            if (convId) {
-                await supabase.from('conversations').update({ 
-                    handover_status: status, 
-                    handover_data: data,
-                    updated_at: new Date().toISOString()
-                }).eq('id', convId);
-            }
-
-            // Send message via Telegram API
-            await fetch(`https://api.telegram.org/bot${tokenFromUrl}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: handoverResponse })
-            })
-
-            // Save response to DB
-            if (convId) {
-                await supabase.rpc('save_whatsapp_message', {
-                    p_user_id: userId,
-                    p_conversation_id: convId,
-                    p_role: 'assistant',
-                    p_content: handoverResponse
+            if (handoverData?.[0]?.response_text) {
+                const handoverResponse = handoverData[0].response_text;
+                await fetch(`https://api.telegram.org/bot${tokenFromUrl}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: chatId, text: handoverResponse })
                 });
+
+                return new Response('OK', { status: 200 });
             }
-            return new Response('OK', { status: 200 })
         }
 
-        // --- Step 2: Semantic Search (RAG) Integration ---
-        const apiKey = settings.openai_api_key || Deno.env.get('OPENAI_API_KEY')
-        let context = ''
-
+        // 4. RAG & AI Processing
+        let context = '';
+        const apiKey = settings.openai_api_key || Deno.env.get('OPENAI_API_KEY');
+        
         if (apiKey) {
             try {
-                await logDebug('RAGStart', 'Generating embedding for query', { query: text })
-                // 1. Generate Embedding
                 const embRes = await fetch('https://api.openai.com/v1/embeddings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                     body: JSON.stringify({ input: text, model: 'text-embedding-3-small' })
-                })
+                });
                 
-                if (!embRes.ok) throw new Error(`Embedding failed: ${embRes.statusText}`)
-                const embData = await embRes.json()
-                const embedding = embData.data[0].embedding
+                if (embRes.ok) {
+                    const embData = await embRes.json();
+                    const { data: segments } = await supabase.rpc('match_file_segments', {
+                        query_embedding: embData.data[0].embedding,
+                        match_threshold: 0.20,
+                        match_count: 5,
+                        p_user_id: userId
+                    });
 
-                // 2. Vector Search (Supabase RPC)
-                await logDebug('VectorSearch', 'Matching segments in DB', { userId })
-                const { data: segments, error: vError } = await supabase.rpc('match_file_segments', {
-                    query_embedding: embedding,
-                    match_threshold: 0.20,
-                    match_count: 8,
-                    p_user_id: userId
-                })
-
-                if (vError) throw vError
-
-                if (segments && segments.length > 0) {
-                    context = segments.map((s: any) => s.content).join('\n\n---\n\n')
-                    await logDebug('RAGSuccess', `Found ${segments.length} relevant segments`)
+                    if (segments?.length > 0) {
+                        context = segments.map((s: any) => s.content).join('\n\n---\n\n');
+                    }
                 }
-            } catch (err: any) {
-                await logDebug('RAGError', 'Semantic search failed, falling back to full context', { error: err.message })
+            } catch (e) {
+                console.error('[RAG Error]', e);
             }
         }
 
-        // --- Step 3: AI Processing ---
         if (!context) {
-            const { data: files } = await supabase.from('user_files').select('name, content').eq('user_id', userId)
-            const allContent = files?.map((f: { name: string, content: string }) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || ''
-            
-            // Intelligent fallback retrieval (Keyword scoring)
-            context = buildKeywordContext(allContent, text, 45000);
-            await logDebug('KeywordSearch', 'Using keyword-based context selection', { 
-                originalSize: allContent.length,
-                selectedSize: context.length
-            })
+            const { data: files } = await supabase.from('user_files').select('name, content').eq('user_id', userId);
+            const allContent = files?.map((f: any) => `File: ${f.name}\nContent: ${f.content}`).join('\n\n---\n\n') || '';
+            context = buildKeywordContext(allContent, text, 30000);
         }
 
-        const botName = settings.tg_bot_name || 'مساعد ذكي'
-        const systemPrompt = `أنت ${botName}، مساعد ذكي لخدمة العملاء على تيليقرام. أجب بناءً على المعلومات التالية فقط:
+        let aiResponse = '';
+        const botName = settings.tg_bot_name || 'مساعد ذكي';
+        const systemPrompt = `أنت ${botName}، مساعد ذكي لخدمة العملاء على تيليقرام. أجب بناءً على المعلومات التالية فقط:\n\n${context}`;
 
-معلومات السياق:
-${context}`
-
-        let aiResponse = ''
-
-        try {
-            // Check for Remote Ollama (selected in your UI)
-            if (settings.use_remote_ollama && settings.ollama_api_key) {
-                const baseUrl = settings.ollama_base_url || 'https://ollama.com'
-                const modelName = settings.local_model_name || 'gemma2:9b'
-                
-                await logDebug('AIStart', 'Using Ollama Cloud Proxy', { model: modelName, baseUrl })
-                
-                const response = await fetch(`${baseUrl}/api/chat`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'Authorization': `Bearer ${settings.ollama_api_key}` 
-                    },
-                    body: JSON.stringify({
-                        model: modelName,
-                        messages: [
-                            { role: 'system', content: systemPrompt }, 
-                            { role: 'user', content: text }
-                        ],
-                        stream: false
-                    })
+        if (settings.use_remote_ollama && settings.ollama_api_key) {
+            const response = await fetch(`${settings.ollama_base_url || 'https://ollama.com'}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.ollama_api_key}` },
+                body: JSON.stringify({
+                    model: settings.local_model_name || 'gemma2:9b',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }],
+                    stream: false
                 })
-                
-                if (!response.ok) {
-                    const errText = await response.text()
-                    await logDebug('AIError', 'Ollama Proxy returned error', { status: response.status, error: errText })
-                } else {
-                    const result = await response.json()
-                    aiResponse = result.message?.content || ''
-                }
-            } else if (settings.use_gemini && settings.gemini_api_key) {
-                const model = settings.gemini_model_name || 'gemini-1.5-flash-latest'
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.gemini_api_key}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\n\nالسؤال: ${text}` }] }] })
-                })
-                const result = await response.json()
-                aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
-            } else if (settings.openai_api_key) {
-                await logDebug('AIStart', 'Using OpenAI', { model: 'gpt-4o-mini' })
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.openai_api_key}` },
-                    body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }] })
-                })
-                const result = await response.json()
-                aiResponse = result.choices?.[0]?.message?.content || ''
-            } else {
-                await logDebug('AIError', 'No AI provider configured or keys missing', { 
-                    hasOpenAI: !!settings.openai_api_key, 
-                    hasGemini: !!settings.gemini_api_key,
-                    useGemini: settings.use_gemini,
-                    useOllama: settings.use_remote_ollama
-                })
-            }
-        } catch (aiErr: unknown) {
-            const message = aiErr instanceof Error ? aiErr.message : String(aiErr)
-            await logDebug('AIError', 'AI fetch failed', { message })
+            });
+            const res = await response.json();
+            aiResponse = res.message?.content || '';
+        } else if (settings.use_gemini && settings.gemini_api_key) {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${settings.gemini_model_name || 'gemini-1.5-flash-latest'}:generateContent?key=${settings.gemini_api_key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\n\nالسؤال: ${text}` }] }] })
+            });
+            const res = await response.json();
+            aiResponse = res.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        } else if (apiKey) {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }] })
+            });
+            const res = await response.json();
+            aiResponse = res.choices?.[0]?.message?.content || '';
         }
 
         if (aiResponse) {
-             await fetch(`https://api.telegram.org/bot${tokenFromUrl}/sendMessage`, {
+            await fetch(`https://api.telegram.org/bot${tokenFromUrl}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: chatId, text: aiResponse })
-             })
-             
-             if (convId) {
-                await supabase.rpc('save_whatsapp_message', {
+            });
+
+                supabase.rpc('save_whatsapp_message', {
                     p_user_id: userId,
                     p_conversation_id: convId,
                     p_role: 'assistant',
-                    p_content: aiResponse
-                });
-             }
-        } else {
-            await logDebug('End', 'Processing finished but aiResponse empty')
+                    p_content: aiResponse,
+                    p_source: 'telegram'
+                }).catch(() => {});
         }
 
         return new Response('OK', { status: 200 })
     } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err)
-        await logDebug('FatalError', 'Unhandled error', { message })
-        return new Response(message, { status: 500 })
+        console.error('[Fatal Error]', err);
+        return new Response('OK', { status: 200 }) // Return 200 even on fatal to stop Telegram retries
     }
 })
 

@@ -23,7 +23,7 @@ export interface User {
   plan: UserPlan;
 }
 
-export type ConversationSource = 'webchat' | 'whatsapp' | 'public';
+export type ConversationSource = 'webchat' | 'whatsapp' | 'public' | 'telegram';
 
 export interface Conversation {
   id: string;

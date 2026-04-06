@@ -10,6 +10,7 @@ import { supabase } from '../services/supabaseService'
 import { StorageService } from '../services/storageService'
 import { SettingsService } from '../services/settingsService'
 import { ChatService } from '../services/chatService'
+import { HandoverService } from '../services/handoverService'
 
 const gemini = new GeminiService()
 const openai = new OpenAIService()
@@ -128,7 +129,6 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
                     console.warn('Could not create public conversation record:', e)
                 }
             }
-
             if (convId) {
                 const { error: rpcError } = await supabase.rpc('save_public_message', {
                     p_owner_id: ownerId,
@@ -138,6 +138,38 @@ export const PublicChat: React.FC<PublicChatProps> = ({ ownerId }) => {
                     p_visitor_name: visitor.name
                 })
                 if (rpcError) console.warn('save_public_message (user):', rpcError.message)
+            }
+
+            // --- Handover Detection (Unified v2.0) ---
+            const handoverResponse = await HandoverService.processMessage(
+                ownerId,
+                convId,
+                input,
+                settings?.handover_keywords || [],
+                null,
+                'Web'
+            );
+
+            if (handoverResponse) {
+                const assistantMsg: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: handoverResponse,
+                    timestamp: new Date()
+                }
+                setMessages(prev => [...prev, assistantMsg])
+
+                if (convId) {
+                    await supabase.rpc('save_public_message', {
+                        p_owner_id: ownerId,
+                        p_conversation_id: convId,
+                        p_role: 'assistant',
+                        p_content: handoverResponse,
+                        p_visitor_name: visitor.name
+                    })
+                }
+                setLoading(false)
+                return; // Stop here, no AI response needed
             }
 
             let response = ''
