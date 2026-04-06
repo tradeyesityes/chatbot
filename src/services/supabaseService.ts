@@ -40,6 +40,24 @@ if (SUPABASE_URL && SUPABASE_KEY) {
 } else {
 	console.warn('⚠️', missingClientMessage)
 	client = createMissingClient()
+
+	// Failover Logic: Redirect between Cloudflare and Coolify if one is broken
+	const hostname = window.location.hostname
+	const searchParams = new URLSearchParams(window.location.search)
+	const isFailover = searchParams.get('failover') === 'true'
+
+	if (!isFailover) {
+		const cloudflareUrl = 'chatbot-1.pentalogin.workers.dev'
+		const coolifyUrl = 'qgk48ccwskgc444ow04o4088.babclick.eu.org'
+
+		if (hostname.includes('pentalogin.workers.dev')) {
+			console.log('🔄 Failover: Redirecting to Coolify...')
+			window.location.href = `https://${coolifyUrl}/?failover=true`
+		} else if (hostname.includes('babclick.eu.org')) {
+			console.log('🔄 Failover: Redirecting to Cloudflare...')
+			window.location.href = `https://${cloudflareUrl}/?failover=true`
+		}
+	}
 }
 
 export const supabase = client
