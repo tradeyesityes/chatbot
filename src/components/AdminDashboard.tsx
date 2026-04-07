@@ -117,15 +117,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         }
     }
 
-    const handleToggleFreeze = async (userId: string, currentFrozen: boolean) => {
-        try {
-            await AdminService.toggleUserFreeze(userId, !currentFrozen)
-            setMessage({ type: 'success', text: currentFrozen ? 'تم إلغاء تجميد الحساب' : 'تم تجميد الحساب بنجاح' })
-            loadUsers()
-        } catch (e: any) {
-            setMessage({ type: 'error', text: 'فشل تغيير حالة التجميد: ' + e.message })
-        }
-    }
+
 
     const handleDeleteUser = async (userId: string) => {
         if (!window.confirm('هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء.')) return
@@ -237,11 +229,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                                 }`}>
                                                 {u.is_enabled ? 'نشط' : 'معطل'}
                                             </span>
-                                            {u.is_frozen && (
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800">
-                                                    ❄️ مجمد
-                                                </span>
-                                            )}
+
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 rtl:text-right">
@@ -299,15 +287,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             >
                                                 {u.is_enabled ? '🚫' : '✅'}
                                             </button>
-                                            {currentUser?.is_super_admin && (
-                                                <button
-                                                    onClick={() => handleToggleFreeze(u.user_id, u.is_frozen || false)}
-                                                    className={`p-2 rounded-lg transition-colors ${u.is_frozen ? 'text-blue-600 hover:bg-blue-50' : 'text-amber-600 hover:bg-amber-50'}`}
-                                                    title={u.is_frozen ? 'إلغاء التجميد' : 'تجميد الحساب'}
-                                                >
-                                                    {u.is_frozen ? '🔥' : '❄️'}
-                                                </button>
-                                            )}
+
                                             <button
                                                 onClick={() => handleDeleteUser(u.user_id)}
                                                 className={`p-2 rounded-lg transition-colors ${
@@ -341,7 +321,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         <form onSubmit={handleSaveSettings} className="p-6 overflow-y-auto max-h-[70vh]">
                             <div className="space-y-6">
                                 {/* Roles */}
-                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     <label className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl cursor-pointer">
                                         <input
                                             type="checkbox"
@@ -371,17 +351,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                         />
                                         <span className="text-xs font-semibold">نشط</span>
                                     </label>
-                                    {currentUser?.is_super_admin && (
-                                        <label className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/50 rounded-2xl cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={editingUser.is_frozen}
-                                                onChange={e => setEditingUser({ ...editingUser, is_frozen: e.target.checked })}
-                                                className="w-5 h-5 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-                                            />
-                                            <span className="text-xs font-semibold text-amber-700">تجميد</span>
-                                        </label>
-                                    )}
+
                                 </div>
 
                                 {/* AI Config */}
