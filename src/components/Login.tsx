@@ -42,7 +42,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
 
         try {
             if (isForgotPassword) {
-                await AuthService.resetPassword(email)
+                await AuthService.resetPassword(email, captchaToken || undefined)
                 setSuccessMessage('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني')
                 setIsForgotPassword(false)
             } else if (showOtpInput) {
@@ -192,7 +192,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
                                 </div>
                             )}
 
-                            {!showOtpInput && !isForgotPassword && (
+                            {!showOtpInput && (
                                 <div className="flex justify-center py-2">
                                     <HCaptcha
                                         sitekey={siteKey}
@@ -206,7 +206,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding, onOpenLe
 
                             <button
                                 type="submit"
-                                disabled={loading || (!captchaToken && !showOtpInput && !isForgotPassword)}
+                                disabled={loading || (!captchaToken && !showOtpInput)}
                                 className="w-full py-4 bg-salla-primary text-white rounded-salla font-bold text-lg shadow-xl shadow-salla-primary/20 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                             >
                                 {loading ? (

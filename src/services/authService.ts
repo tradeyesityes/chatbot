@@ -95,9 +95,10 @@ export class AuthService {
     if (error) throw error
   }
 
-  static async resetPassword(email: string): Promise<void> {
+  static async resetPassword(email: string, captchaToken?: string): Promise<void> {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
+      captchaToken
     })
     if (error) throw error
   }
