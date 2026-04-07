@@ -528,7 +528,7 @@ export default function App() {
       )}
 
       <Sidebar
-        user={user}
+        user={user ? { ...user, is_admin: userSettings?.is_admin, is_super_admin: userSettings?.is_super_admin } : null}
         conversations={conversations}
         currentConversationId={currentConversationId}
         isOpen={isSidebarOpen}

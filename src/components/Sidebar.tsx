@@ -339,12 +339,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <p className="font-bold text-lg text-salla-primary">{user.username}</p>
               <div className="flex gap-2 items-center">
                 {onAdminView && (
-                  <button
-                    onClick={onAdminView}
-                    className="p-1 px-2 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors"
-                  >
-                    Admin
-                  </button>
+                    <button
+                      onClick={onAdminView}
+                      className={`p-1 px-2 text-[10px] font-bold rounded-lg border transition-colors ${
+                        user.is_super_admin 
+                        ? 'bg-purple-50 text-purple-600 border-purple-100 hover:bg-purple-100'
+                        : 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'
+                      }`}
+                    >
+                      {user.is_super_admin ? 'Super admin' : 'Admin'}
+                    </button>
                 )}
                 <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${user.plan === 'pro'
                   ? 'bg-amber-50 border-amber-200 text-amber-600'

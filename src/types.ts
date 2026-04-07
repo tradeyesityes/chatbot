@@ -21,6 +21,8 @@ export interface User {
   email?: string;
   isLoggedIn: boolean;
   plan: UserPlan;
+  is_admin?: boolean;
+  is_super_admin?: boolean;
 }
 
 export type ConversationSource = 'webchat' | 'whatsapp' | 'public' | 'telegram';
