@@ -22,6 +22,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     const [loadingSubData, setLoadingSubData] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [currentUser, setCurrentUser] = useState<UserSettings | null>(null)
+    const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null)
 
     useEffect(() => {
         loadCurrentUser()
@@ -34,6 +35,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             if (user) {
                 const settings = await SettingsService.getSettings(user.id)
                 setCurrentUser(settings)
+                setLoggedInUserId(user.id)
             }
         } catch (e) {
             console.error('Failed to load current user settings:', e)
@@ -278,12 +280,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             <button
                                                 onClick={() => handleToggleStatus(u.user_id, u.is_enabled || false)}
                                                 className={`p-2 rounded-lg transition-colors ${
-                                                    (u.is_super_admin && !currentUser?.is_super_admin) 
+                                                    (u.is_super_admin && !currentUser?.is_super_admin) || (u.user_id === loggedInUserId)
                                                     ? 'text-slate-300 cursor-not-allowed' 
                                                     : u.is_enabled ? 'text-orange-600 hover:bg-orange-50' : 'text-emerald-600 hover:bg-emerald-50'
                                                 }`}
-                                                title={u.is_enabled ? 'تعطيل الحساب' : 'تفعيل الحساب'}
-                                                disabled={u.is_super_admin && !currentUser?.is_super_admin}
+                                                title={u.user_id === loggedInUserId ? 'لا يمكنك تعطيل حسابك الشخصي' : u.is_enabled ? 'تعطيل الحساب' : 'تفعيل الحساب'}
+                                                disabled={(u.is_super_admin && !currentUser?.is_super_admin) || (u.user_id === loggedInUserId)}
                                             >
                                                 {u.is_enabled ? '🚫' : '✅'}
                                             </button>
@@ -291,11 +293,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             <button
                                                 onClick={() => handleDeleteUser(u.user_id)}
                                                 className={`p-2 rounded-lg transition-colors ${
-                                                    (u.is_super_admin && !currentUser?.is_super_admin) 
+                                                    (u.is_super_admin && !currentUser?.is_super_admin) || (u.user_id === loggedInUserId)
                                                     ? 'text-slate-300 cursor-not-allowed' 
                                                     : 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20'
                                                 }`}
-                                                disabled={u.is_super_admin && !currentUser?.is_super_admin}
+                                                title={u.user_id === loggedInUserId ? 'لا يمكنك حذف حسابك الشخصي' : 'حذف'}
+                                                disabled={(u.is_super_admin && !currentUser?.is_super_admin) || (u.user_id === loggedInUserId)}
                                             >
                                                 حذف
                                             </button>
@@ -322,32 +325,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                             <div className="space-y-6">
                                 {/* Roles */}
                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    <label className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl cursor-pointer">
+                                    <label className={`flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl ${editingUser.user_id === loggedInUserId ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                                         <input
                                             type="checkbox"
                                             checked={editingUser.is_admin}
                                             onChange={e => setEditingUser({ ...editingUser, is_admin: e.target.checked })}
                                             className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                            disabled={editingUser.user_id === loggedInUserId}
                                         />
                                         <span className="text-xs font-semibold">مشرف</span>
                                     </label>
                                     {currentUser?.is_super_admin && (
-                                        <label className="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/50 rounded-2xl cursor-pointer">
+                                        <label className={`flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/50 rounded-2xl ${editingUser.user_id === loggedInUserId ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                                             <input
                                                 type="checkbox"
                                                 checked={editingUser.is_super_admin}
                                                 onChange={e => setEditingUser({ ...editingUser, is_super_admin: e.target.checked })}
                                                 className="w-5 h-5 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                                                disabled={editingUser.user_id === loggedInUserId}
                                             />
                                             <span className="text-xs font-semibold text-purple-700">مدير عام</span>
                                         </label>
                                     )}
-                                    <label className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl cursor-pointer">
+                                    <label className={`flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl ${editingUser.user_id === loggedInUserId ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                                         <input
                                             type="checkbox"
                                             checked={editingUser.is_enabled}
                                             onChange={e => setEditingUser({ ...editingUser, is_enabled: e.target.checked })}
                                             className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                            disabled={editingUser.user_id === loggedInUserId}
                                         />
                                         <span className="text-xs font-semibold">نشط</span>
                                     </label>
