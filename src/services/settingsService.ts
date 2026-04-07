@@ -20,7 +20,9 @@ export interface UserSettings {
     evolution_instance_name?: string | null
     evolution_bot_enabled?: boolean
     is_admin?: boolean
+    is_super_admin?: boolean
     is_enabled?: boolean
+    is_frozen?: boolean
     is_deleted?: boolean
     use_qdrant?: boolean
     qdrant_url?: string | null
@@ -81,7 +83,9 @@ export class SettingsService {
             evolution_instance_name: data?.evolution_instance_name || null,
             evolution_bot_enabled: data?.evolution_bot_enabled || false,
             is_admin: data?.is_admin || false,
+            is_super_admin: data?.is_super_admin || false,
             is_enabled: data?.is_enabled ?? true,
+            is_frozen: data?.is_frozen || false,
             is_deleted: data?.is_deleted || false,
             use_qdrant: data?.use_qdrant || false,
             qdrant_url: data?.qdrant_url || null,

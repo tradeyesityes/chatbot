@@ -34,6 +34,10 @@ export class AdminService {
         await this.updateUserSettings(userId, { is_enabled: enabled })
     }
 
+    static async toggleUserFreeze(userId: string, frozen: boolean): Promise<void> {
+        await this.updateUserSettings(userId, { is_frozen: frozen })
+    }
+
     static async deleteUser(userId: string): Promise<void> {
         // Soft delete: keep row but mark as deleted and disabled
         await this.updateUserSettings(userId, {

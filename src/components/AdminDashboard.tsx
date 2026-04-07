@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { AdminService, AdminUser } from '../services/adminService'
 import { SettingsService, UserSettings } from '../services/settingsService'
+import { supabase } from '../services/supabaseService'
 import { BotAvatar } from './BotAvatar'
 
 interface AdminDashboardProps {
@@ -20,10 +21,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     const [convMessages, setConvMessages] = useState<any[]>([])
     const [loadingSubData, setLoadingSubData] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+    const [currentUser, setCurrentUser] = useState<UserSettings | null>(null)
 
     useEffect(() => {
+        loadCurrentUser()
         loadUsers()
     }, [])
+
+    const loadCurrentUser = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const settings = await SettingsService.getSettings(user.id)
+                setCurrentUser(settings)
+            }
+        } catch (e) {
+            console.error('Failed to load current user settings:', e)
+        }
+    }
 
     const loadUsers = async () => {
         setLoading(true)
@@ -99,6 +114,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
             loadUsers()
         } catch (e: any) {
             setMessage({ type: 'error', text: 'فشل تحديث الحالة: ' + e.message })
+        }
+    }
+
+    const handleToggleFreeze = async (userId: string, currentFrozen: boolean) => {
+        try {
+            await AdminService.toggleUserFreeze(userId, !currentFrozen)
+            setMessage({ type: 'success', text: currentFrozen ? 'تم إلغاء تجميد الحساب' : 'تم تجميد الحساب بنجاح' })
+            loadUsers()
+        } catch (e: any) {
+            setMessage({ type: 'error', text: 'فشل تغيير حالة التجميد: ' + e.message })
         }
     }
 
@@ -194,20 +219,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                                 <div className="font-semibold text-slate-800 dark:text-white truncate max-w-[200px]" title={u.email || u.user_id}>
                                                     {u.email || u.user_id.substring(0, 8) + '...'}
                                                 </div>
-                                                <div className="text-xs text-slate-500">{u.is_admin ? 'مشرف' : 'عميل'}</div>
+                                                <div className="text-xs text-slate-500">
+                                                    {u.is_super_admin ? 'مدير عام (Super)' : u.is_admin ? 'مشرف' : 'عميل'}
+                                                </div>
                                             </div>
-                                            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 font-bold">
+                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold ${
+                                                u.is_super_admin ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+                                            }`}>
                                                 {u.user_id[0].toUpperCase()}
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 rtl:text-right">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${u.is_enabled
-                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                            : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
-                                            }`}>
-                                            {u.is_enabled ? 'نشط' : 'معطل'}
-                                        </span>
+                                        <div className="flex flex-col gap-1 items-end">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium ${u.is_enabled
+                                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30'
+                                                }`}>
+                                                {u.is_enabled ? 'نشط' : 'معطل'}
+                                            </span>
+                                            {u.is_frozen && (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800">
+                                                    ❄️ مجمد
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 rtl:text-right">
                                         <div className="flex gap-2 justify-end">
@@ -241,9 +276,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             <button
                                                 onClick={() => handleToggleStatus(u.user_id, u.is_enabled || false)}
                                                 className={`p-2 rounded-lg transition-colors ${u.is_enabled ? 'text-orange-600 hover:bg-orange-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                                                title={u.is_enabled ? 'تعطيل الحساب' : 'تفعيل الحساب'}
                                             >
-                                                {u.is_enabled ? 'تعطيل' : 'تفعيل'}
+                                                {u.is_enabled ? '🚫' : '✅'}
                                             </button>
+                                            {currentUser?.is_super_admin && (
+                                                <button
+                                                    onClick={() => handleToggleFreeze(u.user_id, u.is_frozen || false)}
+                                                    className={`p-2 rounded-lg transition-colors ${u.is_frozen ? 'text-blue-600 hover:bg-blue-50' : 'text-amber-600 hover:bg-amber-50'}`}
+                                                    title={u.is_frozen ? 'إلغاء التجميد' : 'تجميد الحساب'}
+                                                >
+                                                    {u.is_frozen ? '🔥' : '❄️'}
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => handleDeleteUser(u.user_id)}
                                                 className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
@@ -272,7 +317,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                         <form onSubmit={handleSaveSettings} className="p-6 overflow-y-auto max-h-[70vh]">
                             <div className="space-y-6">
                                 {/* Roles */}
-                                <div className="grid grid-cols-2 gap-4">
+                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <label className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl cursor-pointer">
                                         <input
                                             type="checkbox"
@@ -280,8 +325,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             onChange={e => setEditingUser({ ...editingUser, is_admin: e.target.checked })}
                                             className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                         />
-                                        <span className="text-sm font-semibold">مشرف نظام</span>
+                                        <span className="text-xs font-semibold">مشرف</span>
                                     </label>
+                                    {currentUser?.is_super_admin && (
+                                        <label className="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/50 rounded-2xl cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={editingUser.is_super_admin}
+                                                onChange={e => setEditingUser({ ...editingUser, is_super_admin: e.target.checked })}
+                                                className="w-5 h-5 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                                            />
+                                            <span className="text-xs font-semibold text-purple-700">مدير عام</span>
+                                        </label>
+                                    )}
                                     <label className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl cursor-pointer">
                                         <input
                                             type="checkbox"
@@ -289,8 +345,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             onChange={e => setEditingUser({ ...editingUser, is_enabled: e.target.checked })}
                                             className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                         />
-                                        <span className="text-sm font-semibold">حساب نشط</span>
+                                        <span className="text-xs font-semibold">نشط</span>
                                     </label>
+                                    {currentUser?.is_super_admin && (
+                                        <label className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/50 rounded-2xl cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={editingUser.is_frozen}
+                                                onChange={e => setEditingUser({ ...editingUser, is_frozen: e.target.checked })}
+                                                className="w-5 h-5 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                                            />
+                                            <span className="text-xs font-semibold text-amber-700">تجميد</span>
+                                        </label>
+                                    )}
                                 </div>
 
                                 {/* AI Config */}

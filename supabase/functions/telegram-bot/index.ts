@@ -92,28 +92,35 @@ serve(async (req: Request) => {
         let convId = null;
         try {
             const telegramKey = `telegram_${chatId}`
-            const { data: rpcConvId } = await supabase.rpc('get_or_create_whatsapp_conversation', {
+            const { data: rpcConvId, error: rpcError } = await supabase.rpc('get_or_create_whatsapp_conversation', {
                 p_user_id: userId,
                 p_phone: telegramKey,
                 p_title: `Telegram: ${senderName}`,
                 p_visitor_name: senderName,
                 p_source: 'telegram'
             })
+            
+            if (rpcError) {
+                console.error('RPC Conv Error:', rpcError);
+                await logDebug('RPC_ERROR', 'Failed to get/create conversation', { error: rpcError });
+            }
             convId = rpcConvId;
         } catch (e) {
             console.error('Conv Error:', e);
+            await logDebug('FATAL_CONV_ERROR', 'Exception in conversation logic', { error: String(e) });
         }
 
         // 3. Handover Logic
         if (convId) {
-            // Save user message asynchronously
-            supabase.rpc('save_whatsapp_message', {
+            // Save user message
+            const { error: saveError } = await supabase.rpc('save_whatsapp_message', {
                 p_user_id: userId,
                 p_conversation_id: convId,
                 p_role: 'user',
                 p_content: text,
                 p_source: 'telegram'
-            }).catch(() => {});
+            });
+            if (saveError) console.error('Save User Msg Error:', saveError);
 
             const { data: handoverData } = await supabase.rpc('process_handover_message', {
                 p_conversation_id: convId,
@@ -211,13 +218,14 @@ serve(async (req: Request) => {
                 body: JSON.stringify({ chat_id: chatId, text: aiResponse })
             });
 
-                supabase.rpc('save_whatsapp_message', {
+                const { error: asstSaveError } = await supabase.rpc('save_whatsapp_message', {
                     p_user_id: userId,
                     p_conversation_id: convId,
                     p_role: 'assistant',
                     p_content: aiResponse,
                     p_source: 'telegram'
-                }).catch(() => {});
+                });
+                if (asstSaveError) console.error('Save Asst Msg Error:', asstSaveError);
         }
 
         return new Response('OK', { status: 200 })
