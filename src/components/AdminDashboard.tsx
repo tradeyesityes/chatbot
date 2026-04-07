@@ -255,28 +255,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                         <div className="flex gap-2 justify-end">
                                             <button
                                                 onClick={() => handleViewFiles(u)}
-                                                className="px-3 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg hover:bg-amber-100 transition-colors"
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                                                    (u.is_super_admin && !currentUser?.is_super_admin) 
+                                                    ? 'text-slate-400 bg-slate-50 cursor-not-allowed' 
+                                                    : 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 hover:bg-amber-100'
+                                                }`}
+                                                disabled={u.is_super_admin && !currentUser?.is_super_admin}
                                             >
                                                 الملفات
                                             </button>
                                             <button
                                                 onClick={() => handleViewChats(u)}
-                                                className="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 transition-colors"
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                                                    (u.is_super_admin && !currentUser?.is_super_admin) 
+                                                    ? 'text-slate-400 bg-slate-50 cursor-not-allowed' 
+                                                    : 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100'
+                                                }`}
+                                                disabled={u.is_super_admin && !currentUser?.is_super_admin}
                                             >
                                                 الدردشات
                                             </button>
                                             <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 self-center" />
                                             <button
                                                 onClick={() => handleStartEdit(u)}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                disabled={loadingSubData}
+                                                className={`p-2 rounded-lg transition-colors ${
+                                                    (u.is_super_admin && !currentUser?.is_super_admin) 
+                                                    ? 'text-slate-300 cursor-not-allowed' 
+                                                    : 'text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                                }`}
+                                                disabled={loadingSubData || (u.is_super_admin && !currentUser?.is_super_admin)}
                                             >
                                                 {loadingSubData && editingUser?.user_id === u.user_id ? 'جاري...' : 'تعديل'}
                                             </button>
                                             <button
                                                 onClick={() => handleToggleStatus(u.user_id, u.is_enabled || false)}
-                                                className={`p-2 rounded-lg transition-colors ${u.is_enabled ? 'text-orange-600 hover:bg-orange-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                                                className={`p-2 rounded-lg transition-colors ${
+                                                    (u.is_super_admin && !currentUser?.is_super_admin) 
+                                                    ? 'text-slate-300 cursor-not-allowed' 
+                                                    : u.is_enabled ? 'text-orange-600 hover:bg-orange-50' : 'text-emerald-600 hover:bg-emerald-50'
+                                                }`}
                                                 title={u.is_enabled ? 'تعطيل الحساب' : 'تفعيل الحساب'}
+                                                disabled={u.is_super_admin && !currentUser?.is_super_admin}
                                             >
                                                 {u.is_enabled ? '🚫' : '✅'}
                                             </button>
@@ -291,7 +310,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                             )}
                                             <button
                                                 onClick={() => handleDeleteUser(u.user_id)}
-                                                className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                                                className={`p-2 rounded-lg transition-colors ${
+                                                    (u.is_super_admin && !currentUser?.is_super_admin) 
+                                                    ? 'text-slate-300 cursor-not-allowed' 
+                                                    : 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20'
+                                                }`}
+                                                disabled={u.is_super_admin && !currentUser?.is_super_admin}
                                             >
                                                 حذف
                                             </button>
