@@ -20,7 +20,15 @@ export class AdminService {
 
     static async updateUserSettings(userId: string, settings: any): Promise<void> {
         // Clone and remove fields that are not in the database table
-        const { email, user_id, is_deleted, ...updateData } = settings
+        const { 
+            email, 
+            user_id, 
+            is_deleted, 
+            created_at, 
+            updated_at, 
+            last_sign_in_at, 
+            ...updateData 
+        } = settings
 
         const { error } = await supabase
             .from('user_settings')
