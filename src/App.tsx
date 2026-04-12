@@ -3,6 +3,7 @@ import { Message, FileContext, User, Conversation } from './types'
 import { OpenAIService } from './services/openaiService'
 import { GeminiService } from './services/geminiService'
 import { OllamaService } from './services/ollamaService'
+import { MinimaxService } from './services/minimaxService'
 import { StorageService } from './services/storageService'
 import { ChatService } from './services/chatService'
 import { ChatMessage, FileUploader, FileList, ChatInput, Sidebar, Login, PublicChat, UpdatePassword, ThemeToggle, LandingPage, LegalPage, AdminDashboard, SettingsView, OnboardingWizard } from './components'
@@ -16,6 +17,7 @@ import { EmbeddingService } from './services/embeddingService'
 const openai = new OpenAIService()
 const gemini = new GeminiService()
 const ollama = new OllamaService()
+const minimax = new MinimaxService()
 
 export default function App() {
   // Initialize mode directly from URL to avoid flicker
@@ -303,8 +305,19 @@ export default function App() {
       const useOllama = userSettings?.use_remote_ollama || userSettings?.use_local_model;
       const useGemini = userSettings?.use_gemini;
       const useOpenAI = userSettings?.use_openai;
+      const useMinimax = userSettings?.use_minimax;
 
-      if (useOllama) {
+      if (useMinimax && userSettings?.minimax_api_key) {
+        // --- MiniMax Selection ---
+        const qSettings = {
+          use: userSettings?.use_qdrant || false,
+          url: userSettings?.qdrant_url || '',
+          key: userSettings?.qdrant_api_key || '',
+          collection: userSettings?.qdrant_collection || 'segments'
+        }
+        response = await minimax.generateResponse(input, messages, files, user?.plan, userSettings.minimax_api_key, undefined, user?.id, qSettings)
+
+      } else if (useOllama) {
         // --- Ollama Selection ---
         const defaultBaseUrl = 'http://localhost:11434'
         ollama.setBaseUrl(userSettings?.ollama_base_url || defaultBaseUrl)

@@ -46,6 +46,8 @@ export interface UserSettings {
     handover_keywords?: string[]
     slug?: string | null
     has_completed_onboarding?: boolean
+    use_minimax?: boolean
+    minimax_api_key?: string | null
 }
 
 export class SettingsService {
@@ -107,7 +109,9 @@ export class SettingsService {
             support_email: data?.support_email || null,
             handover_keywords: data?.handover_keywords || ['تواصل مع موظف', 'خدمة العملاء', 'talk to human', 'support', 'أريد التحدث مع موظف'],
             slug: data?.slug || null,
-            has_completed_onboarding: data?.has_completed_onboarding ?? false
+            has_completed_onboarding: data?.has_completed_onboarding ?? false,
+            use_minimax: data?.use_minimax || false,
+            minimax_api_key: data?.minimax_api_key || null
         }
 
         // If no row exists, or the default API key was missing, save it now so it persists

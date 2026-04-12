@@ -185,7 +185,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                  <input
                                      type="checkbox"
                                      checked={settings.use_gemini || false}
-                                     onChange={e => setSettings({ ...settings, use_gemini: e.target.checked, use_openai: false, use_local_model: false, use_remote_ollama: false })}
+                                     onChange={e => setSettings({ ...settings, use_gemini: e.target.checked, use_openai: false, use_local_model: false, use_remote_ollama: false, use_minimax: false })}
                                      className="sr-only peer"
                                  />
                                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
@@ -208,6 +208,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ userId, onSettingsUp
                                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
                                 />
                             </div>
+                        )}
+                    </div>
+
+                    {/* MiniMax M2.7 (NVIDIA) */}
+                    <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center justify-between mb-2">
+                             <div className="flex items-center gap-3">
+                                 <span className="text-lg">☄️</span>
+                                 <span className="text-sm font-bold">MiniMax M2.7 (NVIDIA)</span>
+                             </div>
+                             <label className="relative inline-flex items-center cursor-pointer">
+                                 <input
+                                     type="checkbox"
+                                     checked={settings.use_minimax || false}
+                                     onChange={e => setSettings({ ...settings, use_minimax: e.target.checked, use_openai: false, use_gemini: false, use_local_model: false, use_remote_ollama: false })}
+                                     className="sr-only peer"
+                                 />
+                                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+                             </label>
+                        </div>
+                        {settings.use_minimax && (
+                            <input
+                                type="password"
+                                value={settings.minimax_api_key || ''}
+                                onChange={e => setSettings({ ...settings, minimax_api_key: e.target.value })}
+                                placeholder="NVIDIA API Key (nvapi-...)"
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+                            />
                         )}
                     </div>
 
