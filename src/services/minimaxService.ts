@@ -3,7 +3,7 @@ import { EmbeddingService } from './embeddingService';
 
 export class MinimaxService {
   private getModel() {
-    return 'minimax/minimax-m2.7';
+    return 'minimax-m2.7';
   }
 
   private estimateTokens(text: string): number {
