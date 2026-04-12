@@ -3,7 +3,7 @@ import { EmbeddingService } from './embeddingService';
 
 export class MinimaxService {
   private getModel() {
-    return 'minimax-m2.7';
+    return 'minimaxai/minimax-m2.7';
   }
 
   private estimateTokens(text: string): number {
@@ -55,8 +55,10 @@ export class MinimaxService {
     userId?: string, 
     qSettings?: { use: boolean, url: string, key: string, collection: string }
   ): Promise<string> {
-    const apiKey = customApiKey;
-    if (!apiKey) return '⚠️ خطأ: مفتاح NVIDIA API غير موجود.';
+    // Sanitize API Key: remove spaces and non-ASCII characters (fixes ByteString error)
+    const apiKey = customApiKey?.trim().replace(/[^\x00-\x7F]/g, "");
+    
+    if (!apiKey) return '⚠️ خطأ: مفتاح NVIDIA API غير موجود أو يحتوي على رموز غير صالحة.';
 
     if (!contextFiles || contextFiles.length === 0) return 'عذراً، لا توجد ملفات في قاعدة المعرفة.';
 
