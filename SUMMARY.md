@@ -12,8 +12,8 @@ KB Chatbot v2 is a premium, modular knowledge base platform. It enables business
 
 ### Key Statistics
 - **Messaging Channels**: 3 (Web, WhatsApp, Telegram)
-- **AI Providers**: 4 (OpenAI, Gemini, Ollama, MiniMax)
-- **Database**: Supabase with Vector Search (pgvector)
+- **AI Providers**: 3 (OpenAI, Gemini, Ollama)
+- **Communication Channels**: 4 (Web, WhatsApp, Telegram, Human Handover)
 - **Security**: Hardened RLS and Super Admin triggers
 - **Build Status**: Stable
 
@@ -47,7 +47,8 @@ kbchatbot-v2/
 
 ### 🔹 AI & Knowledge Base
 - **Hybrid Retrieval**: Fallback mechanism if vector search returns insufficient data.
-- **Multi-Model Support**: Integrated Gemini 1.5 Flash, local Ollama, and MiniMax M2.7 (NVIDIA NIM).
+- **Google Gemini**: Support for Pro/Flash models.
+- **Ollama**: Support for local LLMs (Gemma, Llama, etc.) and Remote Ollama.
 - **Vector Search**: pgvector powered retrieval for semantic accuracy.
 
 ### 🔹 Security & Admin

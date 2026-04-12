@@ -43,11 +43,6 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/supabase/, ''),
       },
-      '/api/nvidia': {
-        target: 'https://integrate.api.nvidia.com/v1',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/nvidia/, ''),
-      },
     },
   }
 });

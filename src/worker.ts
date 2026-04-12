@@ -27,13 +27,6 @@ export default {
       return forwardRequest(request, targetUrl);
     }
 
-    // Proxy for NVIDIA
-    if (path.startsWith('/api/nvidia/')) {
-      const targetUrl = 'https://integrate.api.nvidia.com/v1' + path.replace('/api/nvidia', '') + url.search;
-      console.log(`[Worker] Proxying to NVIDIA: ${targetUrl}`);
-      return forwardRequest(request, targetUrl);
-    }
-
     // Default: Serve static assets from the [assets] directory
     // In a Worker with [assets], env.ASSETS is the binding to the asset server
     if (env.ASSETS) {

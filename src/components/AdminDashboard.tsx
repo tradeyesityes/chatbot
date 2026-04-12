@@ -238,7 +238,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                         <div className="flex gap-2 justify-end">
                                             {u.use_openai && <span className="px-2 py-1 bg-green-50 dark:bg-green-900/20 text-green-600 text-[10px] rounded border border-green-100">OpenAI</span>}
                                             {u.use_gemini && <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-[10px] rounded border border-blue-100">Gemini</span>}
-                                            {u.use_minimax && <span className="px-2 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-600 text-[10px] rounded border border-orange-100">MiniMax</span>}
                                             {u.use_local_model && <span className="px-2 py-1 bg-slate-50 dark:bg-slate-900 text-slate-600 text-[10px] rounded border border-slate-700">Ollama</span>}
                                         </div>
                                     </td>
@@ -438,38 +437,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                                                     />
                                                     <p className="text-[10px] text-slate-400 text-right italic">أمثلة: gemini-1.5-pro, gemini-2.0-flash</p>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* MiniMax Section */}
-                                    <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={editingUser.use_minimax}
-                                                    onChange={e => setEditingUser({ ...editingUser, use_minimax: e.target.checked })}
-                                                />
-                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
-                                            </label>
-                                            <span className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                                MiniMax M2.7 (NVIDIA)
-                                                <span className="text-[10px] bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-normal">NVIDIA NIM</span>
-                                            </span>
-                                        </div>
-                                        {editingUser.use_minimax && (
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-semibold text-slate-500 block text-right">API Key (NVIDIA)</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="nvapi-..."
-                                                    className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                                                    value={editingUser.minimax_api_key || ''}
-                                                    onChange={e => setEditingUser({ ...editingUser, minimax_api_key: e.target.value })}
-                                                />
-                                                <p className="text-[10px] text-slate-400 text-right italic">احصل عليه من build.nvidia.com</p>
                                             </div>
                                         )}
                                     </div>
